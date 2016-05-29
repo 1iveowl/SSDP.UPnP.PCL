@@ -36,10 +36,11 @@
   <ItemGroup>
     <Compile Include="Helper\OperatingSystem.cs" />
     <Compile Include="Model\MSearch.cs" />
+    <Compile Include="Model\MSearchResponse.cs" />
     <Compile Include="Model\Notify.cs" />
     <Compile Include="Model\UserAgent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Service\AdvertisementListener.cs" />
+    <Compile Include="Service\AdvertisementHandler.cs" />
     <Compile Include="Service\MSearchPublisher.cs" />
   </ItemGroup>
   <ItemGroup />
@@ -51,23 +52,23 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="HttpMachine, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\HttpMachine.PCL.1.0.2\lib\portable-net45+netcore45\HttpMachine.dll</HintPath>
+      <HintPath>packages\HttpMachine.PCL.1.0.3\lib\portable-net45+netcore45\HttpMachine.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="ISimpleHttpServer, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\SimpleHttpListener.1.0.12\lib\portable-net45+netcore45\ISimpleHttpServer.dll</HintPath>
+      <HintPath>packages\SimpleHttpListener.1.0.19\lib\portable-net45+netcore45\ISimpleHttpServer.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="ISocketLite.PCL, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\SocketLite.PCL.1.0.4\lib\portable-net45+netcore45\ISocketLite.PCL.dll</HintPath>
+      <HintPath>packages\SocketLite.PCL.1.0.9\lib\portable-net45+netcore45\ISocketLite.PCL.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="SimpleHttpServer, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\SimpleHttpListener.1.0.12\lib\portable-net45+netcore45\SimpleHttpServer.dll</HintPath>
+      <HintPath>packages\SimpleHttpListener.1.0.19\lib\portable-net45+netcore45\SimpleHttpServer.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="SocketLite, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\SocketLite.PCL.1.0.4\lib\portable-net45+netcore45\SocketLite.dll</HintPath>
+      <HintPath>packages\SocketLite.PCL.1.0.9\lib\portable-net45+netcore45\SocketLite.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System.Reactive.Core, Version=2.2.5.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">

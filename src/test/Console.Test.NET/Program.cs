@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ISDPP.UPnP.PCL.Interfaces.Model;
+using ISDPP.UPnP.PCL.Interfaces.Service;
 using SDPP.Console.Test.NET.Model;
 using SDPP.UPnP.PCL.Service;
 using Console = System.Console;
@@ -11,15 +13,16 @@ namespace SDPP.Console.Test.NET
 {
     class Program
     {
+        private static readonly IAdvertisementHandler AdvertisementHandler = new AdvertisementHandler();
         static void Main(string[] args)
         {
             StartAdvertisementListener();
-            StartMSearchMulticast();
+
 
             System.Console.ReadKey();
         }
 
-        private static async void StartMSearchMulticast()
+        private static async Task StartMSearchMulticast()
         {
             var mSearchPublisher = new MSearchPublisher();
             var mSearchMessage = new MSearch
@@ -30,12 +33,12 @@ namespace SDPP.Console.Test.NET
                 MX = 1,
                 SdppHeaders = new Dictionary<string, string>
                 {
-                    {"abc", "123"},
-                    {"cde", "345"}
+                    //{"abc", "123"},
+                    //{"cde", "345"}
                 },
                 IsMulticast = true,
                 
-                ST = "upnp:rootdevice",
+                ST = "ssdp:all",
                 UserAgent = new UserAgent
                 {
                     OperatingSystem = "UWP",
@@ -44,14 +47,16 @@ namespace SDPP.Console.Test.NET
                     ProductVersion = "0.9"
                 }
             };
-            await mSearchPublisher.SendMulticast(mSearchMessage);
+            await AdvertisementHandler.SendMulticast(mSearchMessage);
+            
+            //await mSearchPublisher.SendMulticast(mSearchMessage);
         }
 
-        private static  async void StartAdvertisementListener()
+        private static async void StartAdvertisementListener()
         {
-            var advertisementListener = new AdvertisementListener();
+            
 
-            var notifySubscribe = advertisementListener.NotifyObservable.Subscribe(
+            var notifySubscribe = AdvertisementHandler.NotifyObservable.Subscribe(
                 n =>
                 {
                     System.Console.WriteLine($"NOTIFY");
@@ -60,14 +65,62 @@ namespace SDPP.Console.Test.NET
                     System.Console.WriteLine($"--**--");
                 });
 
-           
-            await advertisementListener.Start();
+            var responseSubscribe = AdvertisementHandler
+                .MSearchResponseObservable
+                .Subscribe(
+                r =>
+                {
+                    System.Console.WriteLine($"Response");
+                    System.Console.WriteLine($"Status code: {r.StatusCode}");
+                    System.Console.WriteLine($"Response reason: {r.ResponseReason}");
+                    System.Console.WriteLine($"--**--");
+                });
 
+           
+            await AdvertisementHandler.Start();
+            await StartMSearchMulticast();
         }
 
         private static async void StartUnicastListener()
         {
             
+        }
+
+        private byte[] ComposeMSearchDatagram(IMSearch mSearch)
+        {
+            var stringBuilder = new StringBuilder();
+
+            stringBuilder.Append("M-SEARCH * HTTP/1.1\r\n");
+            stringBuilder.Append(mSearch.IsMulticast
+                ? "HOST: 239.255.255.250:1900\r\n"
+                : $"HOST: {mSearch.HostIp}:{mSearch.HostPort}\r\n");
+            stringBuilder.Append("MAN: \"ssdp:discover\"\r\n");
+
+            if (mSearch.IsMulticast)
+            {
+                stringBuilder.Append($"MX: {mSearch.MX}\r\n");
+            }
+            stringBuilder.Append($"ST: {mSearch.ST}\r\n");
+            stringBuilder.Append($"USER-AGENT: {mSearch.UserAgent.OperatingSystem}/" +
+                                 $"{mSearch.UserAgent.OperatingSystemVersion}/" +
+                                 $" " +
+                                 $"UPnP/2.0" +
+                                 $" " +
+                                 $"{mSearch.UserAgent.ProductName}/" +
+                                 $"{mSearch.UserAgent.ProductVersion}\r\n");
+
+            if (mSearch.IsMulticast)
+            {
+                stringBuilder.Append($"CPFN.UPNP.ORG: {mSearch.ControlPointFriendlyName}\r\n");
+                stringBuilder.Append($"TCPPORT.UPNP.ORG:50000\r\n");
+                foreach (var header in mSearch.SdppHeaders)
+                {
+                    stringBuilder.Append($"{header.Key}: {header.Value}\r\n");
+                }
+            }
+
+            stringBuilder.Append("\r\n");
+            return Encoding.UTF8.GetBytes(stringBuilder.ToString());
         }
     }
 }

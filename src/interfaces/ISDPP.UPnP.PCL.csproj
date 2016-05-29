@@ -40,10 +40,11 @@
     <Compile Include="Interfaces\Model\IHeader.cs" />
     <Compile Include="Interfaces\Model\IHost.cs" />
     <Compile Include="Interfaces\Model\IMSearch.cs" />
+    <Compile Include="Interfaces\Model\IMSearchResponse.cs" />
     <Compile Include="Interfaces\Model\INotify.cs" />
     <Compile Include="Interfaces\Model\IUserAgent.cs" />
     <Compile Include="Interfaces\Service\IAdvertisementPublisher.cs" />
-    <Compile Include="Interfaces\Service\IAdvertisementListener.cs" />
+    <Compile Include="Interfaces\Service\IAdvertisementHandler.cs" />
     <Compile Include="Interfaces\Service\IMSearchPublisher.cs" />
     <Compile Include="Interfaces\Service\ISearchResponseListener.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

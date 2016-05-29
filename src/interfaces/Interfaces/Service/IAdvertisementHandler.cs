@@ -7,10 +7,13 @@ using ISDPP.UPnP.PCL.Interfaces.Model;
 
 namespace ISDPP.UPnP.PCL.Interfaces.Service
 {
-    public interface IAdvertisementListener
+    public interface IAdvertisementHandler
     {
-        IObservable<INotify> NotifyObservable { get; } 
+        IObservable<INotify> NotifyObservable { get; }
+        IObservable<IMSearchResponse> MSearchResponseObservable { get; }
         Task Start();
         void Stop();
+
+        Task SendMulticast(IMSearch mSearch);
     }
 }
