@@ -37,8 +37,23 @@ namespace SDPP.UPnP.PCL.Service
             .Select(response => new MSearchResponse
             {
                 StatusCode = response.StatusCode,
-                ResponseReason = response.ResponseReason
+                ResponseReason = response.ResponseReason,
+                CacheControl = GetMaxAge(response.Headers["CACHE-CONTROL"]),
+                Server = response.Headers["SERVER"]
             });
+
+        private int GetMaxAge(string str)
+        {
+            var stringArray = str.Trim().Split('=');
+            var maxAgeStr = stringArray[1];
+
+            var maxAge = 0;
+            if (maxAgeStr != null)
+            {
+                int.TryParse(maxAgeStr, out maxAge);
+            }
+            return maxAge;
+        }
 
         public AdvertisementHandler()
         {

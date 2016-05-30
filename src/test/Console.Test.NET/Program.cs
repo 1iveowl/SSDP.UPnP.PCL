@@ -73,6 +73,8 @@ namespace SDPP.Console.Test.NET
                     System.Console.WriteLine($"Response");
                     System.Console.WriteLine($"Status code: {r.StatusCode}");
                     System.Console.WriteLine($"Response reason: {r.ResponseReason}");
+                    System.Console.WriteLine($"Cache-Control: max-age = {r.CacheControl}");
+                    System.Console.WriteLine($"Server: {r.Server}");
                     System.Console.WriteLine($"--**--");
                 });
 
