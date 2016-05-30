@@ -16,6 +16,7 @@ namespace SDPP.UPnP.PCL.Service
         public IObservable<INotify> NotifyObservable =>
             _httpListener
                 .HttpRequestObservable
+                .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
                 .Where(req => req.Method == "NOTIFY")
                 .Select(req => new Notify(req));
 
