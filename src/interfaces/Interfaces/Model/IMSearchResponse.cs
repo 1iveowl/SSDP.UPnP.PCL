@@ -10,7 +10,7 @@ namespace ISDPP.UPnP.PCL.Interfaces.Model
     {
         int StatusCode { get; }
         string ResponseReason { get; }
-        int CacheControl { get; }
+        TimeSpan CacheControl { get; }
         DateTime Date { get; }
         Uri Location { get; }
         bool Ext { get; }

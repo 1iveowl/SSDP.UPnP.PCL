@@ -8,7 +8,7 @@ namespace ISDPP.UPnP.PCL.Interfaces.Model
 {
     public interface IMSearch : IHost, IHeader
     {
-        bool IsMulticast { get; }
+        SearchCastMethod SearchCastMethod { get; }
         int MX { get; }
         string ST { get; }
 

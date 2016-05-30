@@ -43,8 +43,9 @@
     <Compile Include="Interfaces\Model\IMSearchResponse.cs" />
     <Compile Include="Interfaces\Model\INotify.cs" />
     <Compile Include="Interfaces\Model\IUserAgent.cs" />
-    <Compile Include="Interfaces\Service\IControlPointHandler.cs" />
-    <Compile Include="Interfaces\Service\IDeviceHandler.cs" />
+    <Compile Include="Interfaces\Model\SearchMethod.cs" />
+    <Compile Include="Interfaces\Service\IControlPoint.cs" />
+    <Compile Include="Interfaces\Service\IDevice.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />

@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ISDPP.UPnP.PCL.Interfaces.Model;
 using ISimpleHttpServer.Model;
+using static SDPP.UPnP.PCL.Helper.Convert;
 
 namespace SDPP.UPnP.PCL.Model
 {
@@ -12,19 +13,29 @@ namespace SDPP.UPnP.PCL.Model
     {
         public string HostIp { get; }
         public int HostPort { get;  }
-        public TimeSpan CacheControl { get; internal set; }
-        public string Location { get; internal set; }
-        public string NotificationType { get; internal set; }
-        public string NotificationSubType { get; internal set; }
-        public string Server { get; internal set; }
-        public string UniqueServiceName { get; internal set; }
-        public bool IsUuidUpnp2Compliant { get; internal set; }
-        public IDictionary<string, string> SdppHeaders { get; internal set; }
+        public TimeSpan CacheControl { get; }
+        public Uri Location { get; }
+        public string NotificationType { get; }
+        public string NotificationSubType { get; }
+        public string Server { get;}
+        public string UniqueServiceName { get;}
+        public bool IsUuidUpnp2Compliant { get; }
+        public IDictionary<string, string> SdppHeaders { get; }
 
         internal Notify(IHttpRequest request)
         {
             HostIp = request.RemoteAddress;
             HostPort = request.RemotePort;
+            CacheControl = TimeSpan.FromSeconds(GetMaxAge(request.Headers));
+            Location = UrlToUri(GetHeaderValue(request.Headers, "LOCATION"));
+            NotificationType = GetHeaderValue(request.Headers, "NT");
+            NotificationSubType = GetHeaderValue(request.Headers, "NTS");
+            Server = GetHeaderValue(request.Headers, "SERVER");
+            UniqueServiceName = GetHeaderValue(request.Headers, "USN");
+            SdppHeaders = request.Headers;
+
+            Guid guid;
+            IsUuidUpnp2Compliant = Guid.TryParse(UniqueServiceName, out guid);
         }
     }
 }

@@ -7,10 +7,10 @@ using ISDPP.UPnP.PCL.Interfaces.Model;
 
 namespace ISDPP.UPnP.PCL.Interfaces.Service
 {
-    public interface IDeviceHandler
+    public interface IDevice
     {
-        Task SendUnicast(IMSearch mSearch);
+        //Task SendUnicast(IMSearch mSearch);
 
-        Task SendMulticast(IMSearch mSearch);
+        //Task SendMulticast(IMSearch mSearch);
     }
 }

@@ -9,6 +9,12 @@ namespace ISDPP.UPnP.PCL.Interfaces.Model
 {
     public interface INotify : IHost, IHeader
     {
-        TimeSpan CacheControl { get; }
+        TimeSpan CacheControl { get;}
+        Uri Location { get; }
+        string NotificationType { get;}
+        string NotificationSubType { get; }
+        string Server { get; }
+        string UniqueServiceName { get; }
+        bool IsUuidUpnp2Compliant { get; }
     }
 }

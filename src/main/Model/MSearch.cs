@@ -9,7 +9,7 @@ namespace SDPP.UPnP.PCL.Model
 {
     internal class MSearch : IMSearch
     {
-        public bool IsMulticast { get; internal set; }
+        public SearchCastMethod SearchCastMethod { get; internal set; }
         public string HostIp { get; internal set; }
         public int HostPort { get; internal set; }
         public IDictionary<string, string> SdppHeaders { get; internal set; }
