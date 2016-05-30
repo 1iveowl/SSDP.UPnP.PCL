@@ -25,19 +25,6 @@ namespace SDPP.UPnP.PCL.Service
             .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
             .Select(response => new MSearchResponse(response));
 
-        private int GetMaxAge(string str)
-        {
-            var stringArray = str.Trim().Split('=');
-            var maxAgeStr = stringArray[1];
-
-            var maxAge = 0;
-            if (maxAgeStr != null)
-            {
-                int.TryParse(maxAgeStr, out maxAge);
-            }
-            return maxAge;
-        }
-
         public ControlPoint(IHttpListener httpListener)
         {
             _httpListener = httpListener;
