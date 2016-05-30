@@ -7,9 +7,12 @@ using ISDPP.UPnP.PCL.Interfaces.Model;
 
 namespace ISDPP.UPnP.PCL.Interfaces.Service
 {
-    public interface IMSearchPublisher
+    public interface IControlPointHandler
     {
-        Task SendUnicast(IMSearch mSearch);
+        IObservable<INotify> NotifyObservable { get; }
+        IObservable<IMSearchResponse> MSearchResponseObservable { get; }
+        Task Start();
+        void Stop();
 
         Task SendMulticast(IMSearch mSearch);
     }

@@ -12,7 +12,7 @@ using SocketLite.Services;
 
 namespace SDPP.UPnP.PCL.Service
 {
-    public class MSearchPublisher : IMSearchPublisher
+    public class DeviceHandler : IDeviceHandler
     {
         private readonly IUdpSocketMulticastClient _udpMulticastSocketClient = new UdpSocketMulticastClient();
         private readonly IUdpSocketClient _udpSocketClient = new UdpSocketClient();

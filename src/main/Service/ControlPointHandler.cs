@@ -15,20 +15,15 @@ using SocketLite.Model;
 
 namespace SDPP.UPnP.PCL.Service
 {
-    public class AdvertisementHandler : IAdvertisementHandler
+    public class ControlPointHandler : IControlPointHandler
     {
         private readonly HttpListener _httpListener;
 
-        public IObservable<INotify> NotifyObservable => 
+        public IObservable<INotify> NotifyObservable =>
             _httpListener
-            .HttpRequestObservable
-            .Where(req => req.Method == "NOTIFY")
-            .Select(req => new Notify
-            {
-                HostIp = GetHostIp(req.Headers["HOST"]),
-                HostPort = int.Parse(GetHostPort(req.Headers["HOST"])),
-
-            });
+                .HttpRequestObservable
+                .Where(req => req.Method == "NOTIFY")
+                .Select(req => new Notify(req));
 
         public IObservable<IMSearchResponse> MSearchResponseObservable => 
             _httpListener
@@ -55,7 +50,7 @@ namespace SDPP.UPnP.PCL.Service
             return maxAge;
         }
 
-        public AdvertisementHandler()
+        public ControlPointHandler()
         {
             _httpListener = new HttpListener(TimeSpan.FromSeconds(30));
         }

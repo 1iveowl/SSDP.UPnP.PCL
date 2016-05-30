@@ -13,7 +13,7 @@ namespace SDPP.Console.Test.NET
 {
     class Program
     {
-        private static readonly IAdvertisementHandler AdvertisementHandler = new AdvertisementHandler();
+        private static readonly IControlPointHandler ControlPointHandler = new ControlPointHandler();
         static void Main(string[] args)
         {
             StartAdvertisementListener();
@@ -24,7 +24,7 @@ namespace SDPP.Console.Test.NET
 
         private static async Task StartMSearchMulticast()
         {
-            var mSearchPublisher = new MSearchPublisher();
+            var mSearchPublisher = new DeviceHandler();
             var mSearchMessage = new MSearch
             {
                 ControlPointFriendlyName = "TestXamarin",
@@ -47,7 +47,7 @@ namespace SDPP.Console.Test.NET
                     ProductVersion = "0.9"
                 }
             };
-            await AdvertisementHandler.SendMulticast(mSearchMessage);
+            await ControlPointHandler.SendMulticast(mSearchMessage);
             
             //await mSearchPublisher.SendMulticast(mSearchMessage);
         }
@@ -56,7 +56,7 @@ namespace SDPP.Console.Test.NET
         {
             
 
-            var notifySubscribe = AdvertisementHandler.NotifyObservable.Subscribe(
+            var notifySubscribe = ControlPointHandler.NotifyObservable.Subscribe(
                 n =>
                 {
                     System.Console.WriteLine($"NOTIFY");
@@ -65,7 +65,7 @@ namespace SDPP.Console.Test.NET
                     System.Console.WriteLine($"--**--");
                 });
 
-            var responseSubscribe = AdvertisementHandler
+            var responseSubscribe = ControlPointHandler
                 .MSearchResponseObservable
                 .Subscribe(
                 r =>
@@ -79,7 +79,7 @@ namespace SDPP.Console.Test.NET
                 });
 
            
-            await AdvertisementHandler.Start();
+            await ControlPointHandler.Start();
             await StartMSearchMulticast();
         }
 

@@ -34,14 +34,15 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Helper\Convert.cs" />
     <Compile Include="Helper\OperatingSystem.cs" />
     <Compile Include="Model\MSearch.cs" />
     <Compile Include="Model\MSearchResponse.cs" />
     <Compile Include="Model\Notify.cs" />
     <Compile Include="Model\UserAgent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Service\AdvertisementHandler.cs" />
-    <Compile Include="Service\MSearchPublisher.cs" />
+    <Compile Include="Service\ControlPointHandler.cs" />
+    <Compile Include="Service\DeviceHandler.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
