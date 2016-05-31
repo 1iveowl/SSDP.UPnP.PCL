@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,6 +15,10 @@ namespace ISDPP.UPnP.PCL.Interfaces.Model
         TimeSpan CacheControl { get;}
         Uri Location { get; }
         string NT { get;}
+        string SID { get;}
+        string SVCID { get; }
+        string SEQ { get; }
+        string LVL { get; }
         NTS NTS { get; }
         IServer Server { get; }
         string USN { get; }
@@ -23,5 +28,6 @@ namespace ISDPP.UPnP.PCL.Interfaces.Model
         string NEXTBOOTID { get; }
         string SECURELOCATION { get; }
         bool IsUuidUpnp2Compliant { get; }
+        MemoryStream Data { get; }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using ISDPP.UPnP.PCL.Enum;
 using ISDPP.UPnP.PCL.Interfaces.Model;
 using ISimpleHttpServer.Model;
@@ -17,9 +18,14 @@ namespace SDPP.UPnP.PCL.Model
         public TimeSpan CacheControl { get; }
         public Uri Location { get; }
         public string NT { get; }
+        public string SID { get; }
+        public string SVCID { get; }
+        public string SEQ { get; }
+        public string LVL { get; }
         public NTS NTS { get; }
         public IServer Server { get;}
         public string USN { get;}
+
         public string BOOTID { get; }
         public string CONFIGID { get; }
         public string SEARCHPORT { get; }
@@ -27,6 +33,7 @@ namespace SDPP.UPnP.PCL.Model
         public string SECURELOCATION { get; }
         public bool IsUuidUpnp2Compliant { get; }
         public IDictionary<string, string> Headers { get; }
+        public MemoryStream Data { get; }
 
         internal Notify(IHttpRequest request)
         {
@@ -41,6 +48,10 @@ namespace SDPP.UPnP.PCL.Model
                 NTS = ConvertToNotificationSubTypeEnum(GetHeaderValue(request.Headers, "NTS"));
                 Server = ConvertToServer(GetHeaderValue(request.Headers, "SERVER"));
                 USN = GetHeaderValue(request.Headers, "USN");
+                SID = GetHeaderValue(request.Headers, "SID");
+                SVCID = GetHeaderValue(request.Headers, "SVCID");
+                SEQ = GetHeaderValue(request.Headers, "SEQ");
+                LVL = GetHeaderValue(request.Headers, "LVL");
 
                 BOOTID = GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG");
                 CONFIGID = GetHeaderValue(request.Headers, "CONFIGID.UPNP.ORG");
@@ -51,29 +62,19 @@ namespace SDPP.UPnP.PCL.Model
                 Headers = SingleOutAdditionalHeaders(new List<string>
                 {
                     "HOST", "CACHE-CONTROL", "LOCATION", "NT", "NTS", "SERVER", "USN",
-                    "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG",
+                    "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG", "SID", "SVCID", "SEQ", "LVL",
                     "SEARCHPORT.UPNP.ORG", "NEXTBOOTID.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
                 }, request.Headers);
+
+                Data = request.Body;
             }
             catch (Exception)
             {
                 InvalidRequest = true;
             }
-            
 
             Guid guid;
             IsUuidUpnp2Compliant = Guid.TryParse(USN, out guid);
-        }
-
-        private static NTS ConvertToNotificationSubTypeEnum(string str)
-        {
-            switch (str.ToLower())
-            {
-                case "sspd.alive": return NTS.Alive;
-                case "ssdp.byebye": return NTS.ByeBye;
-                case "ssdp.update": return NTS.Update;
-                default: return NTS.Unknown;
-            }
         }
     }
 }

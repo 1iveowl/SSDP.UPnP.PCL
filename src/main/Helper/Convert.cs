@@ -155,5 +155,16 @@ namespace SDPP.UPnP.PCL.Helper
                 default: return CastMethod.NoCast;
             }
         }
+
+        internal static NTS ConvertToNotificationSubTypeEnum(string str)
+        {
+            switch (str.ToLower())
+            {
+                case "sspd.alive": return NTS.Alive;
+                case "ssdp.byebye": return NTS.ByeBye;
+                case "ssdp.update": return NTS.Update;
+                default: return NTS.Unknown;
+            }
+        }
     }
 }

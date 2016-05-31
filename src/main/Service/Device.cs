@@ -57,7 +57,7 @@ namespace SDPP.UPnP.PCL.Service
             }
         }
 
-        private byte[] ComposeMSearchResponseDatagram(IMSearchResponse response)
+        private static byte[] ComposeMSearchResponseDatagram(IMSearchResponse response)
         {
             var stringBuilder = new StringBuilder();
 
@@ -92,7 +92,7 @@ namespace SDPP.UPnP.PCL.Service
             return Encoding.UTF8.GetBytes(stringBuilder.ToString());
         }
 
-        private byte[] ComposeNotifyDatagram(INotify notify)
+        private static byte[] ComposeNotifyDatagram(INotify notify)
         {
             var stringBuilder = new StringBuilder();
 
@@ -144,7 +144,7 @@ namespace SDPP.UPnP.PCL.Service
                 AddOptionalHeader(stringBuilder, "SECURELOCATION.UPNP.ORG", notify.SECURELOCATION);
             }
 
-            // Adding additional vendor specific headers if they exist.
+            // Adding additional vendor specific headers if such are specified
             foreach (var header in notify.Headers)
             {
                 stringBuilder.Append($"{header.Key}: {header.Value}\r\n");

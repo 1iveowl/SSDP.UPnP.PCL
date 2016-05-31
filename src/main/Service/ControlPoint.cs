@@ -18,10 +18,10 @@ namespace SDPP.UPnP.PCL.Service
 
         public IObservable<INotify> NotifyObservable =>
             _httpListener
-                .HttpRequestObservable
-                .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
-                .Where(req => req.Method == "NOTIFY")
-                .Select(req => new Notify(req));
+            .HttpRequestObservable
+            .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
+            .Where(req => req.Method == "NOTIFY")
+            .Select(req => new Notify(req));
 
         public IObservable<IMSearchResponse> MSearchResponseObservable =>
             _httpListener
@@ -45,10 +45,9 @@ namespace SDPP.UPnP.PCL.Service
             {
                 await SendOnTcp(mSearch.HostIp, mSearch.HostPort, ComposeMSearchDatagram(mSearch));
             }
-            
         }
 
-        private byte[] ComposeMSearchDatagram(IMSearchRequest request)
+        private static byte[] ComposeMSearchDatagram(IMSearchRequest request)
         {
             var stringBuilder = new StringBuilder();
 
