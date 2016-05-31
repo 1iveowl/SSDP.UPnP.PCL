@@ -103,6 +103,10 @@ namespace SDPP.Console.Test.NET
                                              $" - ({n.Server.FullString})");
                     System.Console.WriteLine($"NT: {n.NT}");
                     System.Console.WriteLine($"NTS: {n.NTS}");
+                    System.Console.WriteLine($"SIC: {n.SID}");
+                    System.Console.WriteLine($"SVCID: {n.SVCID}");
+                    System.Console.WriteLine($"SEQ: {n.SEQ}");
+                    System.Console.WriteLine($"LVL: {n.LVL}");
                     System.Console.WriteLine($"USN: {n.USN}");
                     System.Console.WriteLine($"BOOTID: {n.BOOTID}");
                     System.Console.WriteLine($"CONFIGID: {n.CONFIGID}");
