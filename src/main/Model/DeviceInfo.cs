@@ -5,9 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 using ISDPP.UPnP.PCL.Interfaces.Model;
 
-namespace SDPP.Console.Test.NET.Model
+namespace SDPP.UPnP.PCL.Model
 {
-    internal class UserAgent : IUserAgent
+    public class DeviceInfo : IDeviceInfo
     {
         public string FullString { get; internal set; }
         public string OperatingSystem { get; internal set; }

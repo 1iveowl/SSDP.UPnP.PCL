@@ -6,8 +6,7 @@ using System.Threading.Tasks;
 
 namespace ISDPP.UPnP.PCL.Interfaces.Model
 {
-    public interface IUserAgent : IDeviceInfo
+    public interface IServer : IDeviceInfo
     {
-       
     }
 }

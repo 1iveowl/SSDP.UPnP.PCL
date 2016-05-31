@@ -1,41 +1,79 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using ISDPP.UPnP.PCL.Enum;
 using ISDPP.UPnP.PCL.Interfaces.Model;
 using ISimpleHttpServer.Model;
+using SDPP.UPnP.PCL.Model.Base;
 using static SDPP.UPnP.PCL.Helper.Convert;
+using static SDPP.UPnP.PCL.Helper.HeaderHelper;
 
 namespace SDPP.UPnP.PCL.Model
 {
-    internal class Notify : INotify
+    internal class Notify : ParserErrorBase, INotify
     {
         public string HostIp { get; }
         public int HostPort { get;  }
+        public CastMethod NotifyCastMethod { get; } = CastMethod.NoCast;
         public TimeSpan CacheControl { get; }
         public Uri Location { get; }
-        public string NotificationType { get; }
-        public string NotificationSubType { get; }
-        public string Server { get;}
-        public string UniqueServiceName { get;}
+        public string NT { get; }
+        public NTS NTS { get; }
+        public IServer Server { get;}
+        public string USN { get;}
+        public string BOOTID { get; }
+        public string CONFIGID { get; }
+        public string SEARCHPORT { get; }
+        public string NEXTBOOTID { get; }
+        public string SECURELOCATION { get; }
         public bool IsUuidUpnp2Compliant { get; }
-        public IDictionary<string, string> SdppHeaders { get; }
+        public IDictionary<string, string> Headers { get; }
 
         internal Notify(IHttpRequest request)
         {
-            HostIp = request.RemoteAddress;
-            HostPort = request.RemotePort;
-            CacheControl = TimeSpan.FromSeconds(GetMaxAge(request.Headers));
-            Location = UrlToUri(GetHeaderValue(request.Headers, "LOCATION"));
-            NotificationType = GetHeaderValue(request.Headers, "NT");
-            NotificationSubType = GetHeaderValue(request.Headers, "NTS");
-            Server = GetHeaderValue(request.Headers, "SERVER");
-            UniqueServiceName = GetHeaderValue(request.Headers, "USN");
-            SdppHeaders = request.Headers;
+            try
+            {
+                NotifyCastMethod = GetCastMetod(request);
+                HostIp = request.RemoteAddress;
+                HostPort = request.RemotePort;
+                CacheControl = TimeSpan.FromSeconds(GetMaxAge(request.Headers));
+                Location = UrlToUri(GetHeaderValue(request.Headers, "LOCATION"));
+                NT = GetHeaderValue(request.Headers, "NT");
+                NTS = ConvertToNotificationSubTypeEnum(GetHeaderValue(request.Headers, "NTS"));
+                Server = ConvertToServer(GetHeaderValue(request.Headers, "SERVER"));
+                USN = GetHeaderValue(request.Headers, "USN");
+
+                BOOTID = GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG");
+                CONFIGID = GetHeaderValue(request.Headers, "CONFIGID.UPNP.ORG");
+                SEARCHPORT = GetHeaderValue(request.Headers, "SEARCHPORT.UPNP.ORG");
+                NEXTBOOTID = GetHeaderValue(request.Headers, "NEXTBOOTID.UPNP.ORG");
+                SECURELOCATION = GetHeaderValue(request.Headers, "SECURELOCATION.UPNP.ORG");
+
+                Headers = SingleOutAdditionalHeaders(new List<string>
+                {
+                    "HOST", "CACHE-CONTROL", "LOCATION", "NT", "NTS", "SERVER", "USN",
+                    "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG",
+                    "SEARCHPORT.UPNP.ORG", "NEXTBOOTID.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
+                }, request.Headers);
+            }
+            catch (Exception)
+            {
+                InvalidRequest = true;
+            }
+            
 
             Guid guid;
-            IsUuidUpnp2Compliant = Guid.TryParse(UniqueServiceName, out guid);
+            IsUuidUpnp2Compliant = Guid.TryParse(USN, out guid);
+        }
+
+        private static NTS ConvertToNotificationSubTypeEnum(string str)
+        {
+            switch (str.ToLower())
+            {
+                case "sspd.alive": return NTS.Alive;
+                case "ssdp.byebye": return NTS.ByeBye;
+                case "ssdp.update": return NTS.Update;
+                default: return NTS.Unknown;
+            }
         }
     }
 }

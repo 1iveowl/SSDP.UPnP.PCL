@@ -38,7 +38,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="ISimpleHttpServer, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\main\packages\SimpleHttpListener.1.1.4\lib\portable-net45+netcore45\ISimpleHttpServer.dll</HintPath>
+      <HintPath>..\..\main\packages\SimpleHttpListener.1.1.5\lib\portable-net45+netcore45\ISimpleHttpServer.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="ISocketLite.PCL, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -46,7 +46,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="SimpleHttpServer, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\main\packages\SimpleHttpListener.1.1.4\lib\portable-net45+netcore45\SimpleHttpServer.dll</HintPath>
+      <HintPath>..\..\main\packages\SimpleHttpListener.1.1.5\lib\portable-net45+netcore45\SimpleHttpServer.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="SocketLite, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">

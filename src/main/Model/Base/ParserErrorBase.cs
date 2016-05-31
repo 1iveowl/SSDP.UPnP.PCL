@@ -5,10 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 using ISDPP.UPnP.PCL.Interfaces.Model;
 
-namespace SDPP.UPnP.PCL.Model
+namespace SDPP.UPnP.PCL.Model.Base
 {
-    internal class UserAgent : DeviceInfo, IUserAgent
+    public class ParserErrorBase : IParserError
     {
-        
+        public bool InvalidRequest { get; protected set; }
     }
 }

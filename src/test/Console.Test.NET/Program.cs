@@ -1,16 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using ISDPP.UPnP.PCL.Interfaces.Model;
+using ISDPP.UPnP.PCL.Enum;
 using ISDPP.UPnP.PCL.Interfaces.Service;
 using ISimpleHttpServer.Service;
 using SDPP.Console.Test.NET.Model;
 using SDPP.UPnP.PCL.Service;
 using SimpleHttpServer.Service;
 using SocketLite.Model;
-using Console = System.Console;
 
 namespace SDPP.Console.Test.NET
 {
@@ -18,36 +16,16 @@ namespace SDPP.Console.Test.NET
     {
         private static readonly IHttpListener HttpListener = new HttpListener(TimeSpan.FromSeconds(30));
         private static IControlPoint _controlPoint;
+        private static IDevice _device;
 
         static void Main(string[] args)
         {
             InitializeHttpListener();
-            
-            StartListeningToControlPoint();
+            StartDeviceListening();
+            StartControlPointListening();
             System.Console.ReadKey();
         }
 
-        //public async Task Start()
-        //{
-        //    var comm = new CommunicationsInterface();
-        //    var allComms = comm.GetAllInterfaces();
-        //    var networkComm = allComms.FirstOrDefault(x => x.GatewayAddress != null);
-
-        //    await _httpListener.StartTcpRequestListener(1900, networkComm);
-        //    await _httpListener.StartTcpResponseListener(1901, networkComm);
-        //    await _httpListener.StartUdpMulticastListener("239.255.255.250", 1900, networkComm);
-        //    await _httpListener.StartUdpListener(1900, networkComm);
-        //}
-
-        //public void Stop()
-        //{
-        //    _httpListener.StopUdpMultiCastListener();
-        //    _httpListener.StopTcpReponseListener();
-        //    _httpListener.StopTcpRequestListener();
-        //    _httpListener.StopUdpListener();
-        //}
-
-        // The SSDP needs 
         private static async void InitializeHttpListener()
         {
             var comm = new CommunicationsInterface();
@@ -60,51 +38,148 @@ namespace SDPP.Console.Test.NET
             await HttpListener.StartUdpListener(1900, networkComm);
         }
 
-        private static async void StartListeningToControlPoint()
+        private static void StartDeviceListening()
+        {
+            _device = new Device(HttpListener);
+            var MSearchRequestSubscribe = _device.MSearchObservable.Subscribe(
+                req =>
+                {
+                    System.Console.BackgroundColor = ConsoleColor.DarkGreen;
+                    System.Console.ForegroundColor = ConsoleColor.White;
+                    System.Console.WriteLine($"---### Device Received a M-SEARCH REQÙEST ###---");
+                    System.Console.ResetColor();
+                    System.Console.WriteLine($"{req.SearchCastMethod.ToString()}");
+                    System.Console.WriteLine($"HOST: {req.HostIp}:{req.HostPort}");
+                    System.Console.WriteLine($"MAN: {req.MAN}");
+                    System.Console.WriteLine($"MX: {req.MX.TotalSeconds}");
+                    System.Console.WriteLine($"USER-AGENT: " +
+                                             $"{req.UserAgent?.OperatingSystem}/{req.UserAgent?.OperatingSystemVersion} " +
+                                             $"UPNP/" +
+                                             $"{req.UserAgent?.UpnpMajorVersion}.{req.UserAgent?.UpnpMinorVersion}" +
+                                             $" " +
+                                             $"{req.UserAgent?.ProductName}/{req.UserAgent?.ProductVersion}" + 
+                                             $" - ({req.UserAgent?.FullString})");
+
+                    System.Console.WriteLine($"CPFN: {req.CPFN}");
+                    System.Console.WriteLine($"CPUUID: {req.CPUUID}");
+                    System.Console.WriteLine($"TCPPORT: {req.TCPPORT}");
+
+                    if (req.Headers.Any())
+                    {
+                        System.Console.ForegroundColor = ConsoleColor.DarkYellow;
+                        System.Console.WriteLine($"Additional Headers: {req.Headers.Count}");
+                        foreach (var header in req.Headers)
+                        {
+                            System.Console.WriteLine($"{header.Key}: {header.Value}; ");
+                        }
+                        System.Console.ResetColor();
+                    }
+                    
+                    System.Console.WriteLine();
+                });
+        }
+
+        private static async void StartControlPointListening()
         {
             _controlPoint = new ControlPoint(HttpListener);
 
             var notifySubscribe = _controlPoint.NotifyObservable.Subscribe(
                 n =>
                 {
-                    System.Console.WriteLine($"NOTIFY");
-                    System.Console.WriteLine($"Host ip address: {n.HostIp}");
-                    System.Console.WriteLine($"Host port: {n.HostPort}");
-                    System.Console.WriteLine($"Location: {n.Server}");
+                    System.Console.BackgroundColor = ConsoleColor.DarkBlue;
+                    System.Console.ForegroundColor = ConsoleColor.White;
+                    System.Console.WriteLine($"---### Control Point Received a NOTIFY ###---");
+                    System.Console.ResetColor();
+                    System.Console.WriteLine($"{n.NotifyCastMethod.ToString()}");
+                    System.Console.WriteLine($"From: {n.HostIp}:{n.HostPort}");
+                    System.Console.WriteLine($"Location: {n.Location.AbsoluteUri}");
                     System.Console.WriteLine($"Cache-Control: max-age = {n.CacheControl}");
-                    System.Console.WriteLine($"NT: {n.NotificationType}");
-                    System.Console.WriteLine($"NTS: {n.NotificationSubType}");
-                    System.Console.WriteLine($"--**--");
+                    System.Console.WriteLine($"Server: " +
+                                             $"{n.Server.OperatingSystem}/{n.Server.OperatingSystemVersion} " +
+                                             $"UPNP/" +
+                                             $"{n.Server.UpnpMajorVersion}.{n.Server.UpnpMinorVersion}" +
+                                             $" " +
+                                             $"{n.Server.ProductName}/{n.Server.ProductVersion}" +
+                                             $" - ({n.Server.FullString})");
+                    System.Console.WriteLine($"NT: {n.NT}");
+                    System.Console.WriteLine($"NTS: {n.NTS}");
+                    System.Console.WriteLine($"USN: {n.USN}");
+                    System.Console.WriteLine($"BOOTID: {n.BOOTID}");
+                    System.Console.WriteLine($"CONFIGID: {n.CONFIGID}");
+                    System.Console.WriteLine($"NEXTBOOTID: {n.NEXTBOOTID}");
+                    System.Console.WriteLine($"SEARCHPORT: {n.SEARCHPORT}");
+                    System.Console.WriteLine($"SECURELOCATION: {n.SECURELOCATION}");
+
+                    if (n.Headers.Any())
+                    {
+                        System.Console.ForegroundColor = ConsoleColor.DarkYellow;
+                        System.Console.WriteLine($"Additional Headers: {n.Headers.Count}");
+                        foreach (var header in n.Headers)
+                        {
+                            System.Console.WriteLine($"{header.Key}: {header.Value}; ");
+                        }
+                        System.Console.ResetColor();
+                    }
+
+                    System.Console.WriteLine();
                 });
 
-            var responseSubscribe = _controlPoint
+            var MSearchresponseSubscribe = _controlPoint
                 .MSearchResponseObservable
                 .Subscribe(
-                r =>
+                res =>
                 {
-                    System.Console.WriteLine($"RESPONSE");
-                    System.Console.WriteLine($"Status code: {r.StatusCode} {r.ResponseReason}");
-                    System.Console.WriteLine($"Location: {r.Location.AbsolutePath}");
-                    System.Console.WriteLine($"Date: {r.Date.ToLongDateString()}");
-                    System.Console.WriteLine($"Cache-Control: max-age = {r.CacheControl}");
-                    System.Console.WriteLine($"Server: {r.Server}");
-                    System.Console.WriteLine($"USN: {r.USN}");
-                    System.Console.WriteLine($"--**--");
+                    System.Console.BackgroundColor = ConsoleColor.DarkBlue;
+                    System.Console.ForegroundColor = ConsoleColor.White;
+                    System.Console.WriteLine($"---### Control Point Received a  M-SEARCH RESPONSE ###---");
+                    System.Console.ResetColor();
+                    System.Console.WriteLine($"{res.ResponseCastMethod.ToString()}");
+                    System.Console.WriteLine($"From: {res.HostIp}:{res.HostPort}");
+                    System.Console.WriteLine($"Status code: {res.StatusCode} {res.ResponseReason}");
+                    System.Console.WriteLine($"Location: {res.Location.AbsoluteUri}");
+                    System.Console.WriteLine($"Date: {res.Date.ToLongDateString()}");
+                    System.Console.WriteLine($"Cache-Control: max-age = {res.CacheControl}");
+                    System.Console.WriteLine($"Server: " +
+                                             $"{res.Server.OperatingSystem}/{res.Server.OperatingSystemVersion} " +
+                                             $"UPNP/" +
+                                             $"{res.Server.UpnpMajorVersion}.{res.Server.UpnpMinorVersion}" +
+                                             $" " +
+                                             $"{res.Server.ProductName}/{res.Server.ProductVersion}" +
+                                             $" - ({res.Server.FullString})");
+                    System.Console.WriteLine($"ST: {res.ST}");
+                    System.Console.WriteLine($"USN: {res.USN}");
+                    System.Console.WriteLine($"BOOTID.UPNP.ORG: {res.BOOTID}");
+                    System.Console.WriteLine($"CONFIGID.UPNP.ORG: {res.CONFIGID}");
+                    System.Console.WriteLine($"SEARCHPORT.UPNP.ORG: {res.SEARCHPORT}");
+                    System.Console.WriteLine($"SECURELOCATION: {res.SECURELOCATION}");
+
+                    if (res.Headers.Any())
+                    {
+                        System.Console.ForegroundColor = ConsoleColor.DarkYellow;
+                        System.Console.WriteLine($"Additional Headers: {res.Headers.Count}");
+                        foreach (var header in res.Headers)
+                        {
+                            System.Console.WriteLine($"{header.Key}: {header.Value}; ");
+                        }
+                        System.Console.ResetColor();
+                    }
+
+                    System.Console.WriteLine();
                 });
 
-            await StartMSearchMulticast();
+            await StartMSearchRequestMulticast();
         }
 
-        private static async Task StartMSearchMulticast()
+        private static async Task StartMSearchRequestMulticast()
         {
             var mSearchMessage = new MSearch
             {
-                SearchCastMethod = SearchCastMethod.Multicast,
-                ControlPointFriendlyName = "TestXamarin",
+                SearchCastMethod = CastMethod.Multicast,
+                CPFN = "TestXamarin",
                 HostIp = "239.255.255.250",
                 HostPort = 1900,
-                MX = 1,
-                SdppHeaders = new Dictionary<string, string>
+                MX = TimeSpan.FromSeconds(1),
+                Headers = new Dictionary<string, string>
                 {
                     //{"abc", "123"},
                     //{"cde", "345"}
@@ -113,10 +188,12 @@ namespace SDPP.Console.Test.NET
                 ST = "upnp:rootdevice",
                 UserAgent = new UserAgent
                 {
-                    OperatingSystem = "UWP",
-                    OperatingSystemVersion = "10",
+                    OperatingSystem = "Windows",
+                    OperatingSystemVersion = "10.0",
                     ProductName = "SSDP.UPNP.PCL",
-                    ProductVersion = "0.9"
+                    ProductVersion = "0.9",
+                    UpnpMajorVersion = "2",
+                    UpnpMinorVersion = "0",
                 }
             };
             await _controlPoint.SendMSearch(mSearchMessage);

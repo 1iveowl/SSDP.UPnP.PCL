@@ -35,12 +35,17 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Helper\Convert.cs" />
+    <Compile Include="Helper\HeaderHelper.cs" />
     <Compile Include="Helper\OperatingSystem.cs" />
-    <Compile Include="Model\MSearch.cs" />
+    <Compile Include="Model\Base\ParserErrorBase.cs" />
+    <Compile Include="Model\DeviceInfo.cs" />
+    <Compile Include="Model\MSearchRequest.cs" />
     <Compile Include="Model\MSearchResponse.cs" />
     <Compile Include="Model\Notify.cs" />
+    <Compile Include="Model\Server.cs" />
     <Compile Include="Model\UserAgent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Service\Base\CommonBase.cs" />
     <Compile Include="Service\ControlPoint.cs" />
     <Compile Include="Service\Device.cs" />
   </ItemGroup>
@@ -57,7 +62,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="ISimpleHttpServer, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\SimpleHttpListener.1.1.4\lib\portable-net45+netcore45\ISimpleHttpServer.dll</HintPath>
+      <HintPath>packages\SimpleHttpListener.1.1.5\lib\portable-net45+netcore45\ISimpleHttpServer.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="ISocketLite.PCL, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -65,7 +70,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="SimpleHttpServer, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\SimpleHttpListener.1.1.4\lib\portable-net45+netcore45\SimpleHttpServer.dll</HintPath>
+      <HintPath>packages\SimpleHttpListener.1.1.5\lib\portable-net45+netcore45\SimpleHttpServer.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="SocketLite, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">

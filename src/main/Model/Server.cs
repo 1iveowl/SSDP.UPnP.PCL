@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ISDPP.UPnP.PCL.Interfaces.Model;
 
-namespace ISDPP.UPnP.PCL.Interfaces.Model
+namespace SDPP.UPnP.PCL.Model
 {
-    public interface IUserAgent : IDeviceInfo
+    internal class Server : DeviceInfo, IServer
     {
-       
     }
 }

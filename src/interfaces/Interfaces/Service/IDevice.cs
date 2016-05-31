@@ -9,8 +9,8 @@ namespace ISDPP.UPnP.PCL.Interfaces.Service
 {
     public interface IDevice
     {
-        //Task SendUnicast(IMSearch mSearch);
-
-        //Task SendMulticast(IMSearch mSearch);
+        IObservable<IMSearchRequest> MSearchObservable { get; }
+        Task Notify(INotify notify);
+        Task MSearchRespone(IMSearchResponse mSearch);
     }
 }

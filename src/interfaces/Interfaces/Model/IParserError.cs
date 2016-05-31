@@ -6,9 +6,8 @@ using System.Threading.Tasks;
 
 namespace ISDPP.UPnP.PCL.Interfaces.Model
 {
-    public enum SearchCastMethod
+    public interface IParserError
     {
-        Multicast,
-        Unicast
+        bool InvalidRequest { get; }
     }
 }

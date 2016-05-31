@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace ISDPP.UPnP.PCL.Interfaces.Model
 {
-    public interface IHeader
+    public interface IHeaders
     {
-        IDictionary<string, string> SdppHeaders { get; }
+        IDictionary<string, string> Headers { get; }
     }
 }

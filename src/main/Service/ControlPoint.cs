@@ -2,14 +2,17 @@
 using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ISDPP.UPnP.PCL.Enum;
 using ISDPP.UPnP.PCL.Interfaces.Model;
 using ISDPP.UPnP.PCL.Interfaces.Service;
 using ISimpleHttpServer.Service;
 using SDPP.UPnP.PCL.Model;
+using SDPP.UPnP.PCL.Service.Base;
+using static SDPP.UPnP.PCL.Helper.HeaderHelper;
 
 namespace SDPP.UPnP.PCL.Service
 {
-    public class ControlPoint : IControlPoint
+    public class ControlPoint : CommonBase, IControlPoint
     {
         private readonly IHttpListener _httpListener;
 
@@ -20,7 +23,7 @@ namespace SDPP.UPnP.PCL.Service
                 .Where(req => req.Method == "NOTIFY")
                 .Select(req => new Notify(req));
 
-        public IObservable<IMSearchResponse> MSearchResponseObservable => 
+        public IObservable<IMSearchResponse> MSearchResponseObservable =>
             _httpListener
             .HttpResponseObservable
             .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
@@ -31,41 +34,52 @@ namespace SDPP.UPnP.PCL.Service
             _httpListener = httpListener;
         }
 
-        public async Task SendMSearch(IMSearch mSearch)
+        public async Task SendMSearch(IMSearchRequest mSearch)
         {
-            await _httpListener.SendOnMulticast(ComposeMSearchDatagram(mSearch));
+            if (mSearch.SearchCastMethod == CastMethod.Multicast)
+            {
+                await _httpListener.SendOnMulticast(ComposeMSearchDatagram(mSearch));
+            }
+
+            if (mSearch.SearchCastMethod == CastMethod.Unicast)
+            {
+                await SendOnTcp(mSearch.HostIp, mSearch.HostPort, ComposeMSearchDatagram(mSearch));
+            }
+            
         }
 
-        private byte[] ComposeMSearchDatagram(IMSearch mSearch)
+        private byte[] ComposeMSearchDatagram(IMSearchRequest request)
         {
             var stringBuilder = new StringBuilder();
 
             stringBuilder.Append("M-SEARCH * HTTP/1.1\r\n");
 
-            stringBuilder.Append(mSearch.SearchCastMethod == SearchCastMethod.Multicast
+            stringBuilder.Append(request.SearchCastMethod == CastMethod.Multicast
                 ? "HOST: 239.255.255.250:1900\r\n"
-                : $"HOST: {mSearch.HostIp}:{mSearch.HostPort}\r\n");
+                : $"HOST: {request.HostIp}:{request.HostPort}\r\n");
 
             stringBuilder.Append("MAN: \"ssdp:discover\"\r\n");
 
-            if (mSearch.SearchCastMethod == SearchCastMethod.Multicast)
+            if (request.SearchCastMethod == CastMethod.Multicast)
             {
-                stringBuilder.Append($"MX: {mSearch.MX}\r\n");
+                stringBuilder.Append($"MX: {request.MX.TotalSeconds}\r\n");
             }
-            stringBuilder.Append($"ST: {mSearch.ST}\r\n");
-            stringBuilder.Append($"USER-AGENT: {mSearch.UserAgent.OperatingSystem}/" +
-                                 $"{mSearch.UserAgent.OperatingSystemVersion}/" +
+            stringBuilder.Append($"ST: {request.ST}\r\n");
+            stringBuilder.Append($"USER-AGENT: " +
+                                 $"{request.UserAgent.OperatingSystem}/{request.UserAgent.OperatingSystemVersion}" +
                                  $" " +
-                                 $"UPnP/2.0" +
+                                 $"UPnP/{request.UserAgent.UpnpMajorVersion}.{request.UserAgent.UpnpMinorVersion}" +
                                  $" " +
-                                 $"{mSearch.UserAgent.ProductName}/" +
-                                 $"{mSearch.UserAgent.ProductVersion}\r\n");
+                                 $"{request.UserAgent.ProductName}/{request.UserAgent.ProductVersion}\r\n");
 
-            if (mSearch.SearchCastMethod == SearchCastMethod.Multicast)
+            if (request.SearchCastMethod == CastMethod.Multicast)
             {
-                stringBuilder.Append($"CPFN.UPNP.ORG: {mSearch.ControlPointFriendlyName}\r\n");
-                stringBuilder.Append($"TCPPORT.UPNP.ORG:50000\r\n");
-                foreach (var header in mSearch.SdppHeaders)
+                stringBuilder.Append($"CPFN.UPNP.ORG: {request.CPFN}\r\n");
+
+                AddOptionalHeader(stringBuilder, "TCPPORT.UPNP.ORG", request.TCPPORT);
+                AddOptionalHeader(stringBuilder, "CPUUID.UPNP.ORG", request.CPUUID);
+
+                foreach (var header in request.Headers)
                 {
                     stringBuilder.Append($"{header.Key}: {header.Value}\r\n");
                 }

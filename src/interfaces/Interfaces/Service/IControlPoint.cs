@@ -11,8 +11,6 @@ namespace ISDPP.UPnP.PCL.Interfaces.Service
     {
         IObservable<INotify> NotifyObservable { get; }
         IObservable<IMSearchResponse> MSearchResponseObservable { get; }
-        //Task Start();
-        //void Stop();
-        Task SendMSearch(IMSearch mSearch);
+        Task SendMSearch(IMSearchRequest mSearch);
     }
 }
