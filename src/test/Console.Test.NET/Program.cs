@@ -1,21 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
-using ISDPP.UPnP.PCL.Enum;
-using ISDPP.UPnP.PCL.Interfaces.Service;
 using ISimpleHttpServer.Service;
-using SDPP.Console.Test.NET.Model;
-using SDPP.UPnP.PCL.Service;
+using ISSDP.UPnP.PCL.Enum;
+using ISSDP.UPnP.PCL.Interfaces.Service;
 using SimpleHttpServer.Service;
 using SocketLite.Model;
+using SSDP.Console.Test.NET.Model;
+using SSDP.UPnP.PCL.Service;
 
-namespace SDPP.Console.Test.NET
+namespace SSDP.Console.Test.NET
 {
     class Program
     {
         private static readonly IHttpListener HttpListener = new HttpListener(TimeSpan.FromSeconds(30));
+
         private static IControlPoint _controlPoint;
         private static IDevice _device;
 

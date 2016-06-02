@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ISDPP.UPnP.PCL.Interfaces.Model;
+﻿using ISSDP.UPnP.PCL.Interfaces.Model;
 
-namespace SDPP.Console.Test.NET.Model
+namespace SSDP.Console.Test.NET.Model
 {
     internal class UserAgent : IUserAgent
     {

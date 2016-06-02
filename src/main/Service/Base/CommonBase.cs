@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using SocketLite.Services;
 
-namespace SDPP.UPnP.PCL.Service.Base
+namespace SSDP.UPnP.PCL.Service.Base
 {
     public abstract class CommonBase
     {

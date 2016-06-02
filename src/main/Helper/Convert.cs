@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using ISDPP.UPnP.PCL.Enum;
-using ISDPP.UPnP.PCL.Interfaces.Model;
 using ISimpleHttpServer.Model;
-using SDPP.UPnP.PCL.Model;
+using ISSDP.UPnP.PCL.Enum;
+using ISSDP.UPnP.PCL.Interfaces.Model;
+using SSDP.UPnP.PCL.Model;
 
-namespace SDPP.UPnP.PCL.Helper
+namespace SSDP.UPnP.PCL.Helper
 {
     internal static class Convert
     {
@@ -163,6 +162,7 @@ namespace SDPP.UPnP.PCL.Helper
                 case "ssdp:alive": return NTS.Alive;
                 case "ssdp:byebye": return NTS.ByeBye;
                 case "ssdp:update": return NTS.Update;
+                case "ssdp:propchange": return NTS.Propchange;
                 default: return NTS.Unknown;
             }
         }

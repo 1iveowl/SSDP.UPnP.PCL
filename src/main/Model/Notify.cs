@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using ISDPP.UPnP.PCL.Enum;
-using ISDPP.UPnP.PCL.Interfaces.Model;
 using ISimpleHttpServer.Model;
-using SDPP.UPnP.PCL.Model.Base;
-using static SDPP.UPnP.PCL.Helper.Convert;
-using static SDPP.UPnP.PCL.Helper.HeaderHelper;
+using ISSDP.UPnP.PCL.Enum;
+using ISSDP.UPnP.PCL.Interfaces.Model;
+using SSDP.UPnP.PCL.Helper;
+using SSDP.UPnP.PCL.Model.Base;
+using Convert = SSDP.UPnP.PCL.Helper.Convert;
 
-namespace SDPP.UPnP.PCL.Model
+namespace SSDP.UPnP.PCL.Model
 {
     internal class Notify : ParserErrorBase, INotify
     {
@@ -39,27 +39,27 @@ namespace SDPP.UPnP.PCL.Model
         {
             try
             {
-                NotifyCastMethod = GetCastMetod(request);
+                NotifyCastMethod = Convert.GetCastMetod(request);
                 HostIp = request.RemoteAddress;
                 HostPort = request.RemotePort;
-                CacheControl = TimeSpan.FromSeconds(GetMaxAge(request.Headers));
-                Location = UrlToUri(GetHeaderValue(request.Headers, "LOCATION"));
-                NT = GetHeaderValue(request.Headers, "NT");
-                NTS = ConvertToNotificationSubTypeEnum(GetHeaderValue(request.Headers, "NTS"));
-                Server = ConvertToServer(GetHeaderValue(request.Headers, "SERVER"));
-                USN = GetHeaderValue(request.Headers, "USN");
-                SID = GetHeaderValue(request.Headers, "SID");
-                SVCID = GetHeaderValue(request.Headers, "SVCID");
-                SEQ = GetHeaderValue(request.Headers, "SEQ");
-                LVL = GetHeaderValue(request.Headers, "LVL");
+                CacheControl = TimeSpan.FromSeconds(Convert.GetMaxAge(request.Headers));
+                Location = Convert.UrlToUri(Convert.GetHeaderValue(request.Headers, "LOCATION"));
+                NT = Convert.GetHeaderValue(request.Headers, "NT");
+                NTS = Convert.ConvertToNotificationSubTypeEnum(Convert.GetHeaderValue(request.Headers, "NTS"));
+                Server = Convert.ConvertToServer(Convert.GetHeaderValue(request.Headers, "SERVER"));
+                USN = Convert.GetHeaderValue(request.Headers, "USN");
+                SID = Convert.GetHeaderValue(request.Headers, "SID");
+                SVCID = Convert.GetHeaderValue(request.Headers, "SVCID");
+                SEQ = Convert.GetHeaderValue(request.Headers, "SEQ");
+                LVL = Convert.GetHeaderValue(request.Headers, "LVL");
 
-                BOOTID = GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG");
-                CONFIGID = GetHeaderValue(request.Headers, "CONFIGID.UPNP.ORG");
-                SEARCHPORT = GetHeaderValue(request.Headers, "SEARCHPORT.UPNP.ORG");
-                NEXTBOOTID = GetHeaderValue(request.Headers, "NEXTBOOTID.UPNP.ORG");
-                SECURELOCATION = GetHeaderValue(request.Headers, "SECURELOCATION.UPNP.ORG");
+                BOOTID = Convert.GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG");
+                CONFIGID = Convert.GetHeaderValue(request.Headers, "CONFIGID.UPNP.ORG");
+                SEARCHPORT = Convert.GetHeaderValue(request.Headers, "SEARCHPORT.UPNP.ORG");
+                NEXTBOOTID = Convert.GetHeaderValue(request.Headers, "NEXTBOOTID.UPNP.ORG");
+                SECURELOCATION = Convert.GetHeaderValue(request.Headers, "SECURELOCATION.UPNP.ORG");
 
-                Headers = SingleOutAdditionalHeaders(new List<string>
+                Headers = HeaderHelper.SingleOutAdditionalHeaders(new List<string>
                 {
                     "HOST", "CACHE-CONTROL", "LOCATION", "NT", "NTS", "SERVER", "USN",
                     "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG", "SID", "SVCID", "SEQ", "LVL",

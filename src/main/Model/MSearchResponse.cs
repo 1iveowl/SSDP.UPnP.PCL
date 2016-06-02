@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using ISDPP.UPnP.PCL.Enum;
-using ISDPP.UPnP.PCL.Interfaces.Model;
 using ISimpleHttpServer.Model;
-using SDPP.UPnP.PCL.Model.Base;
-using static SDPP.UPnP.PCL.Helper.Convert;
-using static SDPP.UPnP.PCL.Helper.HeaderHelper;
+using ISSDP.UPnP.PCL.Enum;
+using ISSDP.UPnP.PCL.Interfaces.Model;
+using SSDP.UPnP.PCL.Helper;
+using SSDP.UPnP.PCL.Model.Base;
+using Convert = SSDP.UPnP.PCL.Helper.Convert;
 
-namespace SDPP.UPnP.PCL.Model
+namespace SSDP.UPnP.PCL.Model
 {
     internal class MSearchResponse : ParserErrorBase, IMSearchResponse
     {
@@ -34,24 +34,24 @@ namespace SDPP.UPnP.PCL.Model
         {
             try
             {
-                ResponseCastMethod = GetCastMetod(response);
+                ResponseCastMethod = Convert.GetCastMetod(response);
                 HostIp = response.RemoteAddress;
                 HostPort = response.RemotePort;
                 StatusCode = response.StatusCode;
                 ResponseReason = response.ResponseReason;
-                CacheControl = TimeSpan.FromSeconds(GetMaxAge(response.Headers));
-                Location = UrlToUri(GetHeaderValue(response.Headers, "LOCATION"));
-                Date = ToRfc2616Date(GetHeaderValue(response.Headers, "DATE"));
+                CacheControl = TimeSpan.FromSeconds(Convert.GetMaxAge(response.Headers));
+                Location = Convert.UrlToUri(Convert.GetHeaderValue(response.Headers, "LOCATION"));
+                Date = Convert.ToRfc2616Date(Convert.GetHeaderValue(response.Headers, "DATE"));
                 Ext = response.Headers.ContainsKey("EXT");
-                Server = ConvertToServer(GetHeaderValue(response.Headers, "SERVER"));
-                ST = GetHeaderValue(response.Headers, "ST");
-                USN = GetHeaderValue(response.Headers, "USN");
-                BOOTID = GetHeaderValue(response.Headers, "BOOTID.UPNP.ORG");
-                CONFIGID = GetHeaderValue(response.Headers, "CONFIGID.UPNP.ORG");
-                SEARCHPORT = GetHeaderValue(response.Headers, "SEARCHPORT.UPNP.ORG");
-                SECURELOCATION = GetHeaderValue(response.Headers, "SECURELOCATION.UPNP.ORG");
+                Server = Convert.ConvertToServer(Convert.GetHeaderValue(response.Headers, "SERVER"));
+                ST = Convert.GetHeaderValue(response.Headers, "ST");
+                USN = Convert.GetHeaderValue(response.Headers, "USN");
+                BOOTID = Convert.GetHeaderValue(response.Headers, "BOOTID.UPNP.ORG");
+                CONFIGID = Convert.GetHeaderValue(response.Headers, "CONFIGID.UPNP.ORG");
+                SEARCHPORT = Convert.GetHeaderValue(response.Headers, "SEARCHPORT.UPNP.ORG");
+                SECURELOCATION = Convert.GetHeaderValue(response.Headers, "SECURELOCATION.UPNP.ORG");
 
-                Headers = SingleOutAdditionalHeaders(new List<string>
+                Headers = HeaderHelper.SingleOutAdditionalHeaders(new List<string>
                 {
                     "HOST", "CACHE-CONTROL", "LOCATION", "DATE", "EXT", "SERVER", "ST", "USN",
                     "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG", "SEARCHPORT.UPNP.ORG", "SECURELOCATION.UPNP.ORG"

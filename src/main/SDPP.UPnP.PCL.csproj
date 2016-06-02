@@ -8,8 +8,8 @@
     <ProjectGuid>{0F14E7AD-CF9F-4500-92EB-AE1014C0121B}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SDPP.UPnP.PCL</RootNamespace>
-    <AssemblyName>SDPP.UPnP.PCL</AssemblyName>
+    <RootNamespace>SSDP.UPnP.PCL</RootNamespace>
+    <AssemblyName>SSDP.UPnP.PCL</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{786C830F-07A1-408B-BD7F-6EE04809D6DB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -51,9 +51,9 @@
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
-    <ProjectReference Include="..\interfaces\ISDPP.UPnP.PCL.csproj">
+    <ProjectReference Include="..\interfaces\ISSDP.UPnP.PCL.csproj">
       <Project>{eae66339-8144-4afe-92e6-3785afcfbe7d}</Project>
-      <Name>ISDPP.UPnP.PCL</Name>
+      <Name>ISSDP.UPnP.PCL</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

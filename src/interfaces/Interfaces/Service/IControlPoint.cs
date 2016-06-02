@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using ISDPP.UPnP.PCL.Interfaces.Model;
+using ISSDP.UPnP.PCL.Interfaces.Model;
 
-namespace ISDPP.UPnP.PCL.Interfaces.Service
+namespace ISSDP.UPnP.PCL.Interfaces.Service
 {
     public interface IControlPoint
     {

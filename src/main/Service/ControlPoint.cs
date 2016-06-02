@@ -2,15 +2,15 @@
 using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ISDPP.UPnP.PCL.Enum;
-using ISDPP.UPnP.PCL.Interfaces.Model;
-using ISDPP.UPnP.PCL.Interfaces.Service;
 using ISimpleHttpServer.Service;
-using SDPP.UPnP.PCL.Model;
-using SDPP.UPnP.PCL.Service.Base;
-using static SDPP.UPnP.PCL.Helper.HeaderHelper;
+using ISSDP.UPnP.PCL.Enum;
+using ISSDP.UPnP.PCL.Interfaces.Model;
+using ISSDP.UPnP.PCL.Interfaces.Service;
+using SSDP.UPnP.PCL.Helper;
+using SSDP.UPnP.PCL.Model;
+using SSDP.UPnP.PCL.Service.Base;
 
-namespace SDPP.UPnP.PCL.Service
+namespace SSDP.UPnP.PCL.Service
 {
     public class ControlPoint : CommonBase, IControlPoint
     {
@@ -76,8 +76,8 @@ namespace SDPP.UPnP.PCL.Service
             {
                 stringBuilder.Append($"CPFN.UPNP.ORG: {request.CPFN}\r\n");
 
-                AddOptionalHeader(stringBuilder, "TCPPORT.UPNP.ORG", request.TCPPORT);
-                AddOptionalHeader(stringBuilder, "CPUUID.UPNP.ORG", request.CPUUID);
+                HeaderHelper.AddOptionalHeader(stringBuilder, "TCPPORT.UPNP.ORG", request.TCPPORT);
+                HeaderHelper.AddOptionalHeader(stringBuilder, "CPUUID.UPNP.ORG", request.CPUUID);
 
                 foreach (var header in request.Headers)
                 {

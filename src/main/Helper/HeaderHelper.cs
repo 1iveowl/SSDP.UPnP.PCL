@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace SDPP.UPnP.PCL.Helper
+namespace SSDP.UPnP.PCL.Helper
 {
     internal static class HeaderHelper
     {

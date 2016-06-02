@@ -7,8 +7,8 @@
     <ProjectGuid>{4550EC29-BFE6-4648-BCAD-785D2846C05E}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SDPP.Console.Test.NET</RootNamespace>
-    <AssemblyName>SDPP.Console.Test.NET</AssemblyName>
+    <RootNamespace>SSDP.Console.Test.NET</RootNamespace>
+    <AssemblyName>SSDP.Console.Test.NET</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -89,9 +89,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\interfaces\ISDPP.UPnP.PCL.csproj">
+    <ProjectReference Include="..\..\interfaces\ISSDP.UPnP.PCL.csproj">
       <Project>{eae66339-8144-4afe-92e6-3785afcfbe7d}</Project>
-      <Name>ISDPP.UPnP.PCL</Name>
+      <Name>ISSDP.UPnP.PCL</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\main\SDPP.UPnP.PCL.csproj">
       <Project>{0f14e7ad-cf9f-4500-92eb-ae1014c0121b}</Project>

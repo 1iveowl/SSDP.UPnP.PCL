@@ -2,16 +2,16 @@
 using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ISDPP.UPnP.PCL.Enum;
-using ISDPP.UPnP.PCL.Interfaces.Model;
-using ISDPP.UPnP.PCL.Interfaces.Service;
 using ISimpleHttpServer.Service;
-using SDPP.UPnP.PCL.Model;
-using SDPP.UPnP.PCL.Service.Base;
-using static SDPP.UPnP.PCL.Helper.HeaderHelper;
-using static SDPP.UPnP.PCL.Helper.Convert;
+using ISSDP.UPnP.PCL.Enum;
+using ISSDP.UPnP.PCL.Interfaces.Model;
+using ISSDP.UPnP.PCL.Interfaces.Service;
+using SSDP.UPnP.PCL.Helper;
+using SSDP.UPnP.PCL.Model;
+using SSDP.UPnP.PCL.Service.Base;
+using Convert = SSDP.UPnP.PCL.Helper.Convert;
 
-namespace SDPP.UPnP.PCL.Service
+namespace SSDP.UPnP.PCL.Service
 {
     public class Device : CommonBase, IDevice
     {
@@ -76,9 +76,9 @@ namespace SDPP.UPnP.PCL.Service
             stringBuilder.Append($"USN: {response.USN}\r\n");
             stringBuilder.Append($"BOOTID.UPNP.ORG: {response.BOOTID}\r\n");
 
-            AddOptionalHeader(stringBuilder, "CONFIGID.UPNP.ORG", response.CONFIGID);
-            AddOptionalHeader(stringBuilder, "SEARCHPORT.UPNP.ORG", response.SEARCHPORT);
-            AddOptionalHeader(stringBuilder, "SECURELOCATION.UPNP.ORG", response.SECURELOCATION);
+            HeaderHelper.AddOptionalHeader(stringBuilder, "CONFIGID.UPNP.ORG", response.CONFIGID);
+            HeaderHelper.AddOptionalHeader(stringBuilder, "SEARCHPORT.UPNP.ORG", response.SEARCHPORT);
+            HeaderHelper.AddOptionalHeader(stringBuilder, "SECURELOCATION.UPNP.ORG", response.SECURELOCATION);
 
             // Adding additional vendor specific headers if they exist.
             foreach (var header in response.Headers)
@@ -122,7 +122,7 @@ namespace SDPP.UPnP.PCL.Service
             }
 
             stringBuilder.Append($"NT: {notify.NT}\r\n");
-            stringBuilder.Append($"NTS: {GetNtsString(notify.NTS)}\r\n");
+            stringBuilder.Append($"NTS: {Convert.GetNtsString(notify.NTS)}\r\n");
 
             if (notify.NTS == NTS.Alive)
             {
@@ -140,8 +140,8 @@ namespace SDPP.UPnP.PCL.Service
 
             if (notify.NTS == NTS.Alive || notify.NTS == NTS.Update)
             {
-                AddOptionalHeader(stringBuilder, "SEARCHPORT.UPNP.ORG", notify.SEARCHPORT);
-                AddOptionalHeader(stringBuilder, "SECURELOCATION.UPNP.ORG", notify.SECURELOCATION);
+                HeaderHelper.AddOptionalHeader(stringBuilder, "SEARCHPORT.UPNP.ORG", notify.SEARCHPORT);
+                HeaderHelper.AddOptionalHeader(stringBuilder, "SECURELOCATION.UPNP.ORG", notify.SECURELOCATION);
             }
 
             // Adding additional vendor specific headers if such are specified

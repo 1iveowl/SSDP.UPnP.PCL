@@ -8,8 +8,8 @@
     <ProjectGuid>{EAE66339-8144-4AFE-92E6-3785AFCFBE7D}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ISDPP.UPnP.PCL</RootNamespace>
-    <AssemblyName>ISDPP.UPnP.PCL</AssemblyName>
+    <RootNamespace>ISSDP.UPnP.PCL</RootNamespace>
+    <AssemblyName>ISSDP.UPnP.PCL</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{786C830F-07A1-408B-BD7F-6EE04809D6DB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>

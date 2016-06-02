@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>SSDP.UPnP.PCL</id>
-    <version>1.0.0</version>
+    <version>1.0.3</version>
     <title>SSDP UPnP 2.0 for Xamarin</title>
     <authors>Jasper H. Bojsen</authors>
     <owners>Jasper H. Bojsen</owners>
@@ -14,7 +14,7 @@
 Makes it easy to receive and send SSDP Notification and M-Search messages. 
 Any handling of these messages are out-side the scope of this Nuget.
 Uses Reactive Extensions (Rx) for simplicity</description>
-    <releaseNotes>Initial release</releaseNotes>
+    <releaseNotes>Fixed namespace typo</releaseNotes>
     <copyright>Copyright 2016</copyright>
     <tags>Tag1 Tag2</tags>
             <dependencies>
@@ -24,9 +24,13 @@ Uses Reactive Extensions (Rx) for simplicity</description>
         </dependencies>
   </metadata>
   <files>
-        <file src="\bin\Release\SDPP.UPnP.PCL.dll"
-          target="lib\portable-net45+netcore45\SDPP.UPnP.PCL.dll" />
-      <file src="\bin\Release\SDPP.UPnP.PCL.pdb"
-        target="lib\portable-net45+netcore45\SDPP.UPnP.PCL.pdb" />
+        <file src="\bin\Release\SSDP.UPnP.PCL.dll"
+          target="lib\portable-net45+netcore45\SSDP.UPnP.PCL.dll" />
+      <file src="\bin\Release\SSDP.UPnP.PCL.pdb"
+        target="lib\portable-net45+netcore45\SSDP.UPnP.PCL.pdb" />
+        <file src="..\interfaces\bin\Release\ISSDP.UPnP.PCL.dll"
+          target="lib\portable-net45+netcore45\ISSDP.UPnP.PCL.dll" />
+      <file src="..\interfaces\bin\Release\ISSDP.UPnP.PCL.pdb"
+        target="lib\portable-net45+netcore45\ISSDP.UPnP.PCL.pdb" />
     </files>
 </package>
