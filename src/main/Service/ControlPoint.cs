@@ -22,6 +22,7 @@ namespace SDPP.UPnP.PCL.Service
             .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
             .Where(req => req.Method == "NOTIFY")
             .Select(req => new Notify(req));
+            //.Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update);
 
         public IObservable<IMSearchResponse> MSearchResponseObservable =>
             _httpListener

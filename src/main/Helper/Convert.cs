@@ -160,9 +160,9 @@ namespace SDPP.UPnP.PCL.Helper
         {
             switch (str.ToLower())
             {
-                case "sspd.alive": return NTS.Alive;
-                case "ssdp.byebye": return NTS.ByeBye;
-                case "ssdp.update": return NTS.Update;
+                case "ssdp:alive": return NTS.Alive;
+                case "ssdp:byebye": return NTS.ByeBye;
+                case "ssdp:update": return NTS.Update;
                 default: return NTS.Unknown;
             }
         }

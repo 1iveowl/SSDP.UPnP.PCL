@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
 using ISDPP.UPnP.PCL.Enum;
 using ISDPP.UPnP.PCL.Interfaces.Service;
@@ -83,7 +84,9 @@ namespace SDPP.Console.Test.NET
         {
             _controlPoint = new ControlPoint(HttpListener);
 
-            var notifySubscribe = _controlPoint.NotifyObservable.Subscribe(
+            var notifySubscribe = _controlPoint.NotifyObservable
+                //.Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update)
+                .Subscribe(
                 n =>
                 {
                     System.Console.BackgroundColor = ConsoleColor.DarkBlue;
