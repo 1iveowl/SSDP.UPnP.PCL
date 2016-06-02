@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>SSDP.UPnP.PCL</id>
+    <version>1.0.0</version>
+    <title>SSDP UPnP 2.0 for Xamarin</title>
+    <authors>Jasper H. Bojsen</authors>
+    <owners>Jasper H. Bojsen</owners>
+    <licenseUrl>https://github.com/1iveowl/SSDP.UPnP.PCL/blob/master/License.md</licenseUrl>
+    <projectUrl>https://github.com/1iveowl/SSDP.UPnP.PCL/</projectUrl>
+    <iconUrl>https://nuget.org/Content/Images/packageDefaultIcon.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>SSDP based on the UPnP 2.0 specification. 
+Makes it easy to receive and send SSDP Notification and M-Search messages. 
+Any handling of these messages are out-side the scope of this Nuget.
+Uses Reactive Extensions (Rx) for simplicity</description>
+    <releaseNotes>Initial release</releaseNotes>
+    <copyright>Copyright 2016</copyright>
+    <tags>Tag1 Tag2</tags>
+            <dependencies>
+            <dependency id="Rx-Main" version="2.2.5"/>
+            <dependency id="SocketLite.PCL" version="1.0.9"/>
+            <dependency id="SimpleHttpListener" version="1.1.5"/>
+        </dependencies>
+  </metadata>
+  <files>
+        <file src="\bin\Release\SDPP.UPnP.PCL.dll"
+          target="lib\portable-net45+netcore45\SDPP.UPnP.PCL.dll" />
+      <file src="\bin\Release\SDPP.UPnP.PCL.pdb"
+        target="lib\portable-net45+netcore45\SDPP.UPnP.PCL.pdb" />
+    </files>
+</package>
