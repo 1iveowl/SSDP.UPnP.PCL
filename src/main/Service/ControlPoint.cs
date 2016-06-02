@@ -21,8 +21,8 @@ namespace SSDP.UPnP.PCL.Service
             .HttpRequestObservable
             .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
             .Where(req => req.Method == "NOTIFY")
-            .Select(req => new NotifySsdp(req));
-            //.Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update);
+            .Select(req => new NotifySsdp(req))
+            .Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update);
 
         public IObservable<IMSearchResponse> MSearchResponseObservable =>
             _httpListener
