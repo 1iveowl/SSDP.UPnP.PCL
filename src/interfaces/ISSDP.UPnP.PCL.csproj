@@ -42,7 +42,7 @@
     <Compile Include="Interfaces\Model\IHost.cs" />
     <Compile Include="Interfaces\Model\IMSearchRequest.cs" />
     <Compile Include="Interfaces\Model\IMSearchResponse.cs" />
-    <Compile Include="Interfaces\Model\INotify.cs" />
+    <Compile Include="Interfaces\Model\INotifySsdp.cs" />
     <Compile Include="Interfaces\Model\IParserError.cs" />
     <Compile Include="Interfaces\Model\IServer.cs" />
     <Compile Include="Interfaces\Model\IUserAgent.cs" />

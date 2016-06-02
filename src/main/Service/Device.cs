@@ -42,7 +42,7 @@ namespace SSDP.UPnP.PCL.Service
             }
         }
 
-        public async Task Notify(INotify notify)
+        public async Task Notify(INotifySsdp notifySsdp)
         {
             // Insert random delay according to UPnP 2.0 spec. section 1.2.1 (page 27).
             var wait = new Random();
@@ -51,7 +51,7 @@ namespace SSDP.UPnP.PCL.Service
             // According to the UPnP spec the UDP Multicast Notify should be send three times
             for (var i = 0; i < 3; i++)
             {
-                await _httpListener.SendOnMulticast(ComposeNotifyDatagram(notify), TTL: 2);
+                await _httpListener.SendOnMulticast(ComposeNotifyDatagram(notifySsdp), TTL: 2);
                 // Random delay between resends of 200 - 400 milliseconds. 
                 await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(200, 400)));
             }
@@ -92,60 +92,60 @@ namespace SSDP.UPnP.PCL.Service
             return Encoding.UTF8.GetBytes(stringBuilder.ToString());
         }
 
-        private static byte[] ComposeNotifyDatagram(INotify notify)
+        private static byte[] ComposeNotifyDatagram(INotifySsdp notifySsdp)
         {
             var stringBuilder = new StringBuilder();
 
             stringBuilder.Append("NOTIFY * HTTP/1.1\r\n");
 
-            stringBuilder.Append(notify.NotifyCastMethod == CastMethod.Multicast
+            stringBuilder.Append(notifySsdp.NotifyCastMethod == CastMethod.Multicast
                 ? "HOST: 239.255.255.250:1900\r\n"
-                : $"HOST: {notify.HostIp}:{notify.HostPort}\r\n");
+                : $"HOST: {notifySsdp.HostIp}:{notifySsdp.HostPort}\r\n");
 
-            if (notify.NTS == NTS.Alive)
+            if (notifySsdp.NTS == NTS.Alive)
             {
-                stringBuilder.Append($"CACHE-CONTROL: max-age = {notify.CacheControl.TotalSeconds}\r\n");
+                stringBuilder.Append($"CACHE-CONTROL: max-age = {notifySsdp.CacheControl.TotalSeconds}\r\n");
             }
 
-            if (notify.NTS == NTS.Alive || notify.NTS == NTS.Update)
+            if (notifySsdp.NTS == NTS.Alive || notifySsdp.NTS == NTS.Update)
             {
-                stringBuilder.Append($"LOCATION: {notify.Location.AbsolutePath}\r\n");
+                stringBuilder.Append($"LOCATION: {notifySsdp.Location.AbsolutePath}\r\n");
             }
 
-            stringBuilder.Append($"NT: max-age = {notify.NT}\r\n");
-            stringBuilder.Append($"NTS: max-age = {notify.NTS}\r\n");
-            stringBuilder.Append($"USN: max-age = {notify.USN}\r\n");
+            stringBuilder.Append($"NT: max-age = {notifySsdp.NT}\r\n");
+            stringBuilder.Append($"NTS: max-age = {notifySsdp.NTS}\r\n");
+            stringBuilder.Append($"USN: max-age = {notifySsdp.USN}\r\n");
 
-            if (notify.NTS == NTS.Alive)
+            if (notifySsdp.NTS == NTS.Alive)
             {
-                stringBuilder.Append($"LOCATION: {notify.Location.AbsolutePath}\r\n");
+                stringBuilder.Append($"LOCATION: {notifySsdp.Location.AbsolutePath}\r\n");
             }
 
-            stringBuilder.Append($"NT: {notify.NT}\r\n");
-            stringBuilder.Append($"NTS: {Convert.GetNtsString(notify.NTS)}\r\n");
+            stringBuilder.Append($"NT: {notifySsdp.NT}\r\n");
+            stringBuilder.Append($"NTS: {Convert.GetNtsString(notifySsdp.NTS)}\r\n");
 
-            if (notify.NTS == NTS.Alive)
+            if (notifySsdp.NTS == NTS.Alive)
             {
                 stringBuilder.Append($"SERVER: " +
-                                 $"{notify.Server.OperatingSystem}/{notify.Server.OperatingSystemVersion}/" +
+                                 $"{notifySsdp.Server.OperatingSystem}/{notifySsdp.Server.OperatingSystemVersion}/" +
                                  $" " +
-                                 $"UPnP/{notify.Server.UpnpMajorVersion}.{notify.Server.UpnpMinorVersion}" +
+                                 $"UPnP/{notifySsdp.Server.UpnpMajorVersion}.{notifySsdp.Server.UpnpMinorVersion}" +
                                  $" " +
-                                 $"{notify.Server.ProductName}/{notify.Server.ProductVersion}\r\n");
+                                 $"{notifySsdp.Server.ProductName}/{notifySsdp.Server.ProductVersion}\r\n");
             }
 
-            stringBuilder.Append($"USN: {notify.USN}\r\n");
-            stringBuilder.Append($"BOOTID.UPNP.ORG: {notify.BOOTID}\r\n");
-            stringBuilder.Append($"CONFIGID.UPNP.ORG: {notify.CONFIGID}\r\n");
+            stringBuilder.Append($"USN: {notifySsdp.USN}\r\n");
+            stringBuilder.Append($"BOOTID.UPNP.ORG: {notifySsdp.BOOTID}\r\n");
+            stringBuilder.Append($"CONFIGID.UPNP.ORG: {notifySsdp.CONFIGID}\r\n");
 
-            if (notify.NTS == NTS.Alive || notify.NTS == NTS.Update)
+            if (notifySsdp.NTS == NTS.Alive || notifySsdp.NTS == NTS.Update)
             {
-                HeaderHelper.AddOptionalHeader(stringBuilder, "SEARCHPORT.UPNP.ORG", notify.SEARCHPORT);
-                HeaderHelper.AddOptionalHeader(stringBuilder, "SECURELOCATION.UPNP.ORG", notify.SECURELOCATION);
+                HeaderHelper.AddOptionalHeader(stringBuilder, "SEARCHPORT.UPNP.ORG", notifySsdp.SEARCHPORT);
+                HeaderHelper.AddOptionalHeader(stringBuilder, "SECURELOCATION.UPNP.ORG", notifySsdp.SECURELOCATION);
             }
 
             // Adding additional vendor specific headers if such are specified
-            foreach (var header in notify.Headers)
+            foreach (var header in notifySsdp.Headers)
             {
                 stringBuilder.Append($"{header.Key}: {header.Value}\r\n");
             }

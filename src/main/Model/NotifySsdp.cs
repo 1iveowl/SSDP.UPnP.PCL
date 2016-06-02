@@ -10,7 +10,7 @@ using Convert = SSDP.UPnP.PCL.Helper.Convert;
 
 namespace SSDP.UPnP.PCL.Model
 {
-    internal class Notify : ParserErrorBase, INotify
+    internal class NotifySsdp : ParserErrorBase, INotifySsdp
     {
         public string HostIp { get; }
         public int HostPort { get;  }
@@ -35,7 +35,7 @@ namespace SSDP.UPnP.PCL.Model
         public IDictionary<string, string> Headers { get; }
         public MemoryStream Data { get; }
 
-        internal Notify(IHttpRequest request)
+        internal NotifySsdp(IHttpRequest request)
         {
             try
             {

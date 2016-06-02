@@ -16,12 +16,12 @@ namespace SSDP.UPnP.PCL.Service
     {
         private readonly IHttpListener _httpListener;
 
-        public IObservable<INotify> NotifyObservable =>
+        public IObservable<INotifySsdp> NotifyObservable =>
             _httpListener
             .HttpRequestObservable
             .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
             .Where(req => req.Method == "NOTIFY")
-            .Select(req => new Notify(req));
+            .Select(req => new NotifySsdp(req));
             //.Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update);
 
         public IObservable<IMSearchResponse> MSearchResponseObservable =>

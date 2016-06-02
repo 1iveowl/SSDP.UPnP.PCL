@@ -41,7 +41,7 @@
     <Compile Include="Model\DeviceInfo.cs" />
     <Compile Include="Model\MSearchRequest.cs" />
     <Compile Include="Model\MSearchResponse.cs" />
-    <Compile Include="Model\Notify.cs" />
+    <Compile Include="Model\NotifySsdp.cs" />
     <Compile Include="Model\Server.cs" />
     <Compile Include="Model\UserAgent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

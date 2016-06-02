@@ -6,7 +6,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
 {
     public interface IControlPoint
     {
-        IObservable<INotify> NotifyObservable { get; }
+        IObservable<INotifySsdp> NotifyObservable { get; }
         IObservable<IMSearchResponse> MSearchResponseObservable { get; }
         Task SendMSearch(IMSearchRequest mSearch);
     }

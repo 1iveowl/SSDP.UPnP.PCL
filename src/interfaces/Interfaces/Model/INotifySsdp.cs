@@ -4,7 +4,7 @@ using ISSDP.UPnP.PCL.Enum;
 
 namespace ISSDP.UPnP.PCL.Interfaces.Model
 {
-    public interface INotify : IHost, IHeaders, IParserError
+    public interface INotifySsdp : IHost, IHeaders, IParserError
     {
         CastMethod NotifyCastMethod { get; }
         TimeSpan CacheControl { get;}

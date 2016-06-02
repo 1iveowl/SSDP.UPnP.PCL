@@ -7,7 +7,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
     public interface IDevice
     {
         IObservable<IMSearchRequest> MSearchObservable { get; }
-        Task Notify(INotify notify);
+        Task Notify(INotifySsdp notifySsdp);
         Task MSearchRespone(IMSearchResponse mSearch);
     }
 }
