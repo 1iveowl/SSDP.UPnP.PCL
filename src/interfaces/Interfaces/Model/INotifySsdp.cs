@@ -10,10 +10,10 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
         TimeSpan CacheControl { get;}
         Uri Location { get; }
         string NT { get;}
-        string SID { get;}
-        string SVCID { get; }
-        string SEQ { get; }
-        string LVL { get; }
+        //string SID { get;}
+        //string SVCID { get; }
+        //string SEQ { get; }
+        //string LVL { get; }
         NTS NTS { get; }
         IServer Server { get; }
         string USN { get; }

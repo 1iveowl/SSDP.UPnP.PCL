@@ -18,10 +18,10 @@ namespace SSDP.UPnP.PCL.Model
         public TimeSpan CacheControl { get; }
         public Uri Location { get; }
         public string NT { get; }
-        public string SID { get; }
-        public string SVCID { get; }
-        public string SEQ { get; }
-        public string LVL { get; }
+        //public string SID { get; }
+        //public string SVCID { get; }
+        //public string SEQ { get; }
+        //public string LVL { get; }
         public NTS NTS { get; }
         public IServer Server { get;}
         public string USN { get;}
@@ -48,10 +48,10 @@ namespace SSDP.UPnP.PCL.Model
                 NTS = Convert.ConvertToNotificationSubTypeEnum(Convert.GetHeaderValue(request.Headers, "NTS"));
                 Server = Convert.ConvertToServer(Convert.GetHeaderValue(request.Headers, "SERVER"));
                 USN = Convert.GetHeaderValue(request.Headers, "USN");
-                SID = Convert.GetHeaderValue(request.Headers, "SID");
-                SVCID = Convert.GetHeaderValue(request.Headers, "SVCID");
-                SEQ = Convert.GetHeaderValue(request.Headers, "SEQ");
-                LVL = Convert.GetHeaderValue(request.Headers, "LVL");
+                //SID = Convert.GetHeaderValue(request.Headers, "SID");
+                //SVCID = Convert.GetHeaderValue(request.Headers, "SVCID");
+                //SEQ = Convert.GetHeaderValue(request.Headers, "SEQ");
+                //LVL = Convert.GetHeaderValue(request.Headers, "LVL");
 
                 BOOTID = Convert.GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG");
                 CONFIGID = Convert.GetHeaderValue(request.Headers, "CONFIGID.UPNP.ORG");
@@ -62,7 +62,7 @@ namespace SSDP.UPnP.PCL.Model
                 Headers = HeaderHelper.SingleOutAdditionalHeaders(new List<string>
                 {
                     "HOST", "CACHE-CONTROL", "LOCATION", "NT", "NTS", "SERVER", "USN",
-                    "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG", "SID", "SVCID", "SEQ", "LVL",
+                    "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG", //"SID", "SVCID", "SEQ", "LVL",
                     "SEARCHPORT.UPNP.ORG", "NEXTBOOTID.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
                 }, request.Headers);
 
