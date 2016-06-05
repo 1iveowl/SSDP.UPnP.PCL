@@ -107,12 +107,12 @@ namespace SSDP.UPnP.PCL.Helper
 
         internal static IServer ConvertToServer(string str)
         {
-            return ConvertToDeviceInfo<Server>(str);
+            return string.IsNullOrEmpty(str) ? null : ConvertToDeviceInfo<Server>(str);
         }
 
         internal static IUserAgent ConvertToUserAgent(string str)
         {
-            return ConvertToDeviceInfo<UserAgent>(str);
+            return string.IsNullOrEmpty(str) ? null : ConvertToDeviceInfo<UserAgent>(str);
         }
 
         internal static Uri UrlToUri(string url)
