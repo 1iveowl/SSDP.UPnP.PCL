@@ -23,6 +23,6 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
         string NEXTBOOTID { get; }
         string SECURELOCATION { get; }
         bool IsUuidUpnp2Compliant { get; }
-        MemoryStream Data { get; }
+        //MemoryStream Data { get; }
     }
 }

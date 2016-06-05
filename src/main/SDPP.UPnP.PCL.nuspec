@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>SSDP.UPnP.PCL</id>
-    <version>1.0.3</version>
+    <version>1.0.5</version>
     <title>SSDP UPnP 2.0 for Xamarin</title>
     <authors>Jasper H. Bojsen</authors>
     <owners>Jasper H. Bojsen</owners>

@@ -6,7 +6,7 @@ using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 using SSDP.UPnP.PCL.Helper;
 using SSDP.UPnP.PCL.Model.Base;
-using Convert = SSDP.UPnP.PCL.Helper.Convert;
+using static SSDP.UPnP.PCL.Helper.Convert;
 
 namespace SSDP.UPnP.PCL.Model
 {
@@ -33,31 +33,31 @@ namespace SSDP.UPnP.PCL.Model
         public string SECURELOCATION { get; }
         public bool IsUuidUpnp2Compliant { get; }
         public IDictionary<string, string> Headers { get; }
-        public MemoryStream Data { get; }
+        //public MemoryStream Data { get; }
 
         internal NotifySsdp(IHttpRequest request)
         {
             try
             {
-                NotifyCastMethod = Convert.GetCastMetod(request);
+                NotifyCastMethod = GetCastMetod(request);
                 HostIp = request.RemoteAddress;
                 HostPort = request.RemotePort;
-                CacheControl = TimeSpan.FromSeconds(Convert.GetMaxAge(request.Headers));
-                Location = Convert.UrlToUri(Convert.GetHeaderValue(request.Headers, "LOCATION"));
-                NT = Convert.GetHeaderValue(request.Headers, "NT");
-                NTS = Convert.ConvertToNotificationSubTypeEnum(Convert.GetHeaderValue(request.Headers, "NTS"));
-                Server = Convert.ConvertToServer(Convert.GetHeaderValue(request.Headers, "SERVER"));
-                USN = Convert.GetHeaderValue(request.Headers, "USN");
+                CacheControl = TimeSpan.FromSeconds(GetMaxAge(request.Headers));
+                Location = UrlToUri(GetHeaderValue(request.Headers, "LOCATION"));
+                NT = GetHeaderValue(request.Headers, "NT");
+                NTS = ConvertToNotificationSubTypeEnum(GetHeaderValue(request.Headers, "NTS"));
+                Server = ConvertToServer(GetHeaderValue(request.Headers, "SERVER"));
+                USN = GetHeaderValue(request.Headers, "USN");
                 //SID = Convert.GetHeaderValue(request.Headers, "SID");
                 //SVCID = Convert.GetHeaderValue(request.Headers, "SVCID");
                 //SEQ = Convert.GetHeaderValue(request.Headers, "SEQ");
                 //LVL = Convert.GetHeaderValue(request.Headers, "LVL");
 
-                BOOTID = Convert.GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG");
-                CONFIGID = Convert.GetHeaderValue(request.Headers, "CONFIGID.UPNP.ORG");
-                SEARCHPORT = Convert.GetHeaderValue(request.Headers, "SEARCHPORT.UPNP.ORG");
-                NEXTBOOTID = Convert.GetHeaderValue(request.Headers, "NEXTBOOTID.UPNP.ORG");
-                SECURELOCATION = Convert.GetHeaderValue(request.Headers, "SECURELOCATION.UPNP.ORG");
+                BOOTID = GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG");
+                CONFIGID = GetHeaderValue(request.Headers, "CONFIGID.UPNP.ORG");
+                SEARCHPORT = GetHeaderValue(request.Headers, "SEARCHPORT.UPNP.ORG");
+                NEXTBOOTID = GetHeaderValue(request.Headers, "NEXTBOOTID.UPNP.ORG");
+                SECURELOCATION = GetHeaderValue(request.Headers, "SECURELOCATION.UPNP.ORG");
 
                 Headers = HeaderHelper.SingleOutAdditionalHeaders(new List<string>
                 {
@@ -66,7 +66,7 @@ namespace SSDP.UPnP.PCL.Model
                     "SEARCHPORT.UPNP.ORG", "NEXTBOOTID.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
                 }, request.Headers);
 
-                Data = request.Body;
+                //Data = request.Body;
             }
             catch (Exception)
             {
