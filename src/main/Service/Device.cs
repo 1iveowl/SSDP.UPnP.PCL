@@ -51,7 +51,7 @@ namespace SSDP.UPnP.PCL.Service
             // According to the UPnP spec the UDP Multicast Notify should be send three times
             for (var i = 0; i < 3; i++)
             {
-                await _httpListener.SendOnMulticast(ComposeNotifyDatagram(notifySsdp), TTL: 2);
+                await _httpListener.SendOnMulticast(ComposeNotifyDatagram(notifySsdp));
                 // Random delay between resends of 200 - 400 milliseconds. 
                 await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(200, 400)));
             }

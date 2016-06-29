@@ -34,9 +34,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <!-- A reference to the entire .NET Framework is automatically included -->
-  </ItemGroup>
-  <ItemGroup>
     <Compile Include="Interfaces\Model\IDeviceInfo.cs" />
     <Compile Include="Interfaces\Model\IHeaders.cs" />
     <Compile Include="Interfaces\Model\IHost.cs" />
@@ -51,6 +48,15 @@
     <Compile Include="Interfaces\Service\IControlPoint.cs" />
     <Compile Include="Interfaces\Service\IDevice.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="HttpMachine, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\main\packages\HttpMachine.PCL.1.1.1\lib\portable-net45+netcore45\HttpMachine.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
