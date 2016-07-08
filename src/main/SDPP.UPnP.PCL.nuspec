@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>SSDP.UPnP.PCL</id>
-    <version>1.0.5</version>
+    <version>2.0.0</version>
     <title>SSDP UPnP 2.0 for Xamarin</title>
     <authors>Jasper H. Bojsen</authors>
     <owners>Jasper H. Bojsen</owners>
@@ -18,9 +18,9 @@ Uses Reactive Extensions (Rx) for simplicity</description>
     <copyright>Copyright 2016</copyright>
     <tags>Tag1 Tag2</tags>
             <dependencies>
-            <dependency id="Rx-Main" version="2.2.5"/>
-            <dependency id="SocketLite.PCL" version="1.0.9"/>
-            <dependency id="SimpleHttpListener" version="1.1.5"/>
+            <dependency id="System.Reactive" version="3.0.0"/>
+            <dependency id="SocketLite.PCL" version="2.0.4"/>
+            <dependency id="SimpleHttpListener" version="2.0.4"/>
         </dependencies>
   </metadata>
   <files>

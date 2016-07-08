@@ -66,7 +66,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="ISocketLite.PCL, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\SocketLite.PCL.2.0.3\lib\portable-net45+netcore45\ISocketLite.PCL.dll</HintPath>
+      <HintPath>packages\SocketLite.PCL.2.0.4\lib\portable-net45+netcore45\ISocketLite.PCL.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="SimpleHttpServer, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -74,7 +74,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="SocketLite, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\SocketLite.PCL.2.0.3\lib\portable-net45+netcore45\SocketLite.dll</HintPath>
+      <HintPath>packages\SocketLite.PCL.2.0.4\lib\portable-net45+netcore45\SocketLite.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System.Reactive.Core, Version=3.0.0.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
