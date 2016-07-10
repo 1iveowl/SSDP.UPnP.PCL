@@ -19,6 +19,10 @@ namespace SSDP.Console.Test.NET
         private static IControlPoint _controlPoint;
         private static IDevice _device;
 
+
+        // For this test to work you most likely need to stop the SSDP Discovery service on Windows
+        // If you don't stop the SSDP Windows Service, the service will intercept the UPnP multicasts and consequently nothing will show up in the console. 
+
         static void Main(string[] args)
         {
             InitializeHttpListener();
