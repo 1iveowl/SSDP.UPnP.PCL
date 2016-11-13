@@ -79,9 +79,12 @@ namespace SSDP.UPnP.PCL.Service
                 HeaderHelper.AddOptionalHeader(stringBuilder, "TCPPORT.UPNP.ORG", request.TCPPORT);
                 HeaderHelper.AddOptionalHeader(stringBuilder, "CPUUID.UPNP.ORG", request.CPUUID);
 
-                foreach (var header in request.Headers)
+                if (request.Headers != null)
                 {
-                    stringBuilder.Append($"{header.Key}: {header.Value}\r\n");
+                    foreach (var header in request.Headers)
+                    {
+                        stringBuilder.Append($"{header.Key}: {header.Value}\r\n");
+                    }
                 }
             }
 
