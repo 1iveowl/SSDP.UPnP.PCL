@@ -13,8 +13,8 @@
     <DefaultLanguage>en-US</DefaultLanguage>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{786C830F-07A1-408B-BD7F-6EE04809D6DB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <TargetFrameworkProfile>Profile7</TargetFrameworkProfile>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkProfile></TargetFrameworkProfile>
+    <TargetFrameworkVersion>v5.0</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -49,14 +49,19 @@
     <Compile Include="Service\ControlPoint.cs" />
     <Compile Include="Service\Device.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <None Include="project.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Extensions\" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\interfaces\ISSDP.UPnP.PCL.csproj">
       <Project>{eae66339-8144-4afe-92e6-3785afcfbe7d}</Project>
       <Name>ISSDP.UPnP.PCL</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
+  <!--<ItemGroup>
     <Reference Include="HttpMachine, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\HttpMachine.PCL.1.1.1\lib\portable-net45+netcore45\HttpMachine.dll</HintPath>
       <Private>True</Private>
@@ -93,10 +98,11 @@
       <HintPath>packages\System.Reactive.PlatformServices.3.0.0\lib\netstandard1.0\System.Reactive.PlatformServices.dll</HintPath>
       <Private>True</Private>
     </Reference>
-  </ItemGroup>
-  <ItemGroup>
+  </ItemGroup>-->
+  <!--<ItemGroup>
     <None Include="packages.config" />
-  </ItemGroup>
+  </ItemGroup>-->
+  
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
