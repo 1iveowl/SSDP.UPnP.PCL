@@ -48,7 +48,7 @@ await HttpListener.StartTcpResponseListener(1901, networkComm);
 await HttpListener.StartUdpMulticastListener("239.255.255.250", 1900, networkComm);
 await HttpListener.StartUdpListener(1900, networkComm);
 ```
-> Important Note: On Windows you might want to stop the "SSDP Service". My experience is that if you don't stop the SSDP Windows Service, the service will intercept the UPnP multicasts and consequently nothing will get through to the HttpListener.
+> **Important Note**: On Windows you might want to stop the "SSDP Service". My experience is that if you don't stop the SSDP Windows Service, the service will intercept the UPnP multicasts and consequently nothing will get through to the HttpListener.
 
 #### Creating a UPnP Device
 Create a UPnP Device and start listen to M-SEARCH Requests like this:
