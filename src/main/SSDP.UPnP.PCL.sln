@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SDPP.UPnP.PCL", "SDPP.UPnP.PCL.csproj", "{0F14E7AD-CF9F-4500-92EB-AE1014C0121B}"
 EndProject
@@ -10,6 +10,19 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SSDP.Console.Test.NET", "..\test\Console.Test.NET\SSDP.Console.Test.NET.csproj", "{4550EC29-BFE6-4648-BCAD-785D2846C05E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{1B7C27F1-87A9-4882-9856-EA1BC3908472}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GitHub", "GitHub", "{015D6024-6202-42B4-92C1-FDD0BE0BFA33}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\License.md = ..\..\License.md
+		..\..\README.md = ..\..\README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NuGet", "NuGet", "{8BC53D6F-77B4-48B6-9E02-7CA37AB28631}"
+	ProjectSection(SolutionItems) = preProject
+		..\build\build.ps1 = ..\build\build.ps1
+		..\build\publish.ps1 = ..\build\publish.ps1
+		..\build\SDPP.UPnP.PCL.nuspec = ..\build\SDPP.UPnP.PCL.nuspec
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
