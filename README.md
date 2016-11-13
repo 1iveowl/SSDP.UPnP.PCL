@@ -63,21 +63,23 @@ var MSearchRequestSubscribe = device.MSearchObservable.Subscribe(
 ```
 #### Creating a UPnP ControlPoint
 Create a UPnP ControlPoint and start listen to M-SEARCH Responses and NOTIFY messages like this:
-    controlPoint = new ControlPoint(HttpListener);
+```csharp
+controlPoint = new ControlPoint(HttpListener);
     
-    var MSearchresponseSubscribe = controlPoint.MSearchResponseObservable
-    	.Subscribe(
-    	res =>
-    	{
-    		//Insert your code to handle M-SEARCH Reponses here
-    	}
+var MSearchresponseSubscribe = controlPoint.MSearchResponseObservable
+    .Subscribe(
+    res =>
+    {
+    	//Insert your code to handle M-SEARCH Reponses here
+    }
     
-    var notifySubscribe = controlPoint.NotifyObservable
-    	.Subscribe(
-    	n =>
-    	{
-    		// Insert your code to handle NOTIFY messages here
-    	}
+var notifySubscribe = controlPoint.NotifyObservable
+    .Subscribe(
+    n =>
+    {
+    	// Insert your code to handle NOTIFY messages here
+    }        
+```
 #### Broadcasting a M-SEARCH Multicast Request
 In UPnP a ControlPoint can ask all the devices on the local network to report back about themselves by broadcasting a multicast M-SEARCH Request. Here is how that might look:
 ```csharp
@@ -99,6 +101,7 @@ var mSearchMessage = new MSearch
 		UpnpMinorVersion = "0",
 	}
 };
+
 await controlPoint.SendMSearch(mSearchMessage);
 ```
 For details about what a multicast M-SEARCH Request is and how to use it: see the [UPnP Architecture documentation](http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v2.0.pdf)). 
