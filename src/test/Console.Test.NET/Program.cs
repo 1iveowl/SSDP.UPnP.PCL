@@ -14,7 +14,7 @@ namespace SSDP.Console.Test.NET
 {
     class Program
     {
-        private static readonly IHttpListener HttpListener = new HttpListener(TimeSpan.FromSeconds(30));
+        private static readonly IHttpListener HttpListener = new HttpListener(timeout:TimeSpan.FromSeconds(30));
 
         private static IControlPoint _controlPoint;
         private static IDevice _device;
@@ -51,7 +51,7 @@ namespace SSDP.Console.Test.NET
                 {
                     System.Console.BackgroundColor = ConsoleColor.DarkGreen;
                     System.Console.ForegroundColor = ConsoleColor.White;
-                    System.Console.WriteLine($"---### Device Received a M-SEARCH REQÙEST ###---");
+                    System.Console.WriteLine($"---### Device Received a M-SEARCH REQUEST ###---");
                     System.Console.ResetColor();
                     System.Console.WriteLine($"{req.SearchCastMethod.ToString()}");
                     System.Console.WriteLine($"HOST: {req.HostIp}:{req.HostPort}");
@@ -110,10 +110,6 @@ namespace SSDP.Console.Test.NET
                                              $" - ({n.Server.FullString})");
                     System.Console.WriteLine($"NT: {n.NT}");
                     System.Console.WriteLine($"NTS: {n.NTS}");
-                    //System.Console.WriteLine($"SIC: {n.SID}");
-                    //System.Console.WriteLine($"SVCID: {n.SVCID}");
-                    //System.Console.WriteLine($"SEQ: {n.SEQ}");
-                    //System.Console.WriteLine($"LVL: {n.LVL}");
                     System.Console.WriteLine($"USN: {n.USN}");
                     System.Console.WriteLine($"BOOTID: {n.BOOTID}");
                     System.Console.WriteLine($"CONFIGID: {n.CONFIGID}");
@@ -190,11 +186,11 @@ namespace SSDP.Console.Test.NET
                 HostIp = "239.255.255.250",
                 HostPort = 1900,
                 MX = TimeSpan.FromSeconds(1),
-                Headers = new Dictionary<string, string>
-                {
-                    //{"abc", "123"},
-                    //{"cde", "345"}
-                },
+                //Headers = new Dictionary<string, string>
+                //{
+                //    {"abc", "123"},
+                //    {"cde", "345"}
+                //},
 
                 ST = "upnp:rootdevice",
                 UserAgent = new UserAgent
