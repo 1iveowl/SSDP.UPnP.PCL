@@ -1,7 +1,4 @@
-# SSDP UPnP v2.0 Library
-
-
-[![NuGet Badge](https://buildstats.info/nuget/SSDP.UPnP.PCL)](https://www.nuget.org/packages/RSSDP/)
+# SSDP UPnP v2.0 Library [![NuGet Badge](https://buildstats.info/nuget/SSDP.UPnP.PCL)](https://www.nuget.org/packages/RSSDP/)
 
 [![.NET Standard](http://img.shields.io/badge/.NET_Standard-v1.2-green.svg)](https://docs.microsoft.com/da-dk/dotnet/articles/standard/library) [![System.Reactive](http://img.shields.io/badge/Rx-v3.1.0-ff69b4.svg)](http://reactivex.io/) 
 
@@ -9,6 +6,8 @@
 
 ## Why This Library
 There are other SSDP Libraries available, so why this library?
+
+This library support the v2.0 version of the UPnP Arhitecture. Most other libraries are only for UPnP v1.1.
 
 This library is created for [Reactive Extensions](http://reactivex.io/ "Reactive Extensions"). As SSDP deals with a stream of messages continuously coming in, Rx IMHO provides a much more elegant programming paradigm than what exists already. Sure the Rx learning curve can feel a bit steep at fist, but it is worth the effort.
 
