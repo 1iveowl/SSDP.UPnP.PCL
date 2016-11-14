@@ -2,7 +2,7 @@
 
 [![NuGet Badge](https://buildstats.info/nuget/SSDP.UPnP.PCL)](https://www.nuget.org/packages/RSSDP/)
 
-[![.NET Standard](http://img.shields.io/badge/Compatible_w/_.NET_Standard-v1.2-green.svg)](https://docs.microsoft.com/da-dk/dotnet/articles/standard/library) 
+[![.NET Standard](http://img.shields.io/badge/Compatibility:_.NET_Standard-v1.2-green.svg)](https://docs.microsoft.com/da-dk/dotnet/articles/standard/library) 
 
 [![System.Reactive](http://img.shields.io/badge/Reactive_Extensions-Rx_v3.1.0-ff69b4.svg)](http://reactivex.io/) 
 
