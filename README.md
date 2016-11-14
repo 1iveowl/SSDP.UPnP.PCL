@@ -1,6 +1,10 @@
-# SSDP Library for UPnP version 2.0 [![NuGet Badge](https://buildstats.info/nuget/SSDP.UPnP.PCL)](https://www.nuget.org/packages/RSSDP/)
+# SSDP Library for UPnP version 2.0 
 
-[![.NET Standard](http://img.shields.io/badge/.NET_Standard-v1.2-green.svg)](https://docs.microsoft.com/da-dk/dotnet/articles/standard/library) [![System.Reactive](http://img.shields.io/badge/Rx-v3.1.0-ff69b4.svg)](http://reactivex.io/) 
+[![NuGet Badge](https://buildstats.info/nuget/SSDP.UPnP.PCL)](https://www.nuget.org/packages/RSSDP/)
+
+[![.NET Standard](http://img.shields.io/badge/Compatible_w/_.NET_Standard-v1.2-green.svg)](https://docs.microsoft.com/da-dk/dotnet/articles/standard/library) 
+
+[![System.Reactive](http://img.shields.io/badge/Reactive_Extensions-Rx_v3.1.0-ff69b4.svg)](http://reactivex.io/) 
 
 [![UPnP](http://img.shields.io/badge/UPnP_Device_Architecture-v2.0-blue.svg)](http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v2.0.pdf)
 
