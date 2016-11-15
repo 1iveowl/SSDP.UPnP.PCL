@@ -3,25 +3,23 @@
   <metadata>
     <id>SSDP.UPnP.PCL</id>
     <version>0</version>
-    <title>SSDP UPnP v2.0 Library</title>
+    <title>SSDP Library for UPnP v2.0</title>
     <authors>Jasper H. Bojsen</authors>
     <owners>Jasper H. Bojsen</owners>
     <licenseUrl>https://github.com/1iveowl/SSDP.UPnP.PCL/blob/master/License.md</licenseUrl>
     <projectUrl>https://github.com/1iveowl/SSDP.UPnP.PCL/</projectUrl>
     <iconUrl>https://nuget.org/Content/Images/packageDefaultIcon.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>SSDP based on the UPnP 2.0 specification. 
+    <description>SSDP for the UPnP v2.0 Architecture. 
 Makes it easy to receive and send SSDP Notification and M-Search messages. 
-Any handling of these messages are out-side the scope of this Nuget.
-Uses Reactive Extensions (Rx) for simplicity.
-Works with .NET 4.5.1+, UWP and with Xamarin for iOS, Android and UWP project</description>
+Uses Reactive Extensions (Rx) for simplicity.</description>
     <releaseNotes>Moved from PCL to .NET Standard 1.2</releaseNotes>
     <copyright>Copyright 2016</copyright>
-    <tags>SSDP UPnP IoT</tags>
+    <tags>SSDP, UPnP, IoT, .NET_standard, Xamarin, iOS, .NET, Android, UWP, .NET_Core</tags>
         <dependencies>
             <dependency id="System.Reactive" version="3.1.0"/>
             <dependency id="SocketLite.PCL" version="3.0.11"/>
-            <dependency id="SimpleHttpListener" version="3.0.11"/>
+            <dependency id="SimpleHttpListener" version="3.0.14"/>
         </dependencies>
   </metadata>
   <files>

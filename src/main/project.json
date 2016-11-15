@@ -2,7 +2,7 @@
   "supports": {},
   "dependencies": {
     "HttpMachine.PCL": "2.0.3",
-    "SimpleHttpListener": "3.0.11",
+    "SimpleHttpListener": "3.0.14",
     "SocketLite.PCL": "3.0.11",
     "System.Reactive": "3.1.0"
   },

@@ -18,10 +18,6 @@ namespace SSDP.UPnP.PCL.Model
         public TimeSpan CacheControl { get; }
         public Uri Location { get; }
         public string NT { get; }
-        //public string SID { get; }
-        //public string SVCID { get; }
-        //public string SEQ { get; }
-        //public string LVL { get; }
         public NTS NTS { get; }
         public IServer Server { get;}
         public string USN { get;}
