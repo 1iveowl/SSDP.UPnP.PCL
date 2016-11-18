@@ -35,7 +35,7 @@ namespace SSDP.UPnP.PCL.Service
             _httpListener = httpListener;
         }
 
-        public async Task SendMSearch(IMSearchRequest mSearch)
+        public async Task SendMSearchAsync(IMSearchRequest mSearch)
         {
             if (mSearch.SearchCastMethod == CastMethod.Multicast)
             {

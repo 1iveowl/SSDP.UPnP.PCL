@@ -203,7 +203,7 @@ namespace SSDP.Console.Test.NET
                     UpnpMinorVersion = "0",
                 }
             };
-            await _controlPoint.SendMSearch(mSearchMessage);
+            await _controlPoint.SendMSearchAsync(mSearchMessage);
         }
     }
 }
