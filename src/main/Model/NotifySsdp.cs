@@ -73,8 +73,7 @@ namespace SSDP.UPnP.PCL.Model
                 InvalidRequest = true;
             }
 
-            Guid guid;
-            IsUuidUpnp2Compliant = Guid.TryParse(USN, out guid);
+            IsUuidUpnp2Compliant = Guid.TryParse(USN, out Guid guid);
         }
     }
 }

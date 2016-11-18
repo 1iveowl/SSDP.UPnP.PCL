@@ -25,13 +25,13 @@ namespace SSDP.Console.Test.NET
 
         static void Main(string[] args)
         {
-            InitializeHttpListener();
+            InitializeHttpListenerAsync();
             StartDeviceListening();
-            StartControlPointListening();
+            StartControlPointListeningAsync();
             System.Console.ReadKey();
         }
 
-        private static async void InitializeHttpListener()
+        private static async void InitializeHttpListenerAsync()
         {
             var comm = new CommunicationsInterface();
             var allComms = comm.GetAllInterfaces();
@@ -84,7 +84,7 @@ namespace SSDP.Console.Test.NET
                 });
         }
 
-        private static async void StartControlPointListening()
+        private static async void StartControlPointListeningAsync()
         {
             _controlPoint = new ControlPoint(HttpListener);
 
@@ -174,10 +174,10 @@ namespace SSDP.Console.Test.NET
                     System.Console.WriteLine();
                 });
 
-            await StartMSearchRequestMulticast();
+            await StartMSearchRequestMulticastAsync();
         }
 
-        private static async Task StartMSearchRequestMulticast()
+        private static async Task StartMSearchRequestMulticastAsync()
         {
             var mSearchMessage = new MSearch
             {
