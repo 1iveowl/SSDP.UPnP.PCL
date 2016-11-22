@@ -8,6 +8,6 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
     {
         IObservable<INotifySsdp> NotifyObservable { get; }
         IObservable<IMSearchResponse> MSearchResponseObservable { get; }
-        Task SendMSearch(IMSearchRequest mSearch);
+        Task SendMSearchAsync(IMSearchRequest mSearch);
     }
 }

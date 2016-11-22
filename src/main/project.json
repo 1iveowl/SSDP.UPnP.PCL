@@ -1,12 +1,19 @@
 ﻿{
   "supports": {},
   "dependencies": {
+<<<<<<< HEAD
     "HttpMachine.PCL": "2.0.3",
     "SimpleHttpListener": "3.0.14",
     "SocketLite.PCL": "3.0.11",
     "System.Reactive": "3.1.0"
+=======
+    "HttpMachine.PCL": "3.0.1",
+    "SimpleHttpListener": "3.5.0",
+    "SocketLite.PCL": "3.5.4",
+    "System.Reactive": "3.1.1"
+>>>>>>> develop
   },
   "frameworks": {
-    "netstandard1.2": {}
+    "netstandard1.4": {}
   }
 }
