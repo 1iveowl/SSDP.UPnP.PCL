@@ -1,5 +1,4 @@
-# SSDP UPnP v2.0 Library
-
+# SSDP Library for UPnP version 2.0 
 
 [![NuGet Badge](https://buildstats.info/nuget/SSDP.UPnP.PCL)](https://github.com/1iveowl/SSDP.UPnP.PCL)
 
@@ -9,6 +8,8 @@
 
 ## Why This Library
 There are other SSDP Libraries available, so why this library?
+
+This library support the v2.0 version of the UPnP Arhitecture. Most other libraries are only for UPnP v1.1.
 
 This library is created for [Reactive Extensions](http://reactivex.io/ "Reactive Extensions"). As SSDP deals with a stream of messages continuously coming in, Rx IMHO provides a much more elegant programming paradigm than what exists already. Sure the Rx learning curve can feel a bit steep at fist, but it is worth the effort.
 
@@ -48,7 +49,7 @@ await HttpListener.StartTcpResponseListener(1901, networkComm);
 await HttpListener.StartUdpMulticastListener("239.255.255.250", 1900, networkComm);
 await HttpListener.StartUdpListener(1900, networkComm);
 ```
-> Important Note: On Windows you might want to stop the "SSDP Service". My experience is that if you don't stop the SSDP Windows Service, the service will intercept the UPnP multicasts and consequently nothing will get through to the HttpListener.
+> **Important Note**: On Windows you might want to stop the "SSDP Service". My experience is that if you don't stop the SSDP Windows Service, the service will intercept the UPnP multicasts and consequently nothing will get through to the HttpListener.
 
 #### Creating a UPnP Device
 Create a UPnP Device and start listen to M-SEARCH Requests like this:

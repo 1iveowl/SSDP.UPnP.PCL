@@ -33,14 +33,10 @@ namespace SSDP.Console.Test.NET
 
         private static async void InitializeHttpListenerAsync()
         {
-            var comm = new CommunicationsInterface();
-            var allComms = comm.GetAllInterfaces();
-            var networkComm = allComms.FirstOrDefault(x => x.GatewayAddress != null);
-
-            await HttpListener.StartTcpRequestListener(1900, networkComm);
-            await HttpListener.StartTcpResponseListener(1901, networkComm);
-            await HttpListener.StartUdpMulticastListener("239.255.255.250", 1900, networkComm);
-            await HttpListener.StartUdpListener(1900, networkComm);
+            await HttpListener.StartTcpRequestListener(1900);
+            await HttpListener.StartTcpResponseListener(1901);
+            await HttpListener.StartUdpMulticastListener("239.255.255.250", 1900);
+            await HttpListener.StartUdpListener(1900);
         }
 
         private static void StartDeviceListening()

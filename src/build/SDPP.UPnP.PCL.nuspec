@@ -3,14 +3,14 @@
   <metadata>
     <id>SSDP.UPnP.PCL</id>
     <version>0</version>
-    <title>SSDP UPnP v2.0 Library</title>
+    <title>SSDP Library for UPnP v2.0</title>
     <authors>Jasper H. Bojsen</authors>
     <owners>Jasper H. Bojsen</owners>
     <licenseUrl>https://github.com/1iveowl/SSDP.UPnP.PCL/blob/master/License.md</licenseUrl>
     <projectUrl>https://github.com/1iveowl/SSDP.UPnP.PCL/</projectUrl>
     <iconUrl>https://nuget.org/Content/Images/packageDefaultIcon.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>SSDP based on the UPnP 2.0 specification. 
+    <description>SSDP for the UPnP v2.0 Architecture. 
 Makes it easy to receive and send SSDP Notification and M-Search messages. 
 Any handling of these messages are out-side the scope of this Nuget.
 Uses Reactive Extensions (Rx) for simplicity.</description>
