@@ -38,13 +38,8 @@
       <HintPath>..\..\main\packages\HttpMachine.PCL.3.0.1\lib\netstandard1\HttpMachine.dll</HintPath>
       <Private>True</Private>
     </Reference>
-<<<<<<< HEAD
-    <Reference Include="ISimpleHttpServer, Version=3.0.14.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\main\packages\SimpleHttpListener.3.0.14\lib\netstandard1.2\ISimpleHttpServer.dll</HintPath>
-=======
     <Reference Include="ISimpleHttpServer, Version=3.5.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\..\main\packages\SimpleHttpListener.3.5.0\lib\netstandard1.4\ISimpleHttpServer.dll</HintPath>
->>>>>>> develop
       <Private>True</Private>
     </Reference>
     <Reference Include="ISocketLite.PCL, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -56,11 +51,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="SimpleHttpServer, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-<<<<<<< HEAD
-      <HintPath>..\..\main\packages\SimpleHttpListener.3.0.14\lib\netstandard1.2\SimpleHttpServer.dll</HintPath>
-=======
       <HintPath>..\..\main\packages\SimpleHttpListener.3.5.0\lib\netstandard1.4\SimpleHttpServer.dll</HintPath>
->>>>>>> develop
       <Private>True</Private>
     </Reference>
     <Reference Include="SocketLite, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -170,7 +161,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="packages.config" />
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\interfaces\ISSDP.UPnP.PCL.csproj">
