@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.25914.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SDPP.UPnP.PCL", "SDPP.UPnP.PCL.csproj", "{0F14E7AD-CF9F-4500-92EB-AE1014C0121B}"
 EndProject
@@ -21,8 +21,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NuGet", "NuGet", "{8BC53D6F
 	ProjectSection(SolutionItems) = preProject
 		..\build\build.ps1 = ..\build\build.ps1
 		..\build\publish.ps1 = ..\build\publish.ps1
+		..\build\publishLocal.ps1 = ..\build\publishLocal.ps1
 		..\build\SDPP.UPnP.PCL.nuspec = ..\build\SDPP.UPnP.PCL.nuspec
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SSDP.Console.NETcore.Test", "..\test\SSDP.Console.NETcore.Test\SSDP.Console.NETcore.Test.csproj", "{5456F847-25B5-4377-9C1C-9BA2F9F9A51C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -42,11 +45,16 @@ Global
 		{4550EC29-BFE6-4648-BCAD-785D2846C05E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4550EC29-BFE6-4648-BCAD-785D2846C05E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4550EC29-BFE6-4648-BCAD-785D2846C05E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5456F847-25B5-4377-9C1C-9BA2F9F9A51C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5456F847-25B5-4377-9C1C-9BA2F9F9A51C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5456F847-25B5-4377-9C1C-9BA2F9F9A51C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5456F847-25B5-4377-9C1C-9BA2F9F9A51C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{4550EC29-BFE6-4648-BCAD-785D2846C05E} = {1B7C27F1-87A9-4882-9856-EA1BC3908472}
+		{5456F847-25B5-4377-9C1C-9BA2F9F9A51C} = {1B7C27F1-87A9-4882-9856-EA1BC3908472}
 	EndGlobalSection
 EndGlobal
