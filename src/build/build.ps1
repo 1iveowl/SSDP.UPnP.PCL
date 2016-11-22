@@ -1,4 +1,12 @@
-$msbuild = join-path -path (Get-ItemProperty "HKLM:\software\Microsoft\MSBuild\ToolsVersions\14.0")."MSBuildToolsPath" -childpath "msbuild.exe"
+#################################################
+## IMPORTANT: Using MS Build Tool for VS 2017! ##
+## This project include C# 7.0 features        ##
+#################################################
+
+## Install VS 2017 MSBuild tools from here: https://www.visualstudio.com/downloads/#build-tools-for-visual-studio-2017-rc
+
+$msbuild = "C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin\msbuild.exe"
+
 &$msbuild ..\interfaces\ISSDP.UPnP.PCL.csproj /t:Build /p:Configuration="Release"
 &$msbuild ..\main\SDPP.UPnP.PCL.csproj /t:Build /p:Configuration="Release"
 

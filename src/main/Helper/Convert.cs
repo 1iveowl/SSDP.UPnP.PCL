@@ -28,8 +28,7 @@ namespace SSDP.UPnP.PCL.Helper
 
         internal static int ConvertStringToInt(string str)
         {
-            int x;
-            if (int.TryParse(str, out x))
+            if (int.TryParse(str, out int x))
             {
                 return x;
             }
@@ -38,8 +37,7 @@ namespace SSDP.UPnP.PCL.Helper
 
         internal static string GetHeaderValue(IDictionary<string, string> headers, string key)
         {
-            string value;
-            headers.TryGetValue(key.ToUpper(), out value);
+            headers.TryGetValue(key.ToUpper(), out string value);
             return value;
         }
 
@@ -117,8 +115,7 @@ namespace SSDP.UPnP.PCL.Helper
 
         internal static Uri UrlToUri(string url)
         {
-            Uri uri;
-            Uri.TryCreate(url, UriKind.Absolute, out uri);
+            Uri.TryCreate(url, UriKind.Absolute, out var uri);
             return uri;
 
         }
