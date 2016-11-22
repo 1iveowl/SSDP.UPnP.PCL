@@ -9,7 +9,7 @@ namespace SSDP.UPnP.PCL.Service.Base
         {
             using (var tcpClient = new TcpSocketClient())
             {
-                await tcpClient.ConnectAsync(address, port);
+                await tcpClient.ConnectAsync(address, port.ToString());
                 await tcpClient.WriteStream.WriteAsync(data, 0, data.Length);
             }
         }
