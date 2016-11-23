@@ -14,7 +14,7 @@
 Makes it easy to receive and send SSDP Notification and M-Search messages. 
 Any handling of these messages are out-side the scope of this Nuget.
 Uses Reactive Extensions (Rx) for simplicity.</description>
-    <releaseNotes>Moved from PCL to .NET Standard 1.4</releaseNotes>
+    <releaseNotes>Moved from PCL to .NET Standard 1.2</releaseNotes>
     <copyright>Copyright 2016</copyright>
     <tags>ssdp upnp iot ios android uwp netcore</tags>
         <dependencies>
