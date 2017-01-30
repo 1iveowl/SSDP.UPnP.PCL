@@ -38,12 +38,12 @@
       <HintPath>..\..\main\packages\HttpMachine.PCL.3.0.1\lib\netstandard1\HttpMachine.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="ISimpleHttpServer, Version=3.5.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\main\packages\SimpleHttpListener.3.5.0\lib\netstandard1.4\ISimpleHttpServer.dll</HintPath>
+    <Reference Include="ISimpleHttpServer, Version=3.6.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\main\packages\SimpleHttpListener.3.6.2\lib\netstandard1.2\ISimpleHttpServer.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="ISocketLite.PCL, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\main\packages\SocketLite.PCL.3.5.0\lib\netstandard1.4\ISocketLite.PCL.dll</HintPath>
+    <Reference Include="ISocketLite.PCL, Version=3.6.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\main\packages\SocketLite.PCL.3.6.2\lib\net45\ISocketLite.PCL.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.Win32.Primitives, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
@@ -51,11 +51,11 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="SimpleHttpServer, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\main\packages\SimpleHttpListener.3.5.0\lib\netstandard1.4\SimpleHttpServer.dll</HintPath>
+      <HintPath>..\..\main\packages\SimpleHttpListener.3.6.2\lib\netstandard1.2\SimpleHttpServer.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="SocketLite, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\main\packages\SocketLite.PCL.3.5.0\lib\netstandard1.4\SocketLite.dll</HintPath>
+      <HintPath>..\..\main\packages\SocketLite.PCL.3.6.2\lib\net45\SocketLite.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
