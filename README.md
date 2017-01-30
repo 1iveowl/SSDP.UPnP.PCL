@@ -124,8 +124,7 @@ internal class MSearch : IMSearchRequest
     public IUserAgent UserAgent { get; internal set; }
     public string CPFN { get; internal set; }
     public string CPUUID { get; internal set; }
-    public string TCPPORT { get; internal set; }
-        
+    public string TCPPORT { get; internal set; }        
 }
 
 internal class UserAgent : IUserAgent
