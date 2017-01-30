@@ -1,6 +1,6 @@
 ﻿using ISSDP.UPnP.PCL.Interfaces.Model;
 
-namespace SSDP.Console.NETcore.Test.Model
+namespace Console.NETCore.Test.Model
 {
     internal class UserAgent : IUserAgent
     {

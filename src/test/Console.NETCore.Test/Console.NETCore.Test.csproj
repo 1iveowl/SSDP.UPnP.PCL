@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp1.1</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\interfaces\ISSDP.UPnP.PCL.csproj" />
+    <ProjectReference Include="..\..\main\SDPP.UPnP.PCL.csproj" />
+  </ItemGroup>
+</Project>
