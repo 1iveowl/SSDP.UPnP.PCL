@@ -108,7 +108,7 @@ var mSearchMessage = new MSearch
 await controlPoint.SendMSearch(mSearchMessage);
 ```
 
-Notice that you should create your own instance of the MSearch class and base and that it must inmplement the `IMSearchRequest` Interface. Something like this:
+Notice that you should create your own instance of the MSearch class and base and that it must implement the `IMSearchRequest` Interface. Something like this:
 
 ```csharp
 internal class MSearch : IMSearchRequest
