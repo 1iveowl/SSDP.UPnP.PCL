@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.25914.0
+VisualStudioVersion = 15.0.26127.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SDPP.UPnP.PCL", "SDPP.UPnP.PCL.csproj", "{0F14E7AD-CF9F-4500-92EB-AE1014C0121B}"
 EndProject
@@ -25,7 +25,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NuGet", "NuGet", "{8BC53D6F
 		..\build\SDPP.UPnP.PCL.nuspec = ..\build\SDPP.UPnP.PCL.nuspec
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SSDP.Console.NETcore.Test", "..\test\SSDP.Console.NETcore.Test\SSDP.Console.NETcore.Test.csproj", "{5456F847-25B5-4377-9C1C-9BA2F9F9A51C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SSDP.Console.NETcore.Test", "..\test\SSDP.Console.NETcore.Test\SSDP.Console.NETcore.Test.csproj", "{5456F847-25B5-4377-9C1C-9BA2F9F9A51C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

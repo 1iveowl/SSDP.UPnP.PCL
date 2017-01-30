@@ -107,4 +107,39 @@ var mSearchMessage = new MSearch
 
 await controlPoint.SendMSearch(mSearchMessage);
 ```
+
+Notice that you should create your own instance of the MSearch class and base and that it must inherit the `IMSearchRequest` Interface. Some like this:
+
+```csharp
+internal class MSearch : IMSearchRequest
+{
+    public bool InvalidRequest { get; } = false;
+    public string HostIp { get; internal set; }
+    public int HostPort { get; internal set; }
+    public IDictionary<string, string> Headers { get; internal set; }
+    public CastMethod SearchCastMethod { get; internal set; }
+    public string MAN { get; internal set; }
+    public TimeSpan MX { get; internal set; }
+    public string ST { get; internal set; }
+    public IUserAgent UserAgent { get; internal set; }
+    public string CPFN { get; internal set; }
+    public string CPUUID { get; internal set; }
+    public string TCPPORT { get; internal set; }
+        
+}
+
+internal class UserAgent : IUserAgent
+{
+    public string FullString { get; internal set; }
+    public string OperatingSystem { get; internal set; }
+    public string OperatingSystemVersion { get; internal set; }
+    public string ProductName { get; internal set; }
+    public string ProductVersion { get; internal set; }
+    public string UpnpMajorVersion { get; internal set; }
+    public string UpnpMinorVersion { get; internal set; }
+    public bool IsUpnp2 { get; internal set; }
+}
+
+```
+
 For details about what a multicast M-SEARCH Request is and how to use it: see the [UPnP Architecture documentation](http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v2.0.pdf)). 
