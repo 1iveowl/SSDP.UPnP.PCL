@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Console.NETCore.Test.Model;
 using ISimpleHttpServer.Service;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Service;
 using SimpleHttpServer.Service;
-using SocketLite.Model;
-using SSDP.Console.NETcore.Test.Model;
 using SSDP.UPnP.PCL.Service;
 
 class Program

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 
-namespace SSDP.Console.NETcore.Test.Model
+namespace Console.NETCore.Test.Model
 {
     internal class MSearch : IMSearchRequest
     {
