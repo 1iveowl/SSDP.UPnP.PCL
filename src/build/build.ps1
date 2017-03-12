@@ -9,8 +9,7 @@ param([string]$version)
 
 if ([string]::IsNullOrEmpty($version)) {$version = "0.0.1"}
 
-$msbuild = "C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin\msbuild.exe"
-
+$msbuild = "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\MSBuild\15.0\Bin\MSBuild.exe"
 &$msbuild ..\interfaces\ISSDP.UPnP.PCL.csproj /t:Build /p:Configuration="Release"
 &$msbuild ..\main\SDPP.UPnP.PCL.csproj /t:Build /p:Configuration="Release"
 

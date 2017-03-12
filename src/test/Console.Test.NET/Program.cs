@@ -33,10 +33,15 @@ namespace SSDP.Console.Test.NET
 
         private static async void InitializeHttpListenerAsync()
         {
-            await HttpListener.StartTcpRequestListener(1900);
-            await HttpListener.StartTcpResponseListener(1901);
-            await HttpListener.StartUdpMulticastListener("239.255.255.250", 1900);
-            await HttpListener.StartUdpListener(1900);
+            var communicationInterface = new CommunicationsInterface();
+            var allInterfaces = communicationInterface.GetAllInterfaces();
+
+            var firstUsableInterface = allInterfaces.FirstOrDefault(x => x.IpAddress == "192.168.0.42");
+
+            await HttpListener.StartTcpRequestListener(1900, communicationInterface:firstUsableInterface);
+            await HttpListener.StartTcpResponseListener(1901, communicationInterface: firstUsableInterface);
+            await HttpListener.StartUdpMulticastListener("239.255.255.250", 1900, communicationInterface: firstUsableInterface);
+            await HttpListener.StartUdpListener(1900, communicationInterface: firstUsableInterface);
         }
 
         private static void StartDeviceListening()
@@ -45,6 +50,10 @@ namespace SSDP.Console.Test.NET
             var MSearchRequestSubscribe = _device.MSearchObservable.Subscribe(
                 req =>
                 {
+                    if (req.HostIp == "192.168.0.203")
+                    {
+                        var t = "";
+                    }
                     System.Console.BackgroundColor = ConsoleColor.DarkGreen;
                     System.Console.ForegroundColor = ConsoleColor.White;
                     System.Console.WriteLine($"---### Device Received a M-SEARCH REQUEST ###---");

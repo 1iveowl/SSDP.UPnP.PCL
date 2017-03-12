@@ -3,8 +3,8 @@
   "dependencies": {
     "HttpMachine.PCL": "3.0.1",
     "NETStandard.Library": "1.6.1",
-    "SimpleHttpListener": "3.6.4",
-    "SocketLite.PCL": "3.6.4",
+    "SimpleHttpListener": "3.7.0",
+    "SocketLite.PCL": "3.7.0",
     "System.Reactive": "3.1.1"
   },
   "frameworks": {
