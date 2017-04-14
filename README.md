@@ -8,6 +8,8 @@
 
 [![UPnP](http://img.shields.io/badge/UPnP_Device_Architecture-v2.0-blue.svg)](http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v2.0.pdf)
 
+*Please star this project if you find it useful. Thank you.*
+
 ## Why This Library
 There are other SSDP Libraries available, so why this library?
 
