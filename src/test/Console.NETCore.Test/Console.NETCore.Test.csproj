@@ -4,6 +4,10 @@
     <TargetFramework>netcoreapp1.1</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="SimpleHttpListener" Version="3.7.8" />
+    <PackageReference Include="SocketLite.PCL" Version="3.7.8" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\interfaces\ISSDP.UPnP.Netstandard\ISSDP.UPnP.Netstandard.csproj" />
     <ProjectReference Include="..\..\main\SSDP.UPnP.Netstandard\SSDP.UPnP.Netstandard.csproj" />
   </ItemGroup>
