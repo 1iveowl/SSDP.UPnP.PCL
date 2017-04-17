@@ -38,10 +38,10 @@ namespace SSDP.Console.Test.NET
 
             var firstUsableInterface = allInterfaces.FirstOrDefault(x => x.IpAddress == "192.168.0.36");
 
-            await HttpListener.StartTcpRequestListener(1900, communicationInterface:firstUsableInterface);
-            await HttpListener.StartTcpResponseListener(1901, communicationInterface: firstUsableInterface);
-            await HttpListener.StartUdpMulticastListener("239.255.255.250", 1900, communicationInterface: firstUsableInterface);
-            await HttpListener.StartUdpListener(1900, communicationInterface: firstUsableInterface);
+            await HttpListener.StartTcpRequestListener(1900, communicationInterface:firstUsableInterface, allowMultipleBindToSamePort:true);
+            await HttpListener.StartTcpResponseListener(1901, communicationInterface: firstUsableInterface, allowMultipleBindToSamePort: true);
+            await HttpListener.StartUdpMulticastListener("239.255.255.250", 1900, communicationInterface: firstUsableInterface, allowMultipleBindToSamePort: true);
+            await HttpListener.StartUdpListener(1900, communicationInterface: firstUsableInterface, allowMultipleBindToSamePort: true);
         }
 
         private static void StartDeviceListening()

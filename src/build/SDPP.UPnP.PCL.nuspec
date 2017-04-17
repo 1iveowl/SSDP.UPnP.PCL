@@ -19,8 +19,8 @@
     <tags>ssdp upnp iot ios android uwp netcore</tags>
         <dependencies>
           <dependency id="System.Reactive" version="3.1.1"/>
-          <dependency id="SocketLite.PCL" version="3.7.4"/>
-          <dependency id="SimpleHttpListener" version="3.7.4"/>
+          <dependency id="SocketLite.PCL" version="3.7.7"/>
+          <dependency id="SimpleHttpListener" version="3.7.7"/>
           <dependency id="NETStandard.Library" version="1.6.1"/>
         </dependencies>
   </metadata>

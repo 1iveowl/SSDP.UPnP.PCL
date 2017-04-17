@@ -3,9 +3,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Console.NETCore.Test.Model;
 using ISimpleHttpServer.Service;
+using ISocketLite.PCL.Interface;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Service;
 using SimpleHttpServer.Service;
+using SocketLite.Model;
 using SSDP.UPnP.PCL.Service;
 
 class Program
@@ -30,10 +32,16 @@ class Program
     private static async void InitializeHttpListenerAsync()
     {
 
-        await HttpListener.StartTcpRequestListener(1900);
-        await HttpListener.StartTcpResponseListener(1901);
-        await HttpListener.StartUdpMulticastListener("239.255.255.250", 1900);
-        await HttpListener.StartUdpListener(1900);
+        var communicationInterface = new CommunicationsInterface();
+        var allInterfaces = communicationInterface.GetAllInterfaces();
+
+        var firstUsableInterface = allInterfaces.FirstOrDefault(x => x.IpAddress == "192.168.0.36");
+
+        await HttpListener.StartTcpRequestListener(1900, communicationInterface: firstUsableInterface, allowMultipleBindToSamePort: true);
+        await HttpListener.StartTcpResponseListener(1901, communicationInterface: firstUsableInterface, allowMultipleBindToSamePort: true);
+        await HttpListener.StartUdpMulticastListener("239.255.255.250", 1900, communicationInterface: firstUsableInterface, allowMultipleBindToSamePort: true);
+        await HttpListener.StartUdpListener(1900, communicationInterface: firstUsableInterface, allowMultipleBindToSamePort: true);
+
     }
 
     private static void StartDeviceListening()
