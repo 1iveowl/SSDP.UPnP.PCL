@@ -1,10 +1,10 @@
 param([string]$betaver)
 
 if ([string]::IsNullOrEmpty($betaver)) {
-	$version = [Reflection.AssemblyName]::GetAssemblyName((resolve-path '..\interfaces\bin\release\ISSDP.UPnP.PCL.dll')).Version.ToString(3)
+	$version = [Reflection.AssemblyName]::GetAssemblyName((resolve-path '..\interfaces\ISSDP.UPnP.Netstandard\bin\Release\netstandard1.2\ISSDP.UPnP.PCL.dll')).Version.ToString(3)
 	}
 else {
-	$version = [Reflection.AssemblyName]::GetAssemblyName((resolve-path '..\interfaces\bin\release\ISSDP.UPnP.PCL.dll')).Version.ToString(3) + "-" + $betaver
+	$version = [Reflection.AssemblyName]::GetAssemblyName((resolve-path '..\interfaces\ISSDP.UPnP.Netstandard\bin\Release\netstandard1.2\ISSDP.UPnP.PCL.dll')).Version.ToString(3) + "-" + $betaver
 }
 
 .\build.ps1 $version

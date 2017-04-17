@@ -36,7 +36,7 @@ namespace SSDP.Console.Test.NET
             var communicationInterface = new CommunicationsInterface();
             var allInterfaces = communicationInterface.GetAllInterfaces();
 
-            var firstUsableInterface = allInterfaces.FirstOrDefault(x => x.IpAddress == "192.168.0.42");
+            var firstUsableInterface = allInterfaces.FirstOrDefault(x => x.IpAddress == "192.168.0.36");
 
             await HttpListener.StartTcpRequestListener(1900, communicationInterface:firstUsableInterface);
             await HttpListener.StartTcpResponseListener(1901, communicationInterface: firstUsableInterface);

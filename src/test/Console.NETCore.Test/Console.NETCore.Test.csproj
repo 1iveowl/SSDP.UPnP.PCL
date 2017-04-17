@@ -4,7 +4,7 @@
     <TargetFramework>netcoreapp1.1</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\interfaces\ISSDP.UPnP.PCL.csproj" />
-    <ProjectReference Include="..\..\main\SDPP.UPnP.PCL.csproj" />
+    <ProjectReference Include="..\..\interfaces\ISSDP.UPnP.Netstandard\ISSDP.UPnP.Netstandard.csproj" />
+    <ProjectReference Include="..\..\main\SSDP.UPnP.Netstandard\SSDP.UPnP.Netstandard.csproj" />
   </ItemGroup>
 </Project>
