@@ -13,7 +13,7 @@
     <description>
       SSDP .NET Standard Library for UPnP v2.0. SSDP for the UPnP v2.0 Architecture.
       Makes it easy to receive and send SSDP Notification and M-Search messages.
-      Uses Reactive Extensions (Rx) for simplicity.</description>
+      Uses Reactive Extensions (Rx) for simplicity. </description>
     <releaseNotes>Moved from PCL to .NET Standard 1.2</releaseNotes>
     <copyright>Copyright 2017</copyright>
     <tags>ssdp upnp iot ios android uwp netcore</tags>
