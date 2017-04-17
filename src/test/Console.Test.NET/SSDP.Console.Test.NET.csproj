@@ -164,13 +164,13 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\interfaces\ISSDP.UPnP.PCL.csproj">
-      <Project>{eae66339-8144-4afe-92e6-3785afcfbe7d}</Project>
-      <Name>ISSDP.UPnP.PCL</Name>
+    <ProjectReference Include="..\..\interfaces\ISSDP.UPnP.Netstandard\ISSDP.UPnP.Netstandard.csproj">
+      <Project>{2bd29d3b-b6bf-4d12-beaa-46de15ea1205}</Project>
+      <Name>ISSDP.UPnP.Netstandard</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\main\SDPP.UPnP.PCL.csproj">
-      <Project>{0f14e7ad-cf9f-4500-92eb-ae1014c0121b}</Project>
-      <Name>SDPP.UPnP.PCL</Name>
+    <ProjectReference Include="..\..\main\SSDP.UPnP.Netstandard\SSDP.UPnP.Netstandard.csproj">
+      <Project>{e45219b3-b516-40c7-8958-81ada0f4a4ac}</Project>
+      <Name>SSDP.UPnP.Netstandard</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
