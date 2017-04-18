@@ -8,11 +8,12 @@ using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Service;
 using SimpleHttpServer.Service;
 using SocketLite.Model;
+using SSDP.UPnP.Netstandard.Helper;
 using SSDP.UPnP.PCL.Service;
 
 class Program
 {
-    private static readonly IHttpListener HttpListener = new HttpListener(timeout: TimeSpan.FromSeconds(30));
+    private static IHttpListener _httpListener;
 
     private static IControlPoint _controlPoint;
     private static IDevice _device;
@@ -23,30 +24,25 @@ class Program
 
     static void Main(string[] args)
     {
-        InitializeHttpListenerAsync();
-        StartDeviceListening();
-        StartControlPointListeningAsync();
+        StartAsync();
+        
+        
         System.Console.ReadKey();
     }
 
-    private static async void InitializeHttpListenerAsync()
+    private static async void StartAsync()
     {
+        _httpListener = await Initializer.GetHttpListener("192.168.0.36", Initializer.ListenerType.ControlPoint);
 
-        var communicationInterface = new CommunicationsInterface();
-        var allInterfaces = communicationInterface.GetAllInterfaces();
+        StartDeviceListening();
 
-        var firstUsableInterface = allInterfaces.FirstOrDefault(x => x.IpAddress == "192.168.0.36");
-
-        await HttpListener.StartTcpRequestListener(1900, communicationInterface: firstUsableInterface, allowMultipleBindToSamePort: true);
-        await HttpListener.StartTcpResponseListener(1901, communicationInterface: firstUsableInterface, allowMultipleBindToSamePort: true);
-        await HttpListener.StartUdpMulticastListener("239.255.255.250", 1900, communicationInterface: firstUsableInterface, allowMultipleBindToSamePort: true);
-        await HttpListener.StartUdpListener(1900, communicationInterface: firstUsableInterface, allowMultipleBindToSamePort: true);
+        await StartControlPointListeningAsync();
 
     }
 
     private static void StartDeviceListening()
     {
-        _device = new Device(HttpListener);
+        _device = new Device(_httpListener);
         var MSearchRequestSubscribe = _device.MSearchObservable.Subscribe(
             req =>
             {
@@ -86,9 +82,9 @@ class Program
             });
     }
 
-    private static async void StartControlPointListeningAsync()
+    private static async Task StartControlPointListeningAsync()
     {
-        _controlPoint = new ControlPoint(HttpListener);
+        _controlPoint = new ControlPoint(_httpListener);
 
         var notifySubscribe = _controlPoint.NotifyObservable
             //.Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update)
