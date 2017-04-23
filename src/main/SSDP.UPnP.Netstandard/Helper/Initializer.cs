@@ -45,7 +45,11 @@ namespace SSDP.UPnP.Netstandard.Helper
             return await GetHttpListener(firstUsableInterface, listenerType);
         }
 
-        public static async Task<IHttpListener> GetHttpListener(ICommunicationInterface communicationInterface, ListenerType listenerType, TimeSpan timeout = default(TimeSpan))
+        public static async Task<IHttpListener> GetHttpListener(
+            ICommunicationInterface communicationInterface, 
+            ListenerType listenerType, 
+            TimeSpan timeout = default(TimeSpan),
+            IEnumerable<string> ipv6MulticastAddressList = null)
         {
             if (timeout == default(TimeSpan))
             {
@@ -57,11 +61,15 @@ namespace SSDP.UPnP.Netstandard.Helper
             switch (listenerType)
             {
                 case ListenerType.ControlPoint:
-                    await httpListener.StartUdpMulticastListener(UdpSSDPMultiCastAddress, UdpSSDPMulticastPort, communicationInterface);
+                    await httpListener.StartUdpMulticastListener(
+                        UdpSSDPMultiCastAddress, 
+                        UdpSSDPMulticastPort,
+                        ipv6MulticastAddressList,
+                        communicationInterface);
                     await httpListener.StartTcpRequestListener(TcpRequestListenerPort, communicationInterface);
                     await httpListener.StartTcpResponseListener(TcpResponseListenerPort, communicationInterface);
 
-                    //await httpListener.StartUdpListener(UdpListenerPort, communicationInterface);
+                    await httpListener.StartUdpListener(UdpListenerPort, communicationInterface);
                     break;
                 case ListenerType.Device:
                     break;

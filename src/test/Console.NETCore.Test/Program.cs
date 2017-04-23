@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Console.NETCore.Test.Model;
@@ -32,7 +33,12 @@ class Program
 
     private static async void StartAsync()
     {
-        _httpListener = await Initializer.GetHttpListener("192.168.0.36", Initializer.ListenerType.ControlPoint);
+        var ipv6MulticastAddressList = new List<string>
+        {
+            "ff02::c",
+        };
+
+        _httpListener = await Initializer.GetHttpListener("10.10.13.204", Initializer.ListenerType.ControlPoint);
 
         StartDeviceListening();
 
