@@ -27,7 +27,11 @@ namespace SSDP.UPnP.Netstandard.Helper
             Both
         }
 
-        public static async Task<IHttpListener> GetHttpListener(string ipAddress, ListenerType listenerType, TimeSpan timeout = default(TimeSpan))
+        public static async Task<IHttpListener> GetHttpListener(
+            string ipAddress, 
+            ListenerType listenerType,
+            IEnumerable<string> ipv6MulticastAddressList = null,
+            TimeSpan timeout = default(TimeSpan))
         {
 
             if (timeout == default(TimeSpan))
@@ -42,14 +46,14 @@ namespace SSDP.UPnP.Netstandard.Helper
 
             if (firstUsableInterface == null) throw new ArgumentException($"Unable to locate any network communication interface with the ip address: {ipAddress}");
 
-            return await GetHttpListener(firstUsableInterface, listenerType);
+            return await GetHttpListener(firstUsableInterface, listenerType, ipv6MulticastAddressList);
         }
 
         public static async Task<IHttpListener> GetHttpListener(
             ICommunicationInterface communicationInterface, 
-            ListenerType listenerType, 
-            TimeSpan timeout = default(TimeSpan),
-            IEnumerable<string> ipv6MulticastAddressList = null)
+            ListenerType listenerType,
+            IEnumerable<string> ipv6MulticastAddressList,
+            TimeSpan timeout = default(TimeSpan))
         {
             if (timeout == default(TimeSpan))
             {

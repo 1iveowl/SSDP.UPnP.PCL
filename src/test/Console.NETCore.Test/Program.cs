@@ -38,7 +38,10 @@ class Program
             "ff02::c",
         };
 
-        _httpListener = await Initializer.GetHttpListener("10.10.13.204", Initializer.ListenerType.ControlPoint);
+        _httpListener = await Initializer.GetHttpListener(
+            "10.10.13.204", 
+            Initializer.ListenerType.ControlPoint,
+            ipv6MulticastAddressList);
 
         StartDeviceListening();
 
