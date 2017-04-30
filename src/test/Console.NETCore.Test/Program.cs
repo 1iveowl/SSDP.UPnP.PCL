@@ -17,8 +17,8 @@ class Program
 
     private static IControlPoint _controlPoint;
     private static IDevice _device;
-    private static string _hostIp = "10.10.2.170";
-    private static string _remoteDeviceIp = "10.10.13.204";
+    private static string _controlPointLocalIp = "10.10.13.204";
+    private static string _remoteDeviceIp = "10.10.2.170";
 
 
     // For this test to work you most likely need to stop the SSDP Discovery service on Windows
@@ -41,7 +41,7 @@ class Program
         };
 
         _httpListener = await Initializer.GetHttpListener(
-            _hostIp, 
+            _controlPointLocalIp, 
             Initializer.ListenerType.ControlPoint,
             ipv6MulticastAddressList);
 
@@ -110,7 +110,7 @@ class Program
                     System.Console.ResetColor();
                     System.Console.WriteLine($"{n.NotifyCastMethod.ToString()}");
                     System.Console.WriteLine($"From: {n.HostIp}:{n.HostPort}");
-                    System.Console.WriteLine($"Location: {n.Location.AbsoluteUri}");
+                    System.Console.WriteLine($"Location: {n?.Location?.AbsoluteUri}");
                     System.Console.WriteLine($"Cache-Control: max-age = {n.CacheControl}");
                     System.Console.WriteLine($"Server: " +
                                              $"{n.Server.OperatingSystem}/{n.Server.OperatingSystemVersion} " +

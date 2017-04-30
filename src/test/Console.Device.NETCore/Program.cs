@@ -63,11 +63,11 @@ class Program
                 CONFIGID = "1",
                 HostIp = _remoteControlPointHost,
                 HostPort = 1900,
-                Location = new Uri($"http://{_deviceLocalIp}:1901/Test"),
+                Location = new Uri($"http://{_deviceLocalIp}:1900/Test"),
                 NotifyCastMethod = CastMethod.Multicast,
                 NT = "upnp:rootdevice",
                 NTS = NTS.Alive,
-                USN = "uuid:device-UUID:;upnp:rootdevice",
+                USN = "uuid:device-UUID::upnp:rootdevice",
                 Server = new Server
                 {
                     OperatingSystem = "Windows",

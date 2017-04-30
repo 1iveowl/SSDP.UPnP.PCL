@@ -120,16 +120,16 @@ namespace SSDP.UPnP.PCL.Service
 
             if (notifySsdp.NTS == NTS.Alive || notifySsdp.NTS == NTS.Update)
             {
-                stringBuilder.Append($"LOCATION: {notifySsdp.Location.AbsolutePath}\r\n");
+                stringBuilder.Append($"LOCATION: {notifySsdp.Location.AbsoluteUri}\r\n");
             }
 
-            stringBuilder.Append($"NT: max-age = {notifySsdp.NT}\r\n");
-            stringBuilder.Append($"NTS: max-age = {notifySsdp.NTS}\r\n");
-            stringBuilder.Append($"USN: max-age = {notifySsdp.USN}\r\n");
+            //stringBuilder.Append($"NT: max-age = {notifySsdp.NT}\r\n");
+            //stringBuilder.Append($"NTS: max-age = {notifySsdp.NTS}\r\n");
+            //stringBuilder.Append($"USN: max-age = {notifySsdp.USN}\r\n");
 
             if (notifySsdp.NTS == NTS.Alive)
             {
-                stringBuilder.Append($"LOCATION: {notifySsdp.Location.AbsolutePath}\r\n");
+                stringBuilder.Append($"LOCATION: {notifySsdp.Location.AbsoluteUri}\r\n");
             }
 
             stringBuilder.Append($"NT: {notifySsdp.NT}\r\n");

@@ -27,7 +27,7 @@ namespace SSDP.UPnP.PCL.Service
                     .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
                     .Where(req => req.Method == "NOTIFY")
                     .Select(req => new NotifySsdp(req))
-                    .Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update)
+                    //.Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update)
                     .Subscribe(
                         req =>
                         {
