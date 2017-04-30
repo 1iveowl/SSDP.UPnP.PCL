@@ -29,8 +29,15 @@ namespace SSDP.UPnP.PCL.Service
                     .Select(req => new NotifySsdp(req))
                     .Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update)
                     .Subscribe(
-                        obs.OnNext,
-                        obs.OnError);
+                        req =>
+                        {
+                            obs.OnNext(req);
+                        },
+                        ex =>
+                        {
+                            obs.OnError(ex);
+                        },
+                        () => obs.OnCompleted());
 
                 return disp;
             }).Publish().RefCount();
@@ -43,15 +50,21 @@ namespace SSDP.UPnP.PCL.Service
                     .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
                     .Select(response => new MSearchResponse(response))
                     .Subscribe(
-                        s =>
+                        res =>
                         {
-                            obs.OnNext(s);
-                        });
+                            obs.OnNext(res);
+                        },
+                        ex =>
+                        {
+                            obs.OnError(ex);
+                        },
+                        () => obs.OnCompleted());
+
                 return disp;
 
             }).Publish().RefCount();
 
-        public IObservable<INotifySsdp> NotifyObservable => _notifyObs;
+        public IObservable<INotifySsdp> NotifyObservable => _notifyObs.SubscribeOn(Scheduler.Default);
 
         //public IObservable<INotifySsdp> NotifyObservable =>
         //    _httpListener
@@ -61,7 +74,7 @@ namespace SSDP.UPnP.PCL.Service
         //    .Select(req => new NotifySsdp(req))
         //    .Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update);
 
-        public IObservable<IMSearchResponse> MSearchResponseObservable => _msearchResponse;
+        public IObservable<IMSearchResponse> MSearchResponseObservable => _msearchResponse.SubscribeOn(Scheduler.Default);
 
         //public IObservable<IMSearchResponse> MSearchResponseObservable =>
         //    _httpListener

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Console.Device.NETCore.Model;
 using ISimpleHttpServer.Service;
@@ -17,6 +18,7 @@ class Program
     private static IDevice _device;
 
     private static string _hostIp = "10.10.13.204";
+    private static string _remoteControlPointHost = "10.10.2.170";
 
 
     // For this test to work you most likely need to stop the SSDP Discovery service on Windows
@@ -25,8 +27,7 @@ class Program
     static void Main(string[] args)
     {
         StartAsync();
-        
-        
+      
         System.Console.ReadKey();
     }
 
@@ -43,13 +44,51 @@ class Program
             ipv6MulticastAddressList);
 
         StartDeviceListening();
+    }
 
+    private static async Task StartSendingRandomNotify()
+    {
+        var wait = new Random();
+        var i = 0;
+
+        while (true)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(wait.Next(1,6)));
+            i++;
+            var newNotify = new Notify
+            {
+                BOOTID = i.ToString(),
+                CacheControl = TimeSpan.FromSeconds(5),
+                CONFIGID = "1",
+                HostIp = _remoteControlPointHost,
+                HostPort = 1900,
+                NotifyCastMethod = CastMethod.Multicast,
+                NT = "upnp:rootdevice",
+                NTS = NTS.Alive,
+                USN = "uuid:device-UUID:;upnp:rootdevice",
+                Server = new Server
+                {
+                    OperatingSystem = "Windows",
+                    OperatingSystemVersion = "10.0",
+                    IsUpnp2 = true,
+                    ProductName = "Tester",
+                    ProductVersion = "0.1",
+                    UpnpMajorVersion = "2",
+                    UpnpMinorVersion = "0"
+                },
+            };
+
+            await _device.Notify(newNotify);
+        }
     }
 
     private static void StartDeviceListening()
     {
         _device = new Device(_httpListener);
-        var MSearchRequestSubscribe = _device.MSearchObservable.Subscribe(
+        var MSearchRequestSubscribe = _device
+            .MSearchObservable
+            .Where(req => req.HostIp == _remoteControlPointHost)
+            .Subscribe(
             async req =>
             {
                 System.Console.BackgroundColor = ConsoleColor.DarkGreen;
@@ -96,7 +135,7 @@ class Program
                     CacheControl = TimeSpan.FromSeconds(30),
                     Date = DateTime.Now,
                     Ext = true,
-                    Location = new Uri("http://localhost/test"),
+                    Location = new Uri($"http://{_remoteControlPointHost}:{req.TCPPORT}/test"),
                     Server = new Server
                     {
                         OperatingSystem = "Windows",

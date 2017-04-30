@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Concurrency;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Console.NETCore.Test.Model;
 using ISimpleHttpServer.Service;
@@ -15,6 +17,8 @@ class Program
 
     private static IControlPoint _controlPoint;
     private static IDevice _device;
+    private static string _hostIp = "10.10.2.170";
+    private static string _remoteDeviceIp = "10.10.13.204";
 
 
     // For this test to work you most likely need to stop the SSDP Discovery service on Windows
@@ -37,7 +41,7 @@ class Program
         };
 
         _httpListener = await Initializer.GetHttpListener(
-            "10.10.13.204", 
+            _hostIp, 
             Initializer.ListenerType.ControlPoint,
             ipv6MulticastAddressList);
 
@@ -93,51 +97,55 @@ class Program
     {
         _controlPoint = new ControlPoint(_httpListener);
 
-        //var notifySubscribe = _controlPoint.NotifyObservable
-        //    //.Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update)
-        //    .Subscribe(
-        //    n =>
-        //    {
-        //        System.Console.BackgroundColor = ConsoleColor.DarkBlue;
-        //        System.Console.ForegroundColor = ConsoleColor.White;
-        //        System.Console.WriteLine($"---### Control Point Received a NOTIFY ###---");
-        //        System.Console.ResetColor();
-        //        System.Console.WriteLine($"{n.NotifyCastMethod.ToString()}");
-        //        System.Console.WriteLine($"From: {n.HostIp}:{n.HostPort}");
-        //        System.Console.WriteLine($"Location: {n.Location.AbsoluteUri}");
-        //        System.Console.WriteLine($"Cache-Control: max-age = {n.CacheControl}");
-        //        System.Console.WriteLine($"Server: " +
-        //                                 $"{n.Server.OperatingSystem}/{n.Server.OperatingSystemVersion} " +
-        //                                 $"UPNP/" +
-        //                                 $"{n.Server.UpnpMajorVersion}.{n.Server.UpnpMinorVersion}" +
-        //                                 $" " +
-        //                                 $"{n.Server.ProductName}/{n.Server.ProductVersion}" +
-        //                                 $" - ({n.Server.FullString})");
-        //        System.Console.WriteLine($"NT: {n.NT}");
-        //        System.Console.WriteLine($"NTS: {n.NTS}");
-        //        System.Console.WriteLine($"USN: {n.USN}");
-        //        System.Console.WriteLine($"BOOTID: {n.BOOTID}");
-        //        System.Console.WriteLine($"CONFIGID: {n.CONFIGID}");
-        //        System.Console.WriteLine($"NEXTBOOTID: {n.NEXTBOOTID}");
-        //        System.Console.WriteLine($"SEARCHPORT: {n.SEARCHPORT}");
-        //        System.Console.WriteLine($"SECURELOCATION: {n.SECURELOCATION}");
+        var notifySubscribe = _controlPoint.NotifyObservable
+            //.Where(req => req.HostIp == _remoteDeviceIp)
+            //.SubscribeOn(Scheduler.Default)
+            //.Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update)
+            .Subscribe(
+                n =>
+                {
+                    System.Console.BackgroundColor = ConsoleColor.DarkBlue;
+                    System.Console.ForegroundColor = ConsoleColor.White;
+                    System.Console.WriteLine($"---### Control Point Received a NOTIFY ###---");
+                    System.Console.ResetColor();
+                    System.Console.WriteLine($"{n.NotifyCastMethod.ToString()}");
+                    System.Console.WriteLine($"From: {n.HostIp}:{n.HostPort}");
+                    System.Console.WriteLine($"Location: {n.Location.AbsoluteUri}");
+                    System.Console.WriteLine($"Cache-Control: max-age = {n.CacheControl}");
+                    System.Console.WriteLine($"Server: " +
+                                             $"{n.Server.OperatingSystem}/{n.Server.OperatingSystemVersion} " +
+                                             $"UPNP/" +
+                                             $"{n.Server.UpnpMajorVersion}.{n.Server.UpnpMinorVersion}" +
+                                             $" " +
+                                             $"{n.Server.ProductName}/{n.Server.ProductVersion}" +
+                                             $" - ({n.Server.FullString})");
+                    System.Console.WriteLine($"NT: {n.NT}");
+                    System.Console.WriteLine($"NTS: {n.NTS}");
+                    System.Console.WriteLine($"USN: {n.USN}");
+                    System.Console.WriteLine($"BOOTID: {n.BOOTID}");
+                    System.Console.WriteLine($"CONFIGID: {n.CONFIGID}");
+                    System.Console.WriteLine($"NEXTBOOTID: {n.NEXTBOOTID}");
+                    System.Console.WriteLine($"SEARCHPORT: {n.SEARCHPORT}");
+                    System.Console.WriteLine($"SECURELOCATION: {n.SECURELOCATION}");
 
-        //        if (n.Headers.Any())
-        //        {
-        //            System.Console.ForegroundColor = ConsoleColor.DarkYellow;
-        //            System.Console.WriteLine($"Additional Headers: {n.Headers.Count}");
-        //            foreach (var header in n.Headers)
-        //            {
-        //                System.Console.WriteLine($"{header.Key}: {header.Value}; ");
-        //            }
-        //            System.Console.ResetColor();
-        //        }
+                    if (n.Headers.Any())
+                    {
+                        System.Console.ForegroundColor = ConsoleColor.DarkYellow;
+                        System.Console.WriteLine($"Additional Headers: {n.Headers.Count}");
+                        foreach (var header in n.Headers)
+                        {
+                            System.Console.WriteLine($"{header.Key}: {header.Value}; ");
+                        }
+                        System.Console.ResetColor();
+                    }
 
-        //        System.Console.WriteLine();
-        //    });
+                    System.Console.WriteLine();
+                });
 
         var MSearchresponseSubscribe = _controlPoint
             .MSearchResponseObservable
+            //.Where(req => req.HostIp == _remoteDeviceIp)
+            //.SubscribeOn(Scheduler.Default)
             .Subscribe(
             res =>
             {
