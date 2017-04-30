@@ -189,13 +189,8 @@ class Program
             CPFN = "TestXamarin",
             HostIp = "239.255.255.250",
             HostPort = 1900,
-            MX = TimeSpan.FromSeconds(1),
-            //Headers = new Dictionary<string, string>
-            //{
-            //    {"abc", "123"},
-            //    {"cde", "345"}
-            //},
-
+            MX = TimeSpan.FromSeconds(5),
+            TCPPORT = Initializer.TcpResponseListenerPort.ToString(),
             ST = "upnp:rootdevice",
             UserAgent = new UserAgent
             {

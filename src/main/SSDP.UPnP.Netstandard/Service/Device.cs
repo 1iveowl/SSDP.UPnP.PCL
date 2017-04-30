@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -29,16 +30,23 @@ namespace SSDP.UPnP.PCL.Service
             _httpListener = httpListener;
         }
 
-        public async Task MSearchResponse(IMSearchResponse mSearch)
+        public async Task MSearchResponse(IMSearchResponse mSearchResponse, IMSearchRequest mSearchRequest)
         {
-            if (mSearch.ResponseCastMethod == CastMethod.Multicast)
+            if (mSearchResponse.ResponseCastMethod != CastMethod.Unicast)
             {
-                await _httpListener.SendOnMulticast(ComposeMSearchResponseDatagram(mSearch));
+                throw new ArgumentException("Cannot only MSearch Response as Unicast");
+                //await _httpListener.SendOnMulticast(ComposeMSearchResponseDatagram(mSearchResponse));
             }
 
-            if (mSearch.ResponseCastMethod == CastMethod.Unicast)
+            if (int.TryParse(mSearchRequest.TCPPORT, out int tcpSpecifiedRemotePort))
             {
-                await SendOnTcp(mSearch.HostIp, mSearch.HostPort, ComposeMSearchResponseDatagram(mSearch));
+                await SendOnTcp(mSearchResponse.HostIp, tcpSpecifiedRemotePort,
+                    ComposeMSearchResponseDatagram(mSearchResponse));
+            }
+            else
+            {
+                await SendOnTcp(mSearchResponse.HostIp, mSearchResponse.HostPort,
+                    ComposeMSearchResponseDatagram(mSearchResponse));
             }
         }
 
@@ -63,7 +71,7 @@ namespace SSDP.UPnP.PCL.Service
 
             stringBuilder.Append($"HTTP/1.1 {response.StatusCode} {response.ResponseReason}\r\n");
             stringBuilder.Append($"CACHE-CONTROL: max-age = {response.CacheControl.TotalSeconds}\r\n");
-            stringBuilder.Append($"DATE: {DateTime.Now.ToString("r")}\r\n");
+            stringBuilder.Append($"DATE: {DateTime.Now:r}\r\n");
             stringBuilder.Append($"EXT:\r\n");
             stringBuilder.Append($"LOCATION: {response.Location}\r\n");
             stringBuilder.Append($"SERVER: " +
@@ -81,12 +89,15 @@ namespace SSDP.UPnP.PCL.Service
             HeaderHelper.AddOptionalHeader(stringBuilder, "SECURELOCATION.UPNP.ORG", response.SECURELOCATION);
 
             // Adding additional vendor specific headers if they exist.
-            foreach (var header in response.Headers)
+            if (response.Headers?.Any() ?? false)
             {
-                stringBuilder.Append($"{header.Key}: {header.Value}\r\n");
+                foreach (var header in response.Headers)
+                {
+                    stringBuilder.Append($"{header.Key}: {header.Value}\r\n");
+                }
             }
-            stringBuilder.Append("\r\n");
 
+            stringBuilder.Append("\r\n");
             stringBuilder.Append("\r\n");
 
             return Encoding.UTF8.GetBytes(stringBuilder.ToString());

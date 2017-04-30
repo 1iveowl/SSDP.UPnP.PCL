@@ -100,7 +100,7 @@ class Program
                     Server = new Server
                     {
                         OperatingSystem = "Windows",
-                        OperatingSystemVersion = "10",
+                        OperatingSystemVersion = "10.0",
                         IsUpnp2 = true,
                         ProductName = "Tester",
                         ProductVersion = "0.1",
