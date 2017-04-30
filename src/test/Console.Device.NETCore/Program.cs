@@ -17,7 +17,7 @@ class Program
     private static IControlPoint _controlPoint;
     private static IDevice _device;
 
-    private static string _hostIp = "10.10.2.170";
+    private static string _deviceLocalIp = "10.10.2.170";
     private static string _remoteControlPointHost = "10.10.13.204";
 
 
@@ -39,7 +39,7 @@ class Program
         };
 
         _httpListener = await Initializer.GetHttpListener(
-            _hostIp, 
+            _deviceLocalIp, 
             Initializer.ListenerType.ControlPoint,
             ipv6MulticastAddressList);
 
@@ -63,6 +63,7 @@ class Program
                 CONFIGID = "1",
                 HostIp = _remoteControlPointHost,
                 HostPort = 1900,
+                Location = new Uri($"http://{_deviceLocalIp}:1901/Test"),
                 NotifyCastMethod = CastMethod.Multicast,
                 NT = "upnp:rootdevice",
                 NTS = NTS.Alive,
