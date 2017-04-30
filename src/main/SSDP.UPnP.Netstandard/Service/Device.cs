@@ -38,6 +38,9 @@ namespace SSDP.UPnP.PCL.Service
                 //await _httpListener.SendOnMulticast(ComposeMSearchResponseDatagram(mSearchResponse));
             }
 
+            var wait = new Random();
+            await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(0, mSearchRequest.MX.Milliseconds)));
+
             if (int.TryParse(mSearchRequest.TCPPORT, out int tcpSpecifiedRemotePort))
             {
                 await SendOnTcp(mSearchRequest.HostIp, tcpSpecifiedRemotePort,

@@ -99,7 +99,7 @@ class Program
 
         var notifySubscribe = _controlPoint.NotifyObservable
             //.Where(req => req.HostIp == _remoteDeviceIp)
-            //.SubscribeOn(Scheduler.Default)
+            //.SubscribeOn(Scheduler.CurrentThread)
             //.Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update)
             .Subscribe(
                 n =>
@@ -145,7 +145,7 @@ class Program
         var MSearchresponseSubscribe = _controlPoint
             .MSearchResponseObservable
             //.Where(req => req.HostIp == _remoteDeviceIp)
-            //.SubscribeOn(Scheduler.Default)
+            //.SubscribeOn(Scheduler.CurrentThread)
             .Subscribe(
             res =>
             {
