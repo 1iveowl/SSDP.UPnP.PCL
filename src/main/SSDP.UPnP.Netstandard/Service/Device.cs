@@ -40,12 +40,12 @@ namespace SSDP.UPnP.PCL.Service
 
             if (int.TryParse(mSearchRequest.TCPPORT, out int tcpSpecifiedRemotePort))
             {
-                await SendOnTcp(mSearchResponse.HostIp, tcpSpecifiedRemotePort,
+                await SendOnTcp(mSearchRequest.HostIp, tcpSpecifiedRemotePort,
                     ComposeMSearchResponseDatagram(mSearchResponse));
             }
             else
             {
-                await SendOnTcp(mSearchResponse.HostIp, mSearchResponse.HostPort,
+                await SendOnTcp(mSearchRequest.HostIp, mSearchRequest.HostPort,
                     ComposeMSearchResponseDatagram(mSearchResponse));
             }
         }

@@ -88,8 +88,8 @@ class Program
 
                 var mSearchResponse = new MSearchResponse
                 {
-                    HostIp = _hostIp,
-                    HostPort = Initializer.UdpListenerPort,
+                    //HostIp = _hostIp,
+                    //HostPort = Initializer.UdpListenerPort,
                     ResponseCastMethod = CastMethod.Unicast,
                     StatusCode = 200,
                     ResponseReason = "OK",

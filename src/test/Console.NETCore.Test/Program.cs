@@ -23,8 +23,9 @@ class Program
     static void Main(string[] args)
     {
         StartAsync();
-        
-        
+
+
+
         System.Console.ReadKey();
     }
 
@@ -40,7 +41,7 @@ class Program
             Initializer.ListenerType.ControlPoint,
             ipv6MulticastAddressList);
 
-        StartDeviceListening();
+        //StartDeviceListening();
 
         await StartControlPointListeningAsync();
 

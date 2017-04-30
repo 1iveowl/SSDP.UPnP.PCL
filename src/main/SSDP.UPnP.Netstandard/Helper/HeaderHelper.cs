@@ -7,7 +7,7 @@ namespace SSDP.UPnP.PCL.Helper
     {
         internal static void AddOptionalHeader(StringBuilder stringBuilder, string name, string value)
         {
-            if (string.IsNullOrEmpty(value))
+            if (!string.IsNullOrEmpty(value))
             {
                 stringBuilder.Append($"{name}: {value}\r\n");
             }
