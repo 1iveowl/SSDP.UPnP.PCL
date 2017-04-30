@@ -32,14 +32,16 @@ namespace SSDP.UPnP.PCL.Service
 
         public async Task MSearchResponse(IMSearchResponse mSearchResponse, IMSearchRequest mSearchRequest)
         {
-            if (mSearchResponse.ResponseCastMethod != CastMethod.Unicast)
-            {
-                throw new ArgumentException("Cannot only MSearch Response as Unicast");
-                //await _httpListener.SendOnMulticast(ComposeMSearchResponseDatagram(mSearchResponse));
-            }
-
             var wait = new Random();
             await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(0, mSearchRequest.MX.Milliseconds)));
+
+            if (mSearchResponse.ResponseCastMethod != CastMethod.Unicast)
+            {
+                //throw new ArgumentException("Cannot only MSearch Response as Unicast");
+                await _httpListener.SendOnMulticast(ComposeMSearchResponseDatagram(mSearchResponse));
+            }
+
+
 
             if (int.TryParse(mSearchRequest.TCPPORT, out int tcpSpecifiedRemotePort))
             {
