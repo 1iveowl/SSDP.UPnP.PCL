@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Threading.Tasks;
 using ISimpleHttpServer.Service;
@@ -16,19 +19,61 @@ namespace SSDP.UPnP.PCL.Service
     {
         private readonly IHttpListener _httpListener;
 
-        public IObservable<INotifySsdp> NotifyObservable =>
-            _httpListener
-            .HttpRequestObservable
-            .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
-            .Where(req => req.Method == "NOTIFY")
-            .Select(req => new NotifySsdp(req))
-            .Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update);
+        private IObservable<INotifySsdp> _notifyObs => Observable.Create<INotifySsdp>(
+            obs =>
+            {
+                var disp = _httpListener
+                    .HttpRequestObservable
+                    .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
+                    .Where(req => req.Method == "NOTIFY")
+                    .Select(req => new NotifySsdp(req))
+                    .Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update)
+                    .Subscribe(
+                        s =>
+                        {
+                            obs.OnNext(s);
+                        },
+                        c =>
+                        {
+                            obs.OnCompleted();
+                        });
 
-        public IObservable<IMSearchResponse> MSearchResponseObservable =>
-            _httpListener
-            .HttpResponseObservable
-            .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
-            .Select(response => new MSearchResponse(response));
+                return disp;
+            }).Publish().RefCount();
+
+        private IObservable<IMSearchResponse> _msearchResponse => Observable.Create<IMSearchResponse>(
+            obs =>
+            {
+                var disp = _httpListener
+                    .HttpResponseObservable
+                    .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
+                    .Select(response => new MSearchResponse(response))
+                    .Subscribe(
+                        s =>
+                        {
+                            obs.OnNext(s);
+                        });
+                return disp;
+
+            }).Publish().RefCount();
+
+        public IObservable<INotifySsdp> NotifyObservable => _notifyObs;
+
+        //public IObservable<INotifySsdp> NotifyObservable =>
+        //    _httpListener
+        //    .HttpRequestObservable
+        //    .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
+        //    .Where(req => req.Method == "NOTIFY")
+        //    .Select(req => new NotifySsdp(req))
+        //    .Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update);
+
+        public IObservable<IMSearchResponse> MSearchResponseObservable => _msearchResponse;
+
+        //public IObservable<IMSearchResponse> MSearchResponseObservable =>
+        //    _httpListener
+        //    .HttpResponseObservable
+        //    .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
+        //    .Select(response => new MSearchResponse(response));
 
         public ControlPoint(IHttpListener httpListener)
         {

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using ISimpleHttpServer.Service;
 using ISocketLite.PCL.Interface;
@@ -71,10 +70,17 @@ namespace SSDP.UPnP.Netstandard.Helper
                         ipv6MulticastAddressList,
                         communicationInterface);
 
-                    await httpListener.StartTcpRequestListener(TcpRequestListenerPort, communicationInterface);
-                    await httpListener.StartTcpResponseListener(TcpResponseListenerPort, communicationInterface);
+                    await httpListener.StartTcpRequestListener(
+                        TcpRequestListenerPort, 
+                        communicationInterface);
 
-                    await httpListener.StartUdpListener(UdpListenerPort, communicationInterface);
+                    await httpListener.StartTcpResponseListener(
+                        TcpResponseListenerPort, 
+                        communicationInterface);
+
+                    await httpListener.StartUdpListener(
+                        UdpListenerPort,
+                        communicationInterface);
                     break;
                 case ListenerType.Device:
                     break;
@@ -83,14 +89,6 @@ namespace SSDP.UPnP.Netstandard.Helper
                 default:
                     throw new ArgumentOutOfRangeException(nameof(listenerType), listenerType, null);
             }
-
-            
-
-            //await httpListener.StartTcpRequestListener(TcpRequestListenerPort, communicationInterface);
-            //await httpListener.StartTcpResponseListener(TcpResponseListenerPort, communicationInterface);
-            
-            //await httpListener.StartUdpListener(UdpListenerPort, communicationInterface);
-
             return httpListener;
         }
     }
