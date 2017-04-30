@@ -29,14 +29,8 @@ namespace SSDP.UPnP.PCL.Service
                     .Select(req => new NotifySsdp(req))
                     .Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update)
                     .Subscribe(
-                        s =>
-                        {
-                            obs.OnNext(s);
-                        },
-                        c =>
-                        {
-                            obs.OnCompleted();
-                        });
+                        obs.OnNext,
+                        obs.OnError);
 
                 return disp;
             }).Publish().RefCount();
