@@ -156,10 +156,14 @@ namespace SSDP.UPnP.PCL.Service
             }
 
             // Adding additional vendor specific headers if such are specified
-            foreach (var header in notifySsdp.Headers)
+            if (notifySsdp.Headers?.Any() ?? false)
             {
-                stringBuilder.Append($"{header.Key}: {header.Value}\r\n");
+                foreach (var header in notifySsdp.Headers)
+                {
+                    stringBuilder.Append($"{header.Key}: {header.Value}\r\n");
+                }
             }
+
             stringBuilder.Append("\r\n");
 
             return Encoding.UTF8.GetBytes(stringBuilder.ToString());
