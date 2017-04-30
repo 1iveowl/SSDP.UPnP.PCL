@@ -17,8 +17,8 @@ class Program
     private static IControlPoint _controlPoint;
     private static IDevice _device;
 
-    private static string _hostIp = "10.10.13.204";
-    private static string _remoteControlPointHost = "10.10.2.170";
+    private static string _hostIp = "10.10.2.170";
+    private static string _remoteControlPointHost = "10.10.13.204";
 
 
     // For this test to work you most likely need to stop the SSDP Discovery service on Windows
@@ -44,6 +44,7 @@ class Program
             ipv6MulticastAddressList);
 
         StartDeviceListening();
+        await StartSendingRandomNotify();
     }
 
     private static async Task StartSendingRandomNotify()
