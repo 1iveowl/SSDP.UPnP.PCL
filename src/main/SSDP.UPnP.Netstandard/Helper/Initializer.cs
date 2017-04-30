@@ -70,6 +70,7 @@ namespace SSDP.UPnP.Netstandard.Helper
                         UdpSSDPMulticastPort,
                         ipv6MulticastAddressList,
                         communicationInterface);
+
                     await httpListener.StartTcpRequestListener(TcpRequestListenerPort, communicationInterface);
                     await httpListener.StartTcpResponseListener(TcpResponseListenerPort, communicationInterface);
 

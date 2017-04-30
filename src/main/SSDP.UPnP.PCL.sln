@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26403.3
+VisualStudioVersion = 15.0.26403.7
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SSDP.Console.Test.NET", "..\test\Console.Test.NET\SSDP.Console.Test.NET.csproj", "{4550EC29-BFE6-4648-BCAD-785D2846C05E}"
 EndProject
@@ -28,6 +28,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ISSDP.UPnP.Netstandard", "..\interfaces\ISSDP.UPnP.Netstandard\ISSDP.UPnP.Netstandard.csproj", "{2BD29D3B-B6BF-4D12-BEAA-46DE15EA1205}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SSDP.UPnP.Netstandard", "SSDP.UPnP.Netstandard\SSDP.UPnP.Netstandard.csproj", "{E45219B3-B516-40C7-8958-81ADA0F4A4AC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Console.Device.NETCore", "..\test\Console.Device.NETCore\Console.Device.NETCore.csproj", "{23150099-727B-401B-8AF3-2306CA17D68B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -87,6 +89,18 @@ Global
 		{E45219B3-B516-40C7-8958-81ADA0F4A4AC}.Release|x64.Build.0 = Release|Any CPU
 		{E45219B3-B516-40C7-8958-81ADA0F4A4AC}.Release|x86.ActiveCfg = Release|Any CPU
 		{E45219B3-B516-40C7-8958-81ADA0F4A4AC}.Release|x86.Build.0 = Release|Any CPU
+		{23150099-727B-401B-8AF3-2306CA17D68B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{23150099-727B-401B-8AF3-2306CA17D68B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{23150099-727B-401B-8AF3-2306CA17D68B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{23150099-727B-401B-8AF3-2306CA17D68B}.Debug|x64.Build.0 = Debug|Any CPU
+		{23150099-727B-401B-8AF3-2306CA17D68B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{23150099-727B-401B-8AF3-2306CA17D68B}.Debug|x86.Build.0 = Debug|Any CPU
+		{23150099-727B-401B-8AF3-2306CA17D68B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{23150099-727B-401B-8AF3-2306CA17D68B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{23150099-727B-401B-8AF3-2306CA17D68B}.Release|x64.ActiveCfg = Release|Any CPU
+		{23150099-727B-401B-8AF3-2306CA17D68B}.Release|x64.Build.0 = Release|Any CPU
+		{23150099-727B-401B-8AF3-2306CA17D68B}.Release|x86.ActiveCfg = Release|Any CPU
+		{23150099-727B-401B-8AF3-2306CA17D68B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -95,5 +109,6 @@ Global
 		{4550EC29-BFE6-4648-BCAD-785D2846C05E} = {1B7C27F1-87A9-4882-9856-EA1BC3908472}
 		{49A9FD1A-7DC6-4035-8BFC-E1EDFAF9CC1E} = {1B7C27F1-87A9-4882-9856-EA1BC3908472}
 		{2BD29D3B-B6BF-4D12-BEAA-46DE15EA1205} = {FDE3A49E-DCC0-45F4-805F-6EF5A587C453}
+		{23150099-727B-401B-8AF3-2306CA17D68B} = {1B7C27F1-87A9-4882-9856-EA1BC3908472}
 	EndGlobalSection
 EndGlobal

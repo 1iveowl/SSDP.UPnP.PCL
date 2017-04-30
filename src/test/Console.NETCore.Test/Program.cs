@@ -4,11 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Console.NETCore.Test.Model;
 using ISimpleHttpServer.Service;
-using ISocketLite.PCL.Interface;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Service;
-using SimpleHttpServer.Service;
-using SocketLite.Model;
 using SSDP.UPnP.Netstandard.Helper;
 using SSDP.UPnP.PCL.Service;
 

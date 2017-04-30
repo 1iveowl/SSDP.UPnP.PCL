@@ -29,7 +29,7 @@ namespace SSDP.UPnP.PCL.Service
             _httpListener = httpListener;
         }
 
-        public async Task MSearchRespone(IMSearchResponse mSearch)
+        public async Task MSearchResponse(IMSearchResponse mSearch)
         {
             if (mSearch.ResponseCastMethod == CastMethod.Multicast)
             {
