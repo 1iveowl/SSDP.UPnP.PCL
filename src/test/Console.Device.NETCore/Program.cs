@@ -111,7 +111,7 @@ class Program
                     USN = "uuid:device-UUID::upnp:rootdevice",
                     BOOTID = "1"
                 };
-                await _device.MSearchResponse(mSearchResponse);
+                await _device.MSearchResponse(mSearchResponse, req);
             });
     }
 }
