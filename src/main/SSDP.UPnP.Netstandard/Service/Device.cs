@@ -33,7 +33,7 @@ namespace SSDP.UPnP.PCL.Service
         public async Task MSearchResponse(IMSearchResponse mSearchResponse, IMSearchRequest mSearchRequest)
         {
             var wait = new Random();
-            await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(50, mSearchRequest.MX.Milliseconds)));
+            await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(50, (int)mSearchRequest.MX.TotalMilliseconds)));
 
             if (mSearchResponse.ResponseCastMethod != CastMethod.Unicast)
             {
