@@ -62,6 +62,7 @@ namespace SSDP.UPnP.PCL.Service
 
                 return disp;
 
+
             });//.Publish().RefCount();
 
         public IObservable<INotifySsdp> NotifyObservable => _notifyObs.SubscribeOn(Scheduler.Default);
