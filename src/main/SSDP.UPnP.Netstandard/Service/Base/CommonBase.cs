@@ -12,6 +12,7 @@ namespace SSDP.UPnP.PCL.Service.Base
                 await tcpClient.ConnectAsync(address, port.ToString());
                 await tcpClient.WriteStream.WriteAsync(data, 0, data.Length);
                 await tcpClient.WriteStream.FlushAsync();
+                tcpClient.Disconnect();
             }
         }
     }

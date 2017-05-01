@@ -41,8 +41,6 @@ namespace SSDP.UPnP.PCL.Service
                 await _httpListener.SendOnMulticast(ComposeMSearchResponseDatagram(mSearchResponse));
             }
 
-
-
             if (int.TryParse(mSearchRequest.TCPPORT, out int tcpSpecifiedRemotePort))
             {
                 await SendOnTcp(mSearchRequest.HostIp, tcpSpecifiedRemotePort,
