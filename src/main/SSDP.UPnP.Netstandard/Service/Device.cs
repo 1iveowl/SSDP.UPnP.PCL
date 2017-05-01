@@ -33,7 +33,7 @@ namespace SSDP.UPnP.PCL.Service
         public async Task MSearchResponse(IMSearchResponse mSearchResponse, IMSearchRequest mSearchRequest)
         {
             var wait = new Random();
-            await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(0, mSearchRequest.MX.Milliseconds)));
+            await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(50, mSearchRequest.MX.Milliseconds)));
 
             if (mSearchResponse.ResponseCastMethod != CastMethod.Unicast)
             {
@@ -57,7 +57,7 @@ namespace SSDP.UPnP.PCL.Service
         {
             // Insert random delay according to UPnP 2.0 spec. section 1.2.1 (page 27).
             var wait = new Random();
-            await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(0, 100)));
+            await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(50, 100)));
 
             // According to the UPnP spec the UDP Multicast Notify should be send three times
             for (var i = 0; i < 3; i++)
