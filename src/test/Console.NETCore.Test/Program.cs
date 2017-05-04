@@ -28,8 +28,6 @@ class Program
     {
         StartAsync();
 
-
-
         System.Console.ReadKey();
     }
 
@@ -37,6 +35,7 @@ class Program
     {
         var ipv6MulticastAddressList = new List<string>
         {
+            //IpV6 multicast address
             "ff02::c",
         };
 

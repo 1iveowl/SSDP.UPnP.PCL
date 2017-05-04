@@ -27,17 +27,11 @@ namespace SSDP.UPnP.PCL.Service
                     .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
                     .Where(req => req.Method == "NOTIFY")
                     .Select(req => new NotifySsdp(req))
-                    //.Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update)
+                    .Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update)
                     .Subscribe(
-                        req =>
-                        {
-                            obs.OnNext(req);
-                        },
-                        ex =>
-                        {
-                            obs.OnError(ex);
-                        },
-                        () => obs.OnCompleted());
+                        obs.OnNext,
+                        obs.OnError,
+                        obs.OnCompleted);
 
                 return disp;
             });//.Publish().RefCount();
@@ -50,15 +44,9 @@ namespace SSDP.UPnP.PCL.Service
                     .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
                     .Select(response => new MSearchResponse(response))
                     .Subscribe(
-                        res =>
-                        {
-                            obs.OnNext(res);
-                        },
-                        ex =>
-                        {
-                            obs.OnError(ex);
-                        },
-                        () => obs.OnCompleted());
+                        obs.OnNext,
+                        obs.OnError,
+                        obs.OnCompleted);
 
                 return disp;
 

@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard1.2</TargetFramework>
+    <AssemblyName>SSDP.UPnP.PCL</AssemblyName>
+    <RootNamespace>SSDP.UPnP.PCL</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

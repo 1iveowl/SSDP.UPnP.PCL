@@ -37,7 +37,6 @@ namespace SSDP.UPnP.PCL.Service
 
             if (mSearchResponse.ResponseCastMethod != CastMethod.Unicast)
             {
-                //throw new ArgumentException("Cannot only MSearch Response as Unicast");
                 await _httpListener.SendOnMulticast(ComposeMSearchResponseDatagram(mSearchResponse));
             }
 
