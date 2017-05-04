@@ -34,7 +34,7 @@ namespace SSDP.UPnP.PCL.Service
                         obs.OnCompleted);
 
                 return disp;
-            });//.Publish().RefCount();
+            }).Publish().RefCount();
 
         private IObservable<IMSearchResponse> _msearchResponse => Observable.Create<IMSearchResponse>(
             obs =>
@@ -51,7 +51,7 @@ namespace SSDP.UPnP.PCL.Service
                 return disp;
 
 
-            });//.Publish().RefCount();
+            }).Publish().RefCount();
 
         public IObservable<INotifySsdp> NotifyObservable => _notifyObs.SubscribeOn(Scheduler.Default);
 
