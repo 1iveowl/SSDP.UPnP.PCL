@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Reactive.Concurrency;
@@ -53,16 +54,18 @@ class Program
 
     private static void ListenToNotify()
     {
+        var counter = 0;
         var notifySubscribe = _controlPoint.NotifyObservable
-            //.Where(req => req.HostIp == _remoteDeviceIp)
+            //.Where(req => req.HostIp == "192.168.0.20")
             //.SubscribeOn(Scheduler.CurrentThread)
             //.Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update)
             .Subscribe(
                 n =>
                 {
+                    counter++;
                     System.Console.BackgroundColor = ConsoleColor.DarkBlue;
                     System.Console.ForegroundColor = ConsoleColor.White;
-                    System.Console.WriteLine($"---### Control Point Received a NOTIFY ###---");
+                    System.Console.WriteLine($"---### Control Point Received a NOTIFY - #{counter} ###---");
                     System.Console.ResetColor();
                     System.Console.WriteLine($"{n.NotifyCastMethod.ToString()}");
                     System.Console.WriteLine($"From: {n.HostIp}:{n.HostPort}");
@@ -100,10 +103,8 @@ class Program
     }
 
     private static void ListenToMSearchResponse()
-
     {
-
-        var MSearchresponseSubscribe = _controlPoint
+        var mSearchresponseSubscribe = _controlPoint
             .MSearchResponseObservable
             //.Where(req => req.HostIp == _remoteDeviceIp)
             //.SubscribeOn(Scheduler.CurrentThread)
@@ -118,7 +119,7 @@ class Program
                     System.Console.WriteLine($"From: {res.HostIp}:{res.HostPort}");
                     System.Console.WriteLine($"Status code: {res.StatusCode} {res.ResponseReason}");
                     System.Console.WriteLine($"Location: {res.Location.AbsoluteUri}");
-                    System.Console.WriteLine($"Date: {res.Date.ToString()}");
+                    System.Console.WriteLine($"Date: {res.Date.ToString(CultureInfo.CurrentCulture)}");
                     System.Console.WriteLine($"Cache-Control: max-age = {res.CacheControl}");
                     System.Console.WriteLine($"Server: " +
                                              $"{res.Server.OperatingSystem}/{res.Server.OperatingSystemVersion} " +
@@ -152,7 +153,7 @@ class Program
     private static void StartDeviceListening()
     {
         _device = new Device(_httpListener);
-        var MSearchRequestSubscribe = _device.MSearchObservable.Subscribe(
+        var mSearchRequestSubscribe = _device.MSearchObservable.Subscribe(
             req =>
             {
                 System.Console.BackgroundColor = ConsoleColor.DarkGreen;
@@ -197,9 +198,9 @@ class Program
 
         ListenToNotify();
        
-        //ListenToMSearchResponse();
+        ListenToMSearchResponse();
 
-        //await StartMSearchRequestMulticastAsync();
+        await StartMSearchRequestMulticastAsync();
     }
 
     private static async Task StartMSearchRequestMulticastAsync()
