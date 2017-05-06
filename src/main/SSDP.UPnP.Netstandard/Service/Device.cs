@@ -30,7 +30,7 @@ namespace SSDP.UPnP.PCL.Service
             _httpListener = httpListener;
         }
 
-        public async Task MSearchResponse(IMSearchResponse mSearchResponse, IMSearchRequest mSearchRequest)
+        public async Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse, IMSearchRequest mSearchRequest)
         {
             var wait = new Random();
             await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(50, (int)mSearchRequest.MX.TotalMilliseconds)));
@@ -52,7 +52,14 @@ namespace SSDP.UPnP.PCL.Service
             }
         }
 
-        public async Task Notify(INotifySsdp notifySsdp)
+        [Obsolete("Deprecated")]
+        public async Task MSearchResponse(IMSearchResponse mSearchResponse, IMSearchRequest mSearchRequest)
+        {
+            await SendMSearchResponseAsync(mSearchResponse, mSearchRequest);
+        }
+
+
+        public async Task SendNotifyAsync(INotifySsdp notifySsdp)
         {
             // Insert random delay according to UPnP 2.0 spec. section 1.2.1 (page 27).
             var wait = new Random();
@@ -65,6 +72,12 @@ namespace SSDP.UPnP.PCL.Service
                 // Random delay between resends of 200 - 400 milliseconds. 
                 await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(200, 400)));
             }
+        }
+
+        [Obsolete("Deprecated")]
+        public async Task Notify(INotifySsdp notifySsdp)
+        {
+            await SendNotifyAsync(notifySsdp);
         }
 
         private static byte[] ComposeMSearchResponseDatagram(IMSearchResponse response)

@@ -1,8 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reactive.Concurrency;
-using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Threading.Tasks;
 using ISimpleHttpServer.Service;
@@ -53,23 +52,21 @@ namespace SSDP.UPnP.PCL.Service
 
             }).Publish().RefCount();
 
+        [Obsolete("Deprecated")]
         public IObservable<INotifySsdp> NotifyObservable => _notifyObs.SubscribeOn(Scheduler.Default);
 
-        //public IObservable<INotifySsdp> NotifyObservable =>
-        //    _httpListener
-        //    .HttpRequestObservable
-        //    .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
-        //    .Where(req => req.Method == "NOTIFY")
-        //    .Select(req => new NotifySsdp(req))
-        //    .Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update);
-
+        [Obsolete("Deprecated")]
         public IObservable<IMSearchResponse> MSearchResponseObservable => _msearchResponse.SubscribeOn(Scheduler.Default);
 
-        //public IObservable<IMSearchResponse> MSearchResponseObservable =>
-        //    _httpListener
-        //    .HttpResponseObservable
-        //    .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
-        //    .Select(response => new MSearchResponse(response));
+        public async Task<IObservable<INotifySsdp>> CreateNotifyObservable(int tcpReponsePort, IEnumerable<string> ipv6MulticastAddressList)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<IObservable<INotifySsdp>> CreateMSearchResponseObservable(int tcpReponsePort, IEnumerable<string> ipv6MulticastAddressList)
+        {
+            throw new NotImplementedException();
+        }
 
         public ControlPoint(IHttpListener httpListener)
         {

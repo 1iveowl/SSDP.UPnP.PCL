@@ -28,11 +28,10 @@ namespace SSDP.UPnP.Netstandard.Helper
 
         public static async Task<IHttpListener> GetHttpListener(
             string ipAddress, 
-            ListenerType listenerType,
             IEnumerable<string> ipv6MulticastAddressList = null,
             TimeSpan timeout = default(TimeSpan))
         {
-
+            
             if (timeout == default(TimeSpan))
             {
                 timeout = TimeSpan.FromSeconds(30);
@@ -45,12 +44,11 @@ namespace SSDP.UPnP.Netstandard.Helper
 
             if (firstUsableInterface == null) throw new ArgumentException($"Unable to locate any network communication interface with the ip address: {ipAddress}");
 
-            return await GetHttpListener(firstUsableInterface, listenerType, ipv6MulticastAddressList);
+            return await GetHttpListener(firstUsableInterface, ipv6MulticastAddressList);
         }
 
         public static async Task<IHttpListener> GetHttpListener(
             ICommunicationInterface communicationInterface, 
-            ListenerType listenerType,
             IEnumerable<string> ipv6MulticastAddressList,
             TimeSpan timeout = default(TimeSpan))
         {
@@ -61,34 +59,34 @@ namespace SSDP.UPnP.Netstandard.Helper
 
             var httpListener = new HttpListener(timeout);
 
-            switch (listenerType)
-            {
-                case ListenerType.ControlPoint:
-                    await httpListener.StartUdpMulticastListener(
-                        UdpSSDPMultiCastAddress, 
-                        UdpSSDPMulticastPort,
-                        ipv6MulticastAddressList,
-                        communicationInterface);
+            //switch (listenerType)
+            //{
+            //    case ListenerType.ControlPoint:
+            //        await httpListener.StartUdpMulticastListener(
+            //            UdpSSDPMultiCastAddress, 
+            //            UdpSSDPMulticastPort,
+            //            ipv6MulticastAddressList,
+            //            communicationInterface);
 
-                    await httpListener.StartTcpRequestListener(
-                        TcpRequestListenerPort, 
-                        communicationInterface);
+            //        await httpListener.StartTcpRequestListener(
+            //            TcpRequestListenerPort, 
+            //            communicationInterface);
 
-                    await httpListener.StartTcpResponseListener(
-                        TcpResponseListenerPort, 
-                        communicationInterface);
+            //        await httpListener.StartTcpResponseListener(
+            //            TcpResponseListenerPort, 
+            //            communicationInterface);
 
-                    await httpListener.StartUdpListener(
-                        UdpListenerPort,
-                        communicationInterface);
-                    break;
-                case ListenerType.Device:
-                    break;
-                case ListenerType.Both:
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(listenerType), listenerType, null);
-            }
+            //        await httpListener.StartUdpListener(
+            //            UdpListenerPort,
+            //            communicationInterface);
+            //        break;
+            //    case ListenerType.Device:
+            //        break;
+            //    case ListenerType.Both:
+            //        break;
+            //    default:
+            //        throw new ArgumentOutOfRangeException(nameof(listenerType), listenerType, null);
+            //}
             return httpListener;
         }
     }
