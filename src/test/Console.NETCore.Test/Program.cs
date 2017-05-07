@@ -44,16 +44,10 @@ class Program
 
     private static async Task ListenToNotify()
     {
-        var ipv6MulticastAddressList = new List<string>
-        {
-            //IpV6 multicast address
-            "ff02::c",
-        };
 
         var counter = 0;
 
-        var notifyObs = await _controlPoint.CreateNotifyObservable(
-            Initializer.TcpRequestListenerPort);
+        var notifyObs = await _controlPoint.CreateNotifyObservable(Initializer.TcpRequestListenerPort);
 
         var subscription = notifyObs
             //.Where(req => req.HostIp == "192.168.0.20")
@@ -104,14 +98,8 @@ class Program
 
     private static async Task ListenToMSearchResponse()
     {
-        var ipv6MulticastAddressList = new List<string>
-        {
-            //IpV6 multicast address
-            "ff02::c",
-        };
 
-        var mSeachResObs = await _controlPoint.CreateMSearchResponseObservable(
-            Initializer.TcpResponseListenerPort);
+        var mSeachResObs = await _controlPoint.CreateMSearchResponseObservable(Initializer.TcpResponseListenerPort);
 
         var counter = 0;
 

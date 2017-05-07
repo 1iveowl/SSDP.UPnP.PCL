@@ -38,10 +38,7 @@ class Program
             "ff02::c",
         };
 
-        _httpListener = await Initializer.GetHttpListener(
-            _deviceLocalIp, 
-            Initializer.ListenerType.ControlPoint,
-            ipv6MulticastAddressList);
+        _httpListener = await Initializer.GetHttpListener(_deviceLocalIp);
 
         StartDeviceListening();
         await StartSendingRandomNotify();
