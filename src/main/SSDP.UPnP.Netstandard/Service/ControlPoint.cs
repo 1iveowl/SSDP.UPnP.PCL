@@ -61,7 +61,7 @@ namespace SSDP.UPnP.PCL.Service
 
         public async Task<IObservable<IMSearchResponse>> CreateMSearchResponseObservable(int tcpReponsePort)
         {
-            var unicastResObs = await _httpListener.UdpHttpResponseObservable(Initializer.UdpResponsePort);
+            var unicastResObs = await _httpListener.UdpHttpResponseObservable(Initializer.UdpSSDPMulticastPort);
 
             var multicastResObs = await _httpListener.UdpMulticastHttpResponseObservable(
                 Initializer.UdpSSDPMultiCastAddress,
@@ -78,7 +78,7 @@ namespace SSDP.UPnP.PCL.Service
 
         public async Task<IObservable<INotifySsdp>> CreateNotifyObservable(int tcpReponsePort)
         {
-            var unicastReqObs = await _httpListener.UdpHttpRequestObservable(Initializer.UdpRequestPort);
+            var unicastReqObs = await _httpListener.UdpHttpRequestObservable(Initializer.UdpSSDPMulticastPort);
 
             var multicastReqObs = await _httpListener.UdpMulticastHttpRequestObservable(
                     Initializer.UdpSSDPMultiCastAddress,

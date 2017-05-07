@@ -54,7 +54,7 @@ class Program
     {
         var counter = 0;
 
-        var observerNotify = await _controlPoint.CreateNotifyObservable(Initializer.TcpRequestListenerPort);
+        var observerNotify = await _controlPoint.CreateNotifyObservable(Initializer.UdpSSDPMulticastPort);
 
         var subscription = observerNotify
             .Subscribe(
