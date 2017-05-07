@@ -14,7 +14,7 @@ namespace SSDP.Console.Test.NET
 {
     class Program
     {
-        private static readonly IHttpListener HttpListener = new HttpListener(timeout:TimeSpan.FromSeconds(30));
+        private static readonly IHttpListener HttpListener;// = new HttpListener(timeout:TimeSpan.FromSeconds(30));
 
         private static IControlPoint _controlPoint;
         private static IDevice _device;

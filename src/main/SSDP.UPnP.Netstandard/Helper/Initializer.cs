@@ -49,7 +49,7 @@ namespace SSDP.UPnP.Netstandard.Helper
                 timeout = TimeSpan.FromSeconds(30);
             }
 
-            return new HttpListener(timeout, communicationInterface);
+            return new HttpListener(communicationInterface, timeout);
         }
     }
 }
