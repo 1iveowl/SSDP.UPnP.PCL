@@ -78,11 +78,11 @@ namespace SSDP.UPnP.PCL.Service
 
         public async Task<IObservable<INotifySsdp>> CreateNotifyObservable(int tcpReponsePort)
         {
-            var unicastReqObs = await _httpListener.UdpHttpRequestObservable(Initializer.UdpSSDPMulticastPort);
-
             var multicastReqObs = await _httpListener.UdpMulticastHttpRequestObservable(
                     Initializer.UdpSSDPMultiCastAddress,
                     Initializer.UdpSSDPMulticastPort);
+
+            var unicastReqObs = await _httpListener.UdpHttpRequestObservable(Initializer.UdpSSDPMulticastPort);
 
             var tcpReqObs = await _httpListener.TcpHttpRequestObservable(tcpReponsePort);
 
