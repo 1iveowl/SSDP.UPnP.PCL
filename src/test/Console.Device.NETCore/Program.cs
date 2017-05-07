@@ -33,11 +33,6 @@ class Program
 
     private static async void StartAsync()
     {
-        var ipv6MulticastAddressList = new List<string>
-        {
-            "ff02::c",
-        };
-
         _httpListener = await Initializer.GetHttpListener(_deviceLocalIp);
 
         StartDeviceListening();

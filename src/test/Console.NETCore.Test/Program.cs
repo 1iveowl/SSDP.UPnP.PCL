@@ -34,25 +34,29 @@ class Program
     {
 
 
-        _httpListener = await Initializer.GetHttpListener(
-            _controlPointLocalIp);
+        _httpListener = await Initializer.GetHttpListener(_controlPointLocalIp);
 
         //StartDeviceListening();
 
         await StartControlPointListeningAsync();
     }
 
+    private static async Task StartControlPointListeningAsync()
+    {
+        _controlPoint = new ControlPoint(_httpListener);
+
+        await ListenToNotify();
+
+        await ListenToMSearchResponse();
+    }
+
     private static async Task ListenToNotify()
     {
-
         var counter = 0;
 
-        var notifyObs = await _controlPoint.CreateNotifyObservable(Initializer.TcpRequestListenerPort);
+        var observerNotify = await _controlPoint.CreateNotifyObservable(Initializer.TcpRequestListenerPort);
 
-        var subscription = notifyObs
-            //.Where(req => req.HostIp == "192.168.0.20")
-            //.SubscribeOn(Scheduler.CurrentThread)
-            //.Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update)
+        var subscription = observerNotify
             .Subscribe(
                 n =>
                 {
@@ -151,57 +155,7 @@ class Program
         await StartMSearchRequestMulticastAsync();
     }
 
-    private static void StartDeviceListening()
-    {
-        _device = new Device(_httpListener);
-        var mSearchRequestSubscribe = _device.MSearchObservable.Subscribe(
-            req =>
-            {
-                System.Console.BackgroundColor = ConsoleColor.DarkGreen;
-                System.Console.ForegroundColor = ConsoleColor.White;
-                System.Console.WriteLine($"---### Device Received a M-SEARCH REQUEST ###---");
-                System.Console.ResetColor();
-                System.Console.WriteLine($"{req.SearchCastMethod.ToString()}");
-                System.Console.WriteLine($"HOST: {req.HostIp}:{req.HostPort}");
-                System.Console.WriteLine($"MAN: {req.MAN}");
-                System.Console.WriteLine($"MX: {req.MX.TotalSeconds}");
-                System.Console.WriteLine($"USER-AGENT: " +
-                                         $"{req.UserAgent?.OperatingSystem}/{req.UserAgent?.OperatingSystemVersion} " +
-                                         $"UPNP/" +
-                                         $"{req.UserAgent?.UpnpMajorVersion}.{req.UserAgent?.UpnpMinorVersion}" +
-                                         $" " +
-                                         $"{req.UserAgent?.ProductName}/{req.UserAgent?.ProductVersion}" +
-                                         $" - ({req.UserAgent?.FullString})");
-
-                System.Console.WriteLine($"CPFN: {req.CPFN}");
-                System.Console.WriteLine($"CPUUID: {req.CPUUID}");
-                System.Console.WriteLine($"TCPPORT: {req.TCPPORT}");
-
-                if (req.Headers.Any())
-                {
-                    System.Console.ForegroundColor = ConsoleColor.DarkYellow;
-                    System.Console.WriteLine($"Additional Headers: {req.Headers.Count}");
-                    foreach (var header in req.Headers)
-                    {
-                        System.Console.WriteLine($"{header.Key}: {header.Value}; ");
-                    }
-                    System.Console.ResetColor();
-                }
-
-
-                System.Console.WriteLine();
-            });
-    }
-
-    private static async Task StartControlPointListeningAsync()
-    {
-        _controlPoint = new ControlPoint(_httpListener);
-
-        await ListenToNotify();
-       
-        await ListenToMSearchResponse();
-    }
-
+    
     private static async Task StartMSearchRequestMulticastAsync()
     {
         var mSearchMessage = new MSearch
