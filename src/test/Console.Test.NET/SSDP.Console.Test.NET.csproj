@@ -39,20 +39,20 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="ISimpleHttpServer, Version=4.0.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\main\packages\SimpleHttpListener.4.0.1-beta1a\lib\netstandard1.2\ISimpleHttpServer.dll</HintPath>
+      <HintPath>..\..\main\packages\SimpleHttpListener.4.0.1\lib\netstandard1.2\ISimpleHttpServer.dll</HintPath>
     </Reference>
     <Reference Include="ISocketLite.PCL, Version=4.0.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\main\packages\SocketLite.PCL.4.0.1-beta1a\lib\net45\ISocketLite.PCL.dll</HintPath>
+      <HintPath>..\..\main\packages\SocketLite.PCL.4.0.1\lib\net45\ISocketLite.PCL.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Win32.Primitives, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\..\main\packages\Microsoft.Win32.Primitives.4.3.0\lib\net46\Microsoft.Win32.Primitives.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="SimpleHttpServer, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\main\packages\SimpleHttpListener.4.0.1-beta1a\lib\netstandard1.2\SimpleHttpServer.dll</HintPath>
+      <HintPath>..\..\main\packages\SimpleHttpListener.4.0.1\lib\netstandard1.2\SimpleHttpServer.dll</HintPath>
     </Reference>
     <Reference Include="SocketLite, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\main\packages\SocketLite.PCL.4.0.1-beta1a\lib\net45\SocketLite.dll</HintPath>
+      <HintPath>..\..\main\packages\SocketLite.PCL.4.0.1\lib\net45\SocketLite.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.AppContext, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
