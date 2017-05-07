@@ -15,8 +15,8 @@ namespace SSDP.UPnP.Netstandard.Helper
         public const int UdpSSDPMulticastPort = 1900;
         public const int TcpRequestListenerPort = 1900;
         public const int TcpResponseListenerPort = 1901;
-        public const int UdpResponsePort = 1901;
-        public const int UdpRequestPort = 1902;
+        public const int UdpResponsePort = 1900;
+        public const int UdpRequestPort = 1901;
 
         public static int SearchPort { get; set; } = UdpResponsePort;
 

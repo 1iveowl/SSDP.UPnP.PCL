@@ -8,7 +8,6 @@ using ISimpleHttpServer.Service;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 using ISSDP.UPnP.PCL.Interfaces.Service;
-using SimpleHttpServer.Model;
 using SSDP.UPnP.Netstandard.Helper;
 using SSDP.UPnP.PCL.Helper;
 using SSDP.UPnP.PCL.Model;
