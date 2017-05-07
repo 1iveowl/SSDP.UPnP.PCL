@@ -8,6 +8,9 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
     {
         [Obsolete("Deprecated")]
         IObservable<IMSearchRequest> MSearchObservable { get; }
+
+        Task<IObservable<IMSearchRequest>> CreateMSearchObservable();
+
         [Obsolete("Deprecated")]
         Task Notify(INotifySsdp notifySsdp);
 

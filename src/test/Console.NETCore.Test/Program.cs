@@ -2,9 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Net;
-using System.Reactive.Concurrency;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Console.NETCore.Test.Model;
 using ISimpleHttpServer.Service;
@@ -35,27 +32,30 @@ class Program
 
     private static async void StartAsync()
     {
+
+
+        _httpListener = await Initializer.GetHttpListener(
+            _controlPointLocalIp);
+
+        //StartDeviceListening();
+
+        await StartControlPointListeningAsync();
+    }
+
+    private static async Task ListenToNotify()
+    {
         var ipv6MulticastAddressList = new List<string>
         {
             //IpV6 multicast address
             "ff02::c",
         };
 
-        _httpListener = await Initializer.GetHttpListener(
-            _controlPointLocalIp, 
-            Initializer.ListenerType.ControlPoint,
-            ipv6MulticastAddressList);
-
-        //StartDeviceListening();
-
-        await StartControlPointListeningAsync();
-
-    }
-
-    private static void ListenToNotify()
-    {
         var counter = 0;
-        var notifySubscribe = _controlPoint.NotifyObservable
+
+        var notifyObs = await _controlPoint.CreateNotifyObservable(
+            Initializer.TcpRequestListenerPort);
+
+        var subscription = notifyObs
             //.Where(req => req.HostIp == "192.168.0.20")
             //.SubscribeOn(Scheduler.CurrentThread)
             //.Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update)
@@ -102,18 +102,29 @@ class Program
                 });
     }
 
-    private static void ListenToMSearchResponse()
+    private static async Task ListenToMSearchResponse()
     {
-        var mSearchresponseSubscribe = _controlPoint
-            .MSearchResponseObservable
+        var ipv6MulticastAddressList = new List<string>
+        {
+            //IpV6 multicast address
+            "ff02::c",
+        };
+
+        var mSeachResObs = await _controlPoint.CreateMSearchResponseObservable(
+            Initializer.TcpResponseListenerPort);
+
+        var counter = 0;
+
+        var mSearchresponseSubscribe = mSeachResObs
             //.Where(req => req.HostIp == _remoteDeviceIp)
             //.SubscribeOn(Scheduler.CurrentThread)
             .Subscribe(
                 res =>
                 {
+                    counter++;
                     System.Console.BackgroundColor = ConsoleColor.DarkBlue;
                     System.Console.ForegroundColor = ConsoleColor.White;
-                    System.Console.WriteLine($"---### Control Point Received a  M-SEARCH RESPONSE ###---");
+                    System.Console.WriteLine($"---### Control Point Received a  M-SEARCH RESPONSE #{counter} ###---");
                     System.Console.ResetColor();
                     System.Console.WriteLine($"{res.ResponseCastMethod.ToString()}");
                     System.Console.WriteLine($"From: {res.HostIp}:{res.HostPort}");
@@ -148,6 +159,8 @@ class Program
 
                     System.Console.WriteLine();
                 });
+
+        await StartMSearchRequestMulticastAsync();
     }
 
     private static void StartDeviceListening()
@@ -196,11 +209,9 @@ class Program
     {
         _controlPoint = new ControlPoint(_httpListener);
 
-        ListenToNotify();
+        await ListenToNotify();
        
-        ListenToMSearchResponse();
-
-        await StartMSearchRequestMulticastAsync();
+        await ListenToMSearchResponse();
     }
 
     private static async Task StartMSearchRequestMulticastAsync()

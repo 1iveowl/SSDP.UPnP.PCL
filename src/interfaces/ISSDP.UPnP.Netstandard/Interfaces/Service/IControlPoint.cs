@@ -13,12 +13,10 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
         IObservable<IMSearchResponse> MSearchResponseObservable { get; }
 
         Task<IObservable<INotifySsdp>> CreateNotifyObservable(
-            int tcpReponsePort,
-            IEnumerable<string> ipv6MulticastAddressList);
+            int tcpReponsePort);
 
-        Task<IObservable<INotifySsdp>> CreateMSearchResponseObservable(
-            int tcpReponsePort,
-            IEnumerable<string> ipv6MulticastAddressList);
+        Task<IObservable<IMSearchResponse>> CreateMSearchResponseObservable(
+            int tcpReponsePort);
 
         Task SendMSearchAsync(IMSearchRequest mSearch);
     }

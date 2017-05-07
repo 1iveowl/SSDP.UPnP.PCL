@@ -7,6 +7,7 @@ using ISimpleHttpServer.Service;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 using ISSDP.UPnP.PCL.Interfaces.Service;
+using SSDP.UPnP.Netstandard.Helper;
 using SSDP.UPnP.PCL.Helper;
 using SSDP.UPnP.PCL.Model;
 using SSDP.UPnP.PCL.Service.Base;
@@ -28,6 +29,21 @@ namespace SSDP.UPnP.PCL.Service
         public Device(IHttpListener httpListener)
         {
             _httpListener = httpListener;
+        }
+
+        public async Task<IObservable<IMSearchRequest>> CreateMSearchObservable()
+        {
+            var unicastReqObs = await _httpListener.UdpHttpRequestObservable(Initializer.UdpResponsePort);
+
+            var multicastReqObs = await _httpListener.UdpMulticastHttpRequestObservable(
+                Initializer.UdpSSDPMultiCastAddress,
+                Initializer.UdpSSDPMulticastPort);
+
+            return unicastReqObs
+                .Merge(multicastReqObs)
+                .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
+                .Where(req => req.Method == "M-SEARCH")
+                .Select(req => new MSearchRequest(req));
         }
 
         public async Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse, IMSearchRequest mSearchRequest)
