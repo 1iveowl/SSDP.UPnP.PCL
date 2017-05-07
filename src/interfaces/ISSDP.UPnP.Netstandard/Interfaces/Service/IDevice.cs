@@ -6,8 +6,20 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
 {
     public interface IDevice
     {
+        [Obsolete("Deprecated")]
         IObservable<IMSearchRequest> MSearchObservable { get; }
+
+        Task<IObservable<IMSearchRequest>> CreateMSearchObservable();
+
+        [Obsolete("Deprecated")]
         Task Notify(INotifySsdp notifySsdp);
-        Task MSearchRespone(IMSearchResponse mSearch);
+
+        Task SendNotifyAsync(INotifySsdp notifySsdp);
+
+        [Obsolete("Deprecated")]
+        Task MSearchResponse(IMSearchResponse mSearchResponse, IMSearchRequest mSearchRequest);
+
+
+        Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse, IMSearchRequest mSearchRequest);
     }
 }

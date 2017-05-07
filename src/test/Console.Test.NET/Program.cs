@@ -14,7 +14,7 @@ namespace SSDP.Console.Test.NET
 {
     class Program
     {
-        private static readonly IHttpListener HttpListener = new HttpListener(timeout:TimeSpan.FromSeconds(30));
+        private static readonly IHttpListener HttpListener;// = new HttpListener(timeout:TimeSpan.FromSeconds(30));
 
         private static IControlPoint _controlPoint;
         private static IDevice _device;
@@ -36,7 +36,7 @@ namespace SSDP.Console.Test.NET
             var communicationInterface = new CommunicationsInterface();
             var allInterfaces = communicationInterface.GetAllInterfaces();
 
-            var firstUsableInterface = allInterfaces.FirstOrDefault(x => x.IpAddress == "192.168.0.36");
+            var firstUsableInterface = allInterfaces.FirstOrDefault(x => x.IpAddress == "10.10.13.204");
 
             HttpListener.StartTcpRequestListener(1900, communicationInterface:firstUsableInterface, allowMultipleBindToSamePort:true);
             HttpListener.StartTcpResponseListener(1901, communicationInterface: firstUsableInterface, allowMultipleBindToSamePort: true);

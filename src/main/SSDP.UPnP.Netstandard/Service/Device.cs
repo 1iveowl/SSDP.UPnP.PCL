@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -6,6 +7,7 @@ using ISimpleHttpServer.Service;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 using ISSDP.UPnP.PCL.Interfaces.Service;
+using SSDP.UPnP.Netstandard.Helper;
 using SSDP.UPnP.PCL.Helper;
 using SSDP.UPnP.PCL.Model;
 using SSDP.UPnP.PCL.Service.Base;
@@ -29,24 +31,55 @@ namespace SSDP.UPnP.PCL.Service
             _httpListener = httpListener;
         }
 
-        public async Task MSearchRespone(IMSearchResponse mSearch)
+        public async Task<IObservable<IMSearchRequest>> CreateMSearchObservable()
         {
-            if (mSearch.ResponseCastMethod == CastMethod.Multicast)
+            var unicastReqObs = await _httpListener.UdpHttpRequestObservable(Initializer.UdpResponsePort);
+
+            var multicastReqObs = await _httpListener.UdpMulticastHttpRequestObservable(
+                Initializer.UdpSSDPMultiCastAddress,
+                Initializer.UdpSSDPMulticastPort);
+
+            return unicastReqObs
+                .Merge(multicastReqObs)
+                .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
+                .Where(req => req.Method == "M-SEARCH")
+                .Select(req => new MSearchRequest(req));
+        }
+
+        public async Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse, IMSearchRequest mSearchRequest)
+        {
+            var wait = new Random();
+            await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(50, (int)mSearchRequest.MX.TotalMilliseconds)));
+
+            if (mSearchResponse.ResponseCastMethod != CastMethod.Unicast)
             {
-                await _httpListener.SendOnMulticast(ComposeMSearchResponseDatagram(mSearch));
+                await _httpListener.SendOnMulticast(ComposeMSearchResponseDatagram(mSearchResponse));
             }
 
-            if (mSearch.ResponseCastMethod == CastMethod.Unicast)
+            if (int.TryParse(mSearchRequest.TCPPORT, out int tcpSpecifiedRemotePort))
             {
-                await SendOnTcp(mSearch.HostIp, mSearch.HostPort, ComposeMSearchResponseDatagram(mSearch));
+                await SendOnTcp(mSearchRequest.HostIp, tcpSpecifiedRemotePort,
+                    ComposeMSearchResponseDatagram(mSearchResponse));
+            }
+            else
+            {
+                await SendOnTcp(mSearchRequest.HostIp, mSearchRequest.HostPort,
+                    ComposeMSearchResponseDatagram(mSearchResponse));
             }
         }
 
-        public async Task Notify(INotifySsdp notifySsdp)
+        [Obsolete("Deprecated")]
+        public async Task MSearchResponse(IMSearchResponse mSearchResponse, IMSearchRequest mSearchRequest)
+        {
+            await SendMSearchResponseAsync(mSearchResponse, mSearchRequest);
+        }
+
+
+        public async Task SendNotifyAsync(INotifySsdp notifySsdp)
         {
             // Insert random delay according to UPnP 2.0 spec. section 1.2.1 (page 27).
             var wait = new Random();
-            await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(0, 100)));
+            await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(50, 100)));
 
             // According to the UPnP spec the UDP Multicast Notify should be send three times
             for (var i = 0; i < 3; i++)
@@ -57,13 +90,19 @@ namespace SSDP.UPnP.PCL.Service
             }
         }
 
+        [Obsolete("Deprecated")]
+        public async Task Notify(INotifySsdp notifySsdp)
+        {
+            await SendNotifyAsync(notifySsdp);
+        }
+
         private static byte[] ComposeMSearchResponseDatagram(IMSearchResponse response)
         {
             var stringBuilder = new StringBuilder();
 
             stringBuilder.Append($"HTTP/1.1 {response.StatusCode} {response.ResponseReason}\r\n");
             stringBuilder.Append($"CACHE-CONTROL: max-age = {response.CacheControl.TotalSeconds}\r\n");
-            stringBuilder.Append($"DATE: {DateTime.Now.ToString("r")}\r\n");
+            stringBuilder.Append($"DATE: {DateTime.Now:r}\r\n");
             stringBuilder.Append($"EXT:\r\n");
             stringBuilder.Append($"LOCATION: {response.Location}\r\n");
             stringBuilder.Append($"SERVER: " +
@@ -81,12 +120,15 @@ namespace SSDP.UPnP.PCL.Service
             HeaderHelper.AddOptionalHeader(stringBuilder, "SECURELOCATION.UPNP.ORG", response.SECURELOCATION);
 
             // Adding additional vendor specific headers if they exist.
-            foreach (var header in response.Headers)
+            if (response.Headers?.Any() ?? false)
             {
-                stringBuilder.Append($"{header.Key}: {header.Value}\r\n");
+                foreach (var header in response.Headers)
+                {
+                    stringBuilder.Append($"{header.Key}: {header.Value}\r\n");
+                }
             }
-            stringBuilder.Append("\r\n");
 
+            stringBuilder.Append("\r\n");
             stringBuilder.Append("\r\n");
 
             return Encoding.UTF8.GetBytes(stringBuilder.ToString());
@@ -109,16 +151,7 @@ namespace SSDP.UPnP.PCL.Service
 
             if (notifySsdp.NTS == NTS.Alive || notifySsdp.NTS == NTS.Update)
             {
-                stringBuilder.Append($"LOCATION: {notifySsdp.Location.AbsolutePath}\r\n");
-            }
-
-            stringBuilder.Append($"NT: max-age = {notifySsdp.NT}\r\n");
-            stringBuilder.Append($"NTS: max-age = {notifySsdp.NTS}\r\n");
-            stringBuilder.Append($"USN: max-age = {notifySsdp.USN}\r\n");
-
-            if (notifySsdp.NTS == NTS.Alive)
-            {
-                stringBuilder.Append($"LOCATION: {notifySsdp.Location.AbsolutePath}\r\n");
+                stringBuilder.Append($"LOCATION: {notifySsdp.Location.AbsoluteUri}\r\n");
             }
 
             stringBuilder.Append($"NT: {notifySsdp.NT}\r\n");
@@ -145,10 +178,14 @@ namespace SSDP.UPnP.PCL.Service
             }
 
             // Adding additional vendor specific headers if such are specified
-            foreach (var header in notifySsdp.Headers)
+            if (notifySsdp.Headers?.Any() ?? false)
             {
-                stringBuilder.Append($"{header.Key}: {header.Value}\r\n");
+                foreach (var header in notifySsdp.Headers)
+                {
+                    stringBuilder.Append($"{header.Key}: {header.Value}\r\n");
+                }
             }
+
             stringBuilder.Append("\r\n");
 
             return Encoding.UTF8.GetBytes(stringBuilder.ToString());
