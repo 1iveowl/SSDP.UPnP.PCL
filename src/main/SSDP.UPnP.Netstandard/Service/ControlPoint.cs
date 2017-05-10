@@ -19,6 +19,8 @@ namespace SSDP.UPnP.PCL.Service
     {
         private readonly IHttpListener _httpListener;
 
+        #region Obsolete
+
         private IObservable<INotifySsdp> _notifyObs => Observable.Create<INotifySsdp>(
             obs =>
             {
@@ -59,9 +61,11 @@ namespace SSDP.UPnP.PCL.Service
         [Obsolete("Deprecated")]
         public IObservable<IMSearchResponse> MSearchResponseObservable => _msearchResponse.SubscribeOn(Scheduler.Default);
 
+        #endregion
+
         public async Task<IObservable<IMSearchResponse>> CreateMSearchResponseObservable(int tcpReponsePort)
         {
-            var unicastResObs = await _httpListener.UdpHttpResponseObservable(Initializer.UdpSSDPMulticastPort);
+            //var unicastResObs = await _httpListener.UdpHttpResponseObservable(Initializer.UdpSSDPMulticastPort);
 
             var multicastResObs = await _httpListener.UdpMulticastHttpResponseObservable(
                 Initializer.UdpSSDPMultiCastAddress,
@@ -69,11 +73,16 @@ namespace SSDP.UPnP.PCL.Service
 
             var tcpResObs = await _httpListener.TcpHttpResponseObservable(tcpReponsePort);
 
-            return unicastResObs
-                .Merge(multicastResObs)
+            return multicastResObs
                 .Merge(tcpResObs)
                 .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
                 .Select(res => new MSearchResponse(res));
+
+            //return unicastResObs
+            //    .Merge(multicastResObs)
+            //    .Merge(tcpResObs)
+            //    .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
+            //    .Select(res => new MSearchResponse(res));
         }
 
         public async Task<IObservable<INotifySsdp>> CreateNotifyObservable(int tcpReponsePort)
@@ -82,17 +91,24 @@ namespace SSDP.UPnP.PCL.Service
                     Initializer.UdpSSDPMultiCastAddress,
                     Initializer.UdpSSDPMulticastPort);
 
-            var unicastReqObs = await _httpListener.UdpHttpRequestObservable(Initializer.UdpSSDPMulticastPort);
+            //var unicastReqObs = await _httpListener.UdpHttpRequestObservable(Initializer.UdpSSDPMulticastPort);
 
             var tcpReqObs = await _httpListener.TcpHttpRequestObservable(tcpReponsePort);
 
-            return unicastReqObs
-                .Merge(multicastReqObs)
+            return multicastReqObs
                 .Merge(tcpReqObs)
                 .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
                 .Where(req => req.Method == "NOTIFY")
                 .Select(req => new NotifySsdp(req))
                 .Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update);
+
+            //return unicastReqObs
+            //    .Merge(multicastReqObs)
+            //    .Merge(tcpReqObs)
+            //    .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
+            //    .Where(req => req.Method == "NOTIFY")
+            //    .Select(req => new NotifySsdp(req))
+            //    .Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update);
         }
         
         public ControlPoint(IHttpListener httpListener)
