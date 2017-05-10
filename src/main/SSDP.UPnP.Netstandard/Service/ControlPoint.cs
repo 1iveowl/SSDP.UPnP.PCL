@@ -69,9 +69,10 @@ namespace SSDP.UPnP.PCL.Service
 
             var multicastResObs = await _httpListener.UdpMulticastHttpResponseObservable(
                 Initializer.UdpSSDPMultiCastAddress,
-                Initializer.UdpSSDPMulticastPort);
+                Initializer.UdpSSDPMulticastPort, 
+                false);
 
-            var tcpResObs = await _httpListener.TcpHttpResponseObservable(tcpReponsePort);
+            var tcpResObs = await _httpListener.TcpHttpResponseObservable(tcpReponsePort, false);
 
             return multicastResObs
                 .Merge(tcpResObs)
@@ -89,7 +90,8 @@ namespace SSDP.UPnP.PCL.Service
         {
             var multicastReqObs = await _httpListener.UdpMulticastHttpRequestObservable(
                     Initializer.UdpSSDPMultiCastAddress,
-                    Initializer.UdpSSDPMulticastPort);
+                    Initializer.UdpSSDPMulticastPort, 
+                    false);
 
             //var unicastReqObs = await _httpListener.UdpHttpRequestObservable(Initializer.UdpSSDPMulticastPort);
 
