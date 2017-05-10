@@ -19,6 +19,8 @@ namespace SSDP.UPnP.PCL.Service
     {
         private readonly IHttpListener _httpListener;
 
+        #region Obsolete
+
         public IObservable<IMSearchRequest> MSearchObservable =>
             _httpListener
                 .HttpRequestObservable
@@ -30,6 +32,20 @@ namespace SSDP.UPnP.PCL.Service
         {
             _httpListener = httpListener;
         }
+
+        [Obsolete("Deprecated")]
+        public async Task MSearchResponse(IMSearchResponse mSearchResponse, IMSearchRequest mSearchRequest)
+        {
+            await SendMSearchResponseAsync(mSearchResponse, mSearchRequest);
+        }
+
+        [Obsolete("Deprecated")]
+        public async Task Notify(INotifySsdp notifySsdp)
+        {
+            await SendNotifyAsync(notifySsdp);
+        }
+
+        #endregion
 
         public async Task<IObservable<IMSearchRequest>> CreateMSearchObservable()
         {
@@ -68,13 +84,6 @@ namespace SSDP.UPnP.PCL.Service
             }
         }
 
-        [Obsolete("Deprecated")]
-        public async Task MSearchResponse(IMSearchResponse mSearchResponse, IMSearchRequest mSearchRequest)
-        {
-            await SendMSearchResponseAsync(mSearchResponse, mSearchRequest);
-        }
-
-
         public async Task SendNotifyAsync(INotifySsdp notifySsdp)
         {
             // Insert random delay according to UPnP 2.0 spec. section 1.2.1 (page 27).
@@ -88,12 +97,6 @@ namespace SSDP.UPnP.PCL.Service
                 // Random delay between resends of 200 - 400 milliseconds. 
                 await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(200, 400)));
             }
-        }
-
-        [Obsolete("Deprecated")]
-        public async Task Notify(INotifySsdp notifySsdp)
-        {
-            await SendNotifyAsync(notifySsdp);
         }
 
         private static byte[] ComposeMSearchResponseDatagram(IMSearchResponse response)
