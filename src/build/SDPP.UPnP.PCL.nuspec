@@ -20,7 +20,7 @@
         <dependencies>
           <dependency id="System.Reactive" version="3.1.1"/>
           <dependency id="SocketLite.PCL" version="4.0.3"/>
-          <dependency id="SimpleHttpListener" version="4.0.3"/>
+          <dependency id="SimpleHttpListener" version="4.0.5"/>
           <dependency id="NETStandard.Library" version="1.6.1"/>
         </dependencies>
   </metadata>

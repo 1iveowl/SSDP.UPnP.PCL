@@ -38,8 +38,8 @@
       <HintPath>..\..\main\packages\HttpMachine.PCL.3.0.1\lib\netstandard1\HttpMachine.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="ISimpleHttpServer, Version=4.0.4.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\main\packages\SimpleHttpListener.4.0.4\lib\netstandard1.2\ISimpleHttpServer.dll</HintPath>
+    <Reference Include="ISimpleHttpServer, Version=4.0.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\main\packages\SimpleHttpListener.4.0.5\lib\netstandard1.2\ISimpleHttpServer.dll</HintPath>
     </Reference>
     <Reference Include="ISocketLite.PCL, Version=4.0.3.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\..\main\packages\SocketLite.PCL.4.0.3\lib\net45\ISocketLite.PCL.dll</HintPath>
@@ -49,7 +49,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="SimpleHttpServer, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\main\packages\SimpleHttpListener.4.0.4\lib\netstandard1.2\SimpleHttpServer.dll</HintPath>
+      <HintPath>..\..\main\packages\SimpleHttpListener.4.0.5\lib\netstandard1.2\SimpleHttpServer.dll</HintPath>
     </Reference>
     <Reference Include="SocketLite, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\..\main\packages\SocketLite.PCL.4.0.3\lib\net45\SocketLite.dll</HintPath>
