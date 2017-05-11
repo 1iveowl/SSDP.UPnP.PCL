@@ -49,14 +49,13 @@ namespace SSDP.UPnP.PCL.Service
 
         public async Task<IObservable<IMSearchRequest>> CreateMSearchObservable()
         {
-            var unicastReqObs = await _httpListener.UdpHttpRequestObservable(Initializer.UdpResponsePort);
 
             var multicastReqObs = await _httpListener.UdpMulticastHttpRequestObservable(
                 Initializer.UdpSSDPMultiCastAddress,
-                Initializer.UdpSSDPMulticastPort);
+                Initializer.UdpSSDPMulticastPort,
+                false);
 
-            return unicastReqObs
-                .Merge(multicastReqObs)
+            return multicastReqObs
                 .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
                 .Where(req => req.Method == "M-SEARCH")
                 .Select(req => new MSearchRequest(req));

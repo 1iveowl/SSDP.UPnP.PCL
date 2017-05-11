@@ -7,16 +7,18 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
 {
     public interface IControlPoint
     {
+        #region Obsolete
+
         [Obsolete("Deprecated")]
         IObservable<INotifySsdp> NotifyObservable { get; }
         [Obsolete("Deprecated")]
         IObservable<IMSearchResponse> MSearchResponseObservable { get; }
 
-        Task<IObservable<INotifySsdp>> CreateNotifyObservable(
-            int tcpReponsePort);
+            #endregion
 
-        Task<IObservable<IMSearchResponse>> CreateMSearchResponseObservable(
-            int tcpReponsePort);
+        Task<IObservable<INotifySsdp>> CreateNotifyObservable();
+
+        Task<IObservable<IMSearchResponse>> CreateMSearchResponseObservable(int tcpReponsePort);
 
         Task SendMSearchAsync(IMSearchRequest mSearch);
     }

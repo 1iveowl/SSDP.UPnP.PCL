@@ -17,8 +17,8 @@ class Program
     private static IControlPoint _controlPoint;
     private static IDevice _device;
 
-    private static string _deviceLocalIp = "10.10.2.170";
-    private static string _remoteControlPointHost = "10.10.13.204";
+    private static string _deviceLocalIp = "192.168.0.36";
+    private static string _remoteControlPointHost = "192.168.0.23";
 
 
     // For this test to work you most likely need to stop the SSDP Discovery service on Windows
@@ -35,7 +35,7 @@ class Program
     {
         _httpListener = await Initializer.GetHttpListener(_deviceLocalIp);
 
-        StartDeviceListening();
+        await StartDeviceListening();
         await StartSendingRandomNotify();
     }
 
@@ -72,15 +72,16 @@ class Program
                 },
             };
 
-            await _device.Notify(newNotify);
+            await _device.SendNotifyAsync(newNotify);
         }
     }
 
-    private static void StartDeviceListening()
+    private static async Task StartDeviceListening()
     {
         _device = new Device(_httpListener);
-        var MSearchRequestSubscribe = _device
-            .MSearchObservable
+        var mSearchObservable = await _device.CreateMSearchObservable();
+
+        var subscription= mSearchObservable
             .Where(req => req.HostIp == _remoteControlPointHost)
             .Subscribe(
             async req =>
@@ -144,7 +145,7 @@ class Program
                     USN = "uuid:device-UUID::upnp:rootdevice",
                     BOOTID = "1"
                 };
-                await _device.MSearchResponse(mSearchResponse, req);
+                await _device.SendMSearchResponseAsync(mSearchResponse, req);
             });
     }
 }
