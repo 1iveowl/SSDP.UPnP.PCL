@@ -27,7 +27,8 @@ Version 4.0 represents a major overhaul of this library. Version 4.0 is still ba
 
 There us still UWP support in version 4.0, but the emphasis has been on .NET Core and it will be going forward
 
-## Getting Started is Easy
+## Getting Started With Control Point and Devices Easy
+
 
 ### Using Statements
 Using Statements assumed in the following code examples:
@@ -42,8 +43,6 @@ using SSDP.Console.Test.NET.Model;
 using SSDP.UPnP.PCL.Service;
 ```
 
-###
-
 Start with getting a HttpListener that is configuered for SSDP:
 ```csharp
 httpListener = await Initializer.GetHttpListener("192.168.0.2");
@@ -51,7 +50,11 @@ httpListener = await Initializer.GetHttpListener("192.168.0.2");
 Then create a SSDP Control Point or a Device Control using the just created listener:
 ```csharp
 var controlPoint = new new ControlPoint(httpListener);
+// or
+var device = new Device(httpListener);
 ```
+## Control Point
+
 ### Listening For Notify Message
 This can be done like this:
 ```csharp
@@ -176,7 +179,7 @@ internal class UserAgent : IUserAgent
     public string UpnpMinorVersion { get; internal set; }
     public bool IsUpnp2 { get; internal set; }
 }
-
+```
 
 ### Listen to MSearch Reponses
 To listen to MSearch responses
@@ -246,9 +249,127 @@ private static async Task ListenToMSearchResponse()
     await StartMSearchRequestMulticastAsync();
 }
 ```
+### 
 
 **IMPORTANT** If you are not seeing MSearcg responses or Notify messages try and your are running Windows, the try and stop the SSDP service so that it does not intercept the messages before they reach your code. 
 
 For details about what a multicast M-SEARCH Request is and how to use it: see the [UPnP Architecture documentation](http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v2.0.pdf)). 
 
+## Device
 
+Listening and responding to MSearch Requests from Control Points could look something like this:
+```csharp
+private static async Task StartDeviceListening()
+{
+    _device = new Device(_httpListener);
+
+    var mSearchObservable = await _device.CreateMSearchObservable();
+
+    var subscription= mSearchObservable
+        .Subscribe(
+        async req =>
+        {
+            System.Console.BackgroundColor = ConsoleColor.DarkGreen;
+            System.Console.ForegroundColor = ConsoleColor.White;
+            System.Console.WriteLine($"---### Device Received a M-SEARCH REQUEST ###---");
+            System.Console.ResetColor();
+            System.Console.WriteLine($"{req.SearchCastMethod.ToString()}");
+            System.Console.WriteLine($"HOST: {req.HostIp}:{req.HostPort}");
+            System.Console.WriteLine($"MAN: {req.MAN}");
+            System.Console.WriteLine($"MX: {req.MX.TotalSeconds}");
+            System.Console.WriteLine($"USER-AGENT: " +
+                                        $"{req.UserAgent?.OperatingSystem}/{req.UserAgent?.OperatingSystemVersion} " +
+                                        $"UPNP/" +
+                                        $"{req.UserAgent?.UpnpMajorVersion}.{req.UserAgent?.UpnpMinorVersion}" +
+                                        $" " +
+                                        $"{req.UserAgent?.ProductName}/{req.UserAgent?.ProductVersion}" +
+                                        $" - ({req.UserAgent?.FullString})");
+
+            System.Console.WriteLine($"CPFN: {req.CPFN}");
+            System.Console.WriteLine($"CPUUID: {req.CPUUID}");
+            System.Console.WriteLine($"TCPPORT: {req.TCPPORT}");
+
+            if (req.Headers.Any())
+            {
+                System.Console.ForegroundColor = ConsoleColor.DarkYellow;
+                System.Console.WriteLine($"Additional Headers: {req.Headers.Count}");
+                foreach (var header in req.Headers)
+                {
+                    System.Console.WriteLine($"{header.Key}: {header.Value}; ");
+                }
+                System.Console.ResetColor();
+            }
+
+            System.Console.WriteLine();
+
+            var mSearchResponse = new MSearchResponse
+            {
+                //HostIp = _hostIp,
+                //HostPort = Initializer.UdpListenerPort,
+                ResponseCastMethod = CastMethod.Unicast,
+                StatusCode = 200,
+                ResponseReason = "OK",
+                CacheControl = TimeSpan.FromSeconds(30),
+                Date = DateTime.Now,
+                Ext = true,
+                Location = new Uri($"http://{_remoteControlPointHost}:{req.TCPPORT}/test"),
+                Server = new Server
+                {
+                    OperatingSystem = "Windows",
+                    OperatingSystemVersion = "10.0",
+                    IsUpnp2 = true,
+                    ProductName = "Tester",
+                    ProductVersion = "0.1",
+                    UpnpMajorVersion = "2",
+                    UpnpMinorVersion = "0"
+                },
+                ST = req.ST,
+                USN = "uuid:device-UUID::upnp:rootdevice",
+                BOOTID = "1"
+            };
+
+            await _device.SendMSearchResponseAsync(mSearchResponse, req);
+        });
+}
+```
+
+Sending Notify messages might looks like this:
+
+```csharp
+private static async Task StartSendingRandomNotify()
+{
+    var wait = new Random();
+    var i = 0;
+
+    while (true)
+    {
+        await Task.Delay(TimeSpan.FromSeconds(wait.Next(1,6)));
+        i++;
+        var newNotify = new Notify
+        {
+            BOOTID = i.ToString(),
+            CacheControl = TimeSpan.FromSeconds(5),
+            CONFIGID = "1",
+            HostIp = _remoteControlPointHost,
+            HostPort = 1900,
+            Location = new Uri($"http://{_deviceLocalIp}:1900/Test"),
+            NotifyCastMethod = CastMethod.Multicast,
+            NT = "upnp:rootdevice",
+            NTS = NTS.Alive,
+            USN = "uuid:device-UUID::upnp:rootdevice",
+            Server = new Server
+            {
+                OperatingSystem = "Windows",
+                OperatingSystemVersion = "10.0",
+                IsUpnp2 = true,
+                ProductName = "Tester",
+                ProductVersion = "0.1",
+                UpnpMajorVersion = "2",
+                UpnpMinorVersion = "0"
+            },
+        };
+
+        await _device.SendNotifyAsync(newNotify);
+    }
+}
+```
