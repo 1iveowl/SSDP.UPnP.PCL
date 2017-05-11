@@ -64,8 +64,6 @@ namespace SSDP.UPnP.PCL.Service
 
         public async Task<IObservable<IMSearchResponse>> CreateMSearchResponseObservable(int tcpReponsePort)
         {
-            //var unicastResObs = await _httpListener.UdpHttpResponseObservable(Initializer.UdpSSDPMulticastPort);
-
             var multicastResObs = await _httpListener.UdpMulticastHttpResponseObservable(
                 Initializer.UdpSSDPMultiCastAddress,
                 Initializer.UdpSSDPMulticastPort, 
@@ -77,39 +75,20 @@ namespace SSDP.UPnP.PCL.Service
                 .Merge(tcpResObs)
                 .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
                 .Select(res => new MSearchResponse(res));
-
-            //return unicastResObs
-            //    .Merge(multicastResObs)
-            //    .Merge(tcpResObs)
-            //    .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
-            //    .Select(res => new MSearchResponse(res));
         }
 
-        public async Task<IObservable<INotifySsdp>> CreateNotifyObservable(int tcpReponsePort)
+        public async Task<IObservable<INotifySsdp>> CreateNotifyObservable()
         {
             var multicastReqObs = await _httpListener.UdpMulticastHttpRequestObservable(
                     Initializer.UdpSSDPMultiCastAddress,
                     Initializer.UdpSSDPMulticastPort, 
                     false);
 
-            //var unicastReqObs = await _httpListener.UdpHttpRequestObservable(Initializer.UdpSSDPMulticastPort);
-
-            var tcpReqObs = await _httpListener.TcpHttpRequestObservable(tcpReponsePort, false);
-
             return multicastReqObs
-                .Merge(tcpReqObs)
                 .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
                 .Where(req => req.Method == "NOTIFY")
                 .Select(req => new NotifySsdp(req))
                 .Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update);
-
-            //return unicastReqObs
-            //    .Merge(multicastReqObs)
-            //    .Merge(tcpReqObs)
-            //    .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
-            //    .Where(req => req.Method == "NOTIFY")
-            //    .Select(req => new NotifySsdp(req))
-            //    .Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update);
         }
         
         public ControlPoint(IHttpListener httpListener)
