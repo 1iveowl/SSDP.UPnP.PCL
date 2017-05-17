@@ -29,7 +29,7 @@ namespace SSDP.UPnP.PCL.Model
         public string SECURELOCATION { get; }
         public bool IsUuidUpnp2Compliant { get; }
         public IDictionary<string, string> Headers { get; }
-        //public MemoryStream Data { get; }
+
 
         internal NotifySsdp(IHttpRequest request)
         {

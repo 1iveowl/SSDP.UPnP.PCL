@@ -41,7 +41,7 @@ namespace SSDP.UPnP.PCL.Helper
             return value;
         }
 
-        internal static T ConvertToDeviceInfo<T>(string str) where T : DeviceInfo, IDeviceInfo, new()
+        private static T ConvertToDeviceInfo<T>(string str) where T : DeviceInfo, IDeviceInfo, new()
         {
             if (string.IsNullOrEmpty(str)) return new T();
 
