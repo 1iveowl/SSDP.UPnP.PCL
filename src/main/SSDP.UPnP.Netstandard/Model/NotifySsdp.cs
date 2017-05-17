@@ -44,10 +44,6 @@ namespace SSDP.UPnP.PCL.Model
                 NTS = ConvertToNotificationSubTypeEnum(GetHeaderValue(request.Headers, "NTS"));
                 Server = ConvertToServer(GetHeaderValue(request.Headers, "SERVER"));
                 USN = GetHeaderValue(request.Headers, "USN");
-                //SID = Convert.GetHeaderValue(request.Headers, "SID");
-                //SVCID = Convert.GetHeaderValue(request.Headers, "SVCID");
-                //SEQ = Convert.GetHeaderValue(request.Headers, "SEQ");
-                //LVL = Convert.GetHeaderValue(request.Headers, "LVL");
 
                 BOOTID = GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG");
                 CONFIGID = GetHeaderValue(request.Headers, "CONFIGID.UPNP.ORG");
@@ -58,11 +54,9 @@ namespace SSDP.UPnP.PCL.Model
                 Headers = HeaderHelper.SingleOutAdditionalHeaders(new List<string>
                 {
                     "HOST", "CACHE-CONTROL", "LOCATION", "NT", "NTS", "SERVER", "USN",
-                    "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG", //"SID", "SVCID", "SEQ", "LVL",
+                    "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG", 
                     "SEARCHPORT.UPNP.ORG", "NEXTBOOTID.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
                 }, request.Headers);
-
-                //Data = request.Body;
             }
             catch (Exception)
             {
