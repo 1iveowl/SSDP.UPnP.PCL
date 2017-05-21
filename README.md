@@ -13,7 +13,7 @@
 ## Why This Library
 There are other SSDP Libraries available, so why this library?
 
-This library support the v2.0 version of the UPnP Arhitecture. Most other libraries are only for UPnP v1.1.
+This library support the v2.0 version of the UPnP Arhitecture. Most other libraries are for UPnP v1.1.
 
 This library is created for [Reactive Extensions](http://reactivex.io/ "Reactive Extensions"). As SSDP deals with a stream of messages continuously coming in, Rx IMHO provides a much more elegant programming paradigm than what exists already. Sure the Rx learning curve can feel a bit steep at first, but it is worth the effort.
 
@@ -251,7 +251,7 @@ private static async Task ListenToMSearchResponse()
 ```
 ### 
 
-**IMPORTANT** If you are not seeing MSearcg responses or Notify messages try and your are running Windows, the try and stop the SSDP service so that it does not intercept the messages before they reach your code. 
+**IMPORTANT** If you are not seeing MSearch responses or Notify messages and your are running Windows, then try and stop the Windows SSDP Service to prevent this server intercepting these messages before they reach your code. 
 
 For details about what a multicast M-SEARCH Request is and how to use it: see the [UPnP Architecture documentation](http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v2.0.pdf)). 
 
