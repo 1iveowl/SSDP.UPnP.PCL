@@ -11,8 +11,8 @@ namespace SSDP.UPnP.PCL.Model
 {
     internal class MSearchResponse : ParserErrorBase, IMSearchResponse
     {
-        public string HostIp { get; }
-        public int HostPort { get; }
+        public string Name { get; }
+        public int Port { get; }
         public CastMethod ResponseCastMethod { get; } = CastMethod.NoCast;
         public int StatusCode { get;  }
         public string ResponseReason { get; }
@@ -35,8 +35,8 @@ namespace SSDP.UPnP.PCL.Model
             try
             {
                 ResponseCastMethod = Convert.GetCastMetod(response);
-                HostIp = response.RemoteAddress;
-                HostPort = response.RemotePort;
+                Name = response.RemoteAddress;
+                Port = response.RemotePort;
                 StatusCode = response.StatusCode;
                 ResponseReason = response.ResponseReason;
                 CacheControl = TimeSpan.FromSeconds(Convert.GetMaxAge(response.Headers));

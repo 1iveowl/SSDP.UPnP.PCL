@@ -8,8 +8,8 @@ namespace Console.Device.NETCore.Model
 {
     internal class Notify : INotifySsdp
     {
-        public string HostIp { get; internal set; }
-        public int HostPort { get; internal set; }
+        public string Name { get; internal set; }
+        public int Port { get; internal set; }
         public IDictionary<string, string> Headers { get; internal set; }
         public bool InvalidRequest { get; internal set; }
         public CastMethod NotifyCastMethod { get; internal set; }

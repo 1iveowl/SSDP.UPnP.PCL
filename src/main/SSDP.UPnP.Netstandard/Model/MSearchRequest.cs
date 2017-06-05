@@ -12,8 +12,8 @@ namespace SSDP.UPnP.PCL.Model
     internal class MSearchRequest : ParserErrorBase, IMSearchRequest
     {
         public CastMethod SearchCastMethod { get; } = CastMethod.NoCast;
-        public string HostIp { get; }
-        public int HostPort { get; }
+        public string Name { get; }
+        public int Port { get; }
         public string MAN { get; }
         public TimeSpan MX { get; }
         public string ST { get; }
@@ -30,8 +30,8 @@ namespace SSDP.UPnP.PCL.Model
             {
                 SearchCastMethod = Convert.GetCastMetod(request);
                 MAN = Convert.GetHeaderValue(request.Headers, "MAN");
-                HostIp = request.RemoteAddress;
-                HostPort = request.RemotePort;
+                Name = request.RemoteAddress;
+                Port = request.RemotePort;
                 MX = TimeSpan.FromSeconds(Convert.ConvertStringToInt(Convert.GetHeaderValue(request.Headers, "MX")));
                 ST = Convert.GetHeaderValue(request.Headers, "ST");
                 UserAgent = Convert.ConvertToUserAgent(Convert.GetHeaderValue(request.Headers, "USER-AGENT"));

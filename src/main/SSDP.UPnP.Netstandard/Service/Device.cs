@@ -73,12 +73,12 @@ namespace SSDP.UPnP.PCL.Service
 
             if (int.TryParse(mSearchRequest.TCPPORT, out int tcpSpecifiedRemotePort))
             {
-                await SendOnTcp(mSearchRequest.HostIp, tcpSpecifiedRemotePort,
+                await SendOnTcp(mSearchRequest.Name, tcpSpecifiedRemotePort,
                     ComposeMSearchResponseDatagram(mSearchResponse));
             }
             else
             {
-                await SendOnTcp(mSearchRequest.HostIp, mSearchRequest.HostPort,
+                await SendOnTcp(mSearchRequest.Name, mSearchRequest.Port,
                     ComposeMSearchResponseDatagram(mSearchResponse));
             }
         }
@@ -144,7 +144,7 @@ namespace SSDP.UPnP.PCL.Service
 
             stringBuilder.Append(notifySsdp.NotifyCastMethod == CastMethod.Multicast
                 ? "HOST: 239.255.255.250:1900\r\n"
-                : $"HOST: {notifySsdp.HostIp}:{notifySsdp.HostPort}\r\n");
+                : $"HOST: {notifySsdp.Name}:{notifySsdp.Port}\r\n");
 
             if (notifySsdp.NTS == NTS.Alive)
             {

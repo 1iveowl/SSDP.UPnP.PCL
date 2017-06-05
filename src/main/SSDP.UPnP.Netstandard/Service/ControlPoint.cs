@@ -105,7 +105,7 @@ namespace SSDP.UPnP.PCL.Service
 
             if (mSearch.SearchCastMethod == CastMethod.Unicast)
             {
-                await SendOnTcp(mSearch.HostIp, mSearch.HostPort, ComposeMSearchDatagram(mSearch));
+                await SendOnTcp(mSearch.Name, mSearch.Port, ComposeMSearchDatagram(mSearch));
             }
         }
 
@@ -117,7 +117,7 @@ namespace SSDP.UPnP.PCL.Service
 
             stringBuilder.Append(request.SearchCastMethod == CastMethod.Multicast
                 ? "HOST: 239.255.255.250:1900\r\n"
-                : $"HOST: {request.HostIp}:{request.HostPort}\r\n");
+                : $"HOST: {request.Name}:{request.Port}\r\n");
 
             stringBuilder.Append("MAN: \"ssdp:discover\"\r\n");
 

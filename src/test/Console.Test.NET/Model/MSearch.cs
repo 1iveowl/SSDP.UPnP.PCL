@@ -8,8 +8,8 @@ namespace SSDP.Console.Test.NET.Model
     internal class MSearch : IMSearchRequest
     {
         public bool InvalidRequest { get; } = false;
-        public string HostIp { get; internal set; }
-        public int HostPort { get; internal set; }
+        public string Name { get; internal set; }
+        public int Port { get; internal set; }
         public IDictionary<string, string> Headers { get; internal set; }
         public CastMethod SearchCastMethod { get; internal set; }
         public string MAN { get; internal set; }

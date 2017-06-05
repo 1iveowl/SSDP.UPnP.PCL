@@ -12,8 +12,8 @@ namespace SSDP.UPnP.PCL.Model
 {
     internal class NotifySsdp : ParserErrorBase, INotifySsdp
     {
-        public string HostIp { get; }
-        public int HostPort { get;  }
+        public string Name { get; }
+        public int Port { get;  }
         public CastMethod NotifyCastMethod { get; } = CastMethod.NoCast;
         public TimeSpan CacheControl { get; }
         public Uri Location { get; }
@@ -36,8 +36,8 @@ namespace SSDP.UPnP.PCL.Model
             try
             {
                 NotifyCastMethod = GetCastMetod(request);
-                HostIp = request.RemoteAddress;
-                HostPort = request.RemotePort;
+                Name = request.RemoteAddress;
+                Port = request.RemotePort;
                 CacheControl = TimeSpan.FromSeconds(GetMaxAge(request.Headers));
                 Location = UrlToUri(GetHeaderValue(request.Headers, "LOCATION"));
                 NT = GetHeaderValue(request.Headers, "NT");
