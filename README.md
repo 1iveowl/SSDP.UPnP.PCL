@@ -133,7 +133,10 @@ private static async Task StartMSearchRequestMulticastAsync()
         HostPort = 1900,
         MX = TimeSpan.FromSeconds(5),
         TCPPORT = Initializer.TcpResponseListenerPort.ToString(),
-        ST = "upnp:rootdevice",
+        ST = new ST
+            {
+                STtype  = STtype.RootDevice
+            },
         UserAgent = new UserAgent
         {
             OperatingSystem = "Windows",
