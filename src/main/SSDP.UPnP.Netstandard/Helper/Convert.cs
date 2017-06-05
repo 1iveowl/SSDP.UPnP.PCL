@@ -41,6 +41,57 @@ namespace SSDP.UPnP.PCL.Helper
             return value;
         }
 
+        internal static IST GetSTValue(string stString)
+        {
+            var stringParts = stString.Split(':');
+
+            switch (stringParts[0].ToLower())
+            {
+                case "ssdp":
+                    return new ST
+                    {
+                        STtype = STtype.All
+                    };
+                case "uuid":
+                    return new ST
+                    {
+                        STtype = STtype.UIID
+                    };
+                case "upnp":
+                    return new ST
+                    {
+                        STtype = STtype.RootDevice
+                    };
+                case "urn":
+                {
+                    var st = new ST();
+                    if (stringParts[1].ToLower() != "schemas-upnp-org")
+                    {
+                        st.DomainName = stringParts[1];
+                        st.HasDomain = true;
+                        }
+                    else
+                    {
+                        st.HasDomain = false;
+                    }
+
+                    if (stringParts[2].ToLower() == "device")
+                    {
+                        st.STtype = STtype.DeviceType;
+                    }
+                    if (stringParts[2].ToLower() == "service")
+                    {
+                        st.STtype = STtype.ServiceType;
+                    }
+                    st.Type = stringParts[3];
+                    st.Version = stringParts[4];
+                    return st;
+                }
+            }
+
+            return null;
+        }
+
         private static T ConvertToDeviceInfo<T>(string str) where T : DeviceInfo, IDeviceInfo, new()
         {
             if (string.IsNullOrEmpty(str)) return new T();

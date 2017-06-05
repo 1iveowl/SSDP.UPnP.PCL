@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,7 +15,7 @@ class Program
 
     private static IControlPoint _controlPoint;
     private static IDevice _device;
-    private static string _controlPointLocalIp = "192.168.0.36";
+    private static string _controlPointLocalIp = "192.168.0.40";
     //private static string _remoteDeviceIp = "10.10.2.170";
 
 
@@ -166,7 +165,11 @@ class Program
             Port = 1900,
             MX = TimeSpan.FromSeconds(5),
             TCPPORT = Initializer.TcpResponseListenerPort.ToString(),
-            ST = "upnp:rootdevice",
+            ST = new ST
+            {
+                STtype  = STtype.RootDevice
+            },
+            
             UserAgent = new UserAgent
             {
                 OperatingSystem = "Windows",

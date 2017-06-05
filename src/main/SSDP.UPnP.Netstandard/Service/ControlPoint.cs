@@ -109,7 +109,7 @@ namespace SSDP.UPnP.PCL.Service
             }
         }
 
-        private static byte[] ComposeMSearchDatagram(IMSearchRequest request)
+        private byte[] ComposeMSearchDatagram(IMSearchRequest request)
         {
             var stringBuilder = new StringBuilder();
 
@@ -125,7 +125,7 @@ namespace SSDP.UPnP.PCL.Service
             {
                 stringBuilder.Append($"MX: {request.MX.TotalSeconds}\r\n");
             }
-            stringBuilder.Append($"ST: {request.ST}\r\n");
+            stringBuilder.Append($"ST: {GetSTSting(request.ST)}\r\n");
             stringBuilder.Append($"USER-AGENT: " +
                                  $"{request.UserAgent.OperatingSystem}/{request.UserAgent.OperatingSystemVersion}" +
                                  $" " +
@@ -151,6 +151,44 @@ namespace SSDP.UPnP.PCL.Service
 
             stringBuilder.Append("\r\n");
             return Encoding.UTF8.GetBytes(stringBuilder.ToString());
+        }
+
+        private string GetSTSting(IST st)
+        {
+            switch (st.STtype)
+            {
+                case STtype.All: return "ssdp:all";
+                case STtype.RootDevice: return "upnp:rootdevice";
+                case STtype.UIID:
+                {
+                    return $"uuid:{st.DeviceUUID}";
+                }
+                case STtype.DeviceType:
+                {
+                    if (st.HasDomain)
+                    {
+                        return $"urn:{st.DomainName}:device:{st.Type}:{st.Version}";
+                        }
+                    else
+                    {
+                        return $"urn:schemas-upnp-org:device:{st.Type}:{st.Version}";
+                        }
+                    
+                }
+                case STtype.ServiceType:
+                {
+                    if (st.HasDomain)
+                    {
+                        return $"urn:{st.DomainName}:service:{st.Type}:{st.Version}";
+                    }
+                    else
+                    {
+                        return $"urn:schemas-upnp-org:service:{st.Type}:{st.Version}";
+                    }
+                }
+            }
+
+            return null;
         }
     }
 }

@@ -21,7 +21,7 @@ namespace SSDP.UPnP.PCL.Model
         public Uri Location { get;  }
         public bool Ext { get;  }
         public IServer Server { get;  }
-        public string ST { get; }
+        public IST ST { get; }
         public string USN { get; }
         public string BOOTID { get; }
         public string CONFIGID { get; }
@@ -44,7 +44,7 @@ namespace SSDP.UPnP.PCL.Model
                 Date = Convert.ToRfc2616Date(Convert.GetHeaderValue(response.Headers, "DATE"));
                 Ext = response.Headers.ContainsKey("EXT");
                 Server = Convert.ConvertToServer(Convert.GetHeaderValue(response.Headers, "SERVER"));
-                ST = Convert.GetHeaderValue(response.Headers, "ST");
+                ST = Convert.GetSTValue(Convert.GetHeaderValue(response.Headers, "ST"));
                 USN = Convert.GetHeaderValue(response.Headers, "USN");
                 BOOTID = Convert.GetHeaderValue(response.Headers, "BOOTID.UPNP.ORG");
                 CONFIGID = Convert.GetHeaderValue(response.Headers, "CONFIGID.UPNP.ORG");

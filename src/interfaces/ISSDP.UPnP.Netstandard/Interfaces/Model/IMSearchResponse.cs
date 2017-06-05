@@ -13,7 +13,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
         Uri Location { get; }
         bool Ext { get; }
         IServer Server { get; }
-        string ST { get; }
+        IST ST { get; }
         string USN { get; }
         string BOOTID { get; }
         string CONFIGID { get; }

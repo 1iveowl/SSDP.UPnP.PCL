@@ -16,7 +16,7 @@ namespace SSDP.UPnP.PCL.Model
         public int Port { get; }
         public string MAN { get; }
         public TimeSpan MX { get; }
-        public string ST { get; }
+        public IST ST { get; }
         public IUserAgent UserAgent { get; }
         public string CPFN { get; }
         public string CPUUID { get; }
@@ -33,7 +33,7 @@ namespace SSDP.UPnP.PCL.Model
                 Name = request.RemoteAddress;
                 Port = request.RemotePort;
                 MX = TimeSpan.FromSeconds(Convert.ConvertStringToInt(Convert.GetHeaderValue(request.Headers, "MX")));
-                ST = Convert.GetHeaderValue(request.Headers, "ST");
+                ST = Convert.GetSTValue(Convert.GetHeaderValue(request.Headers, "ST"));
                 UserAgent = Convert.ConvertToUserAgent(Convert.GetHeaderValue(request.Headers, "USER-AGENT"));
                 CPFN = Convert.GetHeaderValue(request.Headers, "CPFN.UPNP.ORG");
                 CPUUID = Convert.GetHeaderValue(request.Headers, "CPUUID.UPNP.ORG");
