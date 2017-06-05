@@ -15,7 +15,7 @@ class Program
 
     private static IControlPoint _controlPoint;
     private static IDevice _device;
-    private static string _controlPointLocalIp = "192.168.0.40";
+    private static string _controlPointLocalIp = "192.168.0.36";
     //private static string _remoteDeviceIp = "10.10.2.170";
 
 
@@ -161,13 +161,16 @@ class Program
         {
             SearchCastMethod = CastMethod.Multicast,
             CPFN = "TestXamarin",
-            Name = "239.255.255.250",
-            Port = 1900,
+            Name = Initializer.UdpSSDPMultiCastAddress,
+            Port = Initializer.UdpSSDPMulticastPort,
             MX = TimeSpan.FromSeconds(5),
             TCPPORT = Initializer.TcpResponseListenerPort.ToString(),
             ST = new ST
             {
-                STtype  = STtype.RootDevice
+                STtype  = STtype.ServiceType,
+                Type = "SwitchPower",
+                Version = "1",
+                HasDomain = false
             },
             
             UserAgent = new UserAgent
