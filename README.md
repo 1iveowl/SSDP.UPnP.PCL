@@ -1,6 +1,6 @@
 # SSDP Library for UPnP version 2.0 
 
-[![NuGet Badge](https://buildstats.info/nuget/SSDP.UPnP.PCL)](https://github.com/1iveowl/SSDP.UPnP.PCL)
+[![NuGet Badge](https://buildstats.info/nuget/SSDP.UPnP.PCL)](https://www.nuget.org/packages/SSDP.UPnP.PCL/)
 
 [![.NET Standard](http://img.shields.io/badge/.NET_Standard-v1.2-green.svg)](https://docs.microsoft.com/da-dk/dotnet/articles/standard/library) 
 
