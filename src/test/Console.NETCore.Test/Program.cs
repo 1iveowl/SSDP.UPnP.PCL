@@ -16,7 +16,7 @@ class Program
 
     private static IControlPoint _controlPoint;
     private static IDevice _device;
-    private static string _controlPointLocalIp = "192.168.0.36";
+    private static string _controlPointLocalIp = "192.168.0.59";
     //private static string _remoteDeviceIp = "10.10.2.170";
 
 
