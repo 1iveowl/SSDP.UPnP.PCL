@@ -8,7 +8,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
         CastMethod SearchCastMethod { get; }
         string MAN { get; }
         TimeSpan MX { get; }
-        string ST { get; }
+        IST ST { get; }
         IUserAgent UserAgent { get; }
         string CPFN { get; }
         string CPUUID { get; }

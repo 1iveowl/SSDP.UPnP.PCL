@@ -3,7 +3,7 @@
     public interface IHost
     {
         
-        string HostIp { get; }
-        int HostPort { get; }
+        string Name { get; }
+        int Port { get; }
     }
 }

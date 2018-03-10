@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
@@ -66,7 +65,7 @@ class Program
                     System.Console.WriteLine($"---### Control Point Received a NOTIFY - #{counter} ###---");
                     System.Console.ResetColor();
                     System.Console.WriteLine($"{n.NotifyCastMethod.ToString()}");
-                    System.Console.WriteLine($"From: {n.HostIp}:{n.HostPort}");
+                    System.Console.WriteLine($"From: {n.Name}:{n.Port}");
                     System.Console.WriteLine($"Location: {n?.Location?.AbsoluteUri}");
                     System.Console.WriteLine($"Cache-Control: max-age = {n.CacheControl}");
                     System.Console.WriteLine($"Server: " +
@@ -119,7 +118,7 @@ class Program
                     System.Console.WriteLine($"---### Control Point Received a  M-SEARCH RESPONSE #{counter} ###---");
                     System.Console.ResetColor();
                     System.Console.WriteLine($"{res.ResponseCastMethod.ToString()}");
-                    System.Console.WriteLine($"From: {res.HostIp}:{res.HostPort}");
+                    System.Console.WriteLine($"From: {res.Name}:{res.Port}");
                     System.Console.WriteLine($"Status code: {res.StatusCode} {res.ResponseReason}");
                     System.Console.WriteLine($"Location: {res.Location.AbsoluteUri}");
                     System.Console.WriteLine($"Date: {res.Date.ToString(CultureInfo.CurrentCulture)}");
@@ -162,11 +161,18 @@ class Program
         {
             SearchCastMethod = CastMethod.Multicast,
             CPFN = "TestXamarin",
-            HostIp = "239.255.255.250",
-            HostPort = 1900,
+            Name = Initializer.UdpSSDPMultiCastAddress,
+            Port = Initializer.UdpSSDPMulticastPort,
             MX = TimeSpan.FromSeconds(5),
             TCPPORT = Initializer.TcpResponseListenerPort.ToString(),
-            ST = "upnp:rootdevice",
+            ST = new ST
+            {
+                STtype  = STtype.ServiceType,
+                Type = "SwitchPower",
+                Version = "1",
+                HasDomain = false
+            },
+            
             UserAgent = new UserAgent
             {
                 OperatingSystem = "Windows",

@@ -50,7 +50,7 @@ namespace SSDP.Console.Test.NET
             var MSearchRequestSubscribe = _device.MSearchObservable.Subscribe(
                 req =>
                 {
-                    if (req.HostIp == "192.168.0.203")
+                    if (req.Name == "192.168.0.203")
                     {
                         var t = "";
                     }
@@ -59,7 +59,7 @@ namespace SSDP.Console.Test.NET
                     System.Console.WriteLine($"---### Device Received a M-SEARCH REQUEST ###---");
                     System.Console.ResetColor();
                     System.Console.WriteLine($"{req.SearchCastMethod.ToString()}");
-                    System.Console.WriteLine($"HOST: {req.HostIp}:{req.HostPort}");
+                    System.Console.WriteLine($"HOST: {req.Name}:{req.Port}");
                     System.Console.WriteLine($"MAN: {req.MAN}");
                     System.Console.WriteLine($"MX: {req.MX.TotalSeconds}");
                     System.Console.WriteLine($"USER-AGENT: " +
@@ -103,7 +103,7 @@ namespace SSDP.Console.Test.NET
                     System.Console.WriteLine($"---### Control Point Received a NOTIFY ###---");
                     System.Console.ResetColor();
                     System.Console.WriteLine($"{n.NotifyCastMethod.ToString()}");
-                    System.Console.WriteLine($"From: {n.HostIp}:{n.HostPort}");
+                    System.Console.WriteLine($"From: {n.Name}:{n.Port}");
                     System.Console.WriteLine($"Location: {n.Location.AbsoluteUri}");
                     System.Console.WriteLine($"Cache-Control: max-age = {n.CacheControl}");
                     System.Console.WriteLine($"Server: " +
@@ -146,7 +146,7 @@ namespace SSDP.Console.Test.NET
                     System.Console.WriteLine($"---### Control Point Received a  M-SEARCH RESPONSE ###---");
                     System.Console.ResetColor();
                     System.Console.WriteLine($"{res.ResponseCastMethod.ToString()}");
-                    System.Console.WriteLine($"From: {res.HostIp}:{res.HostPort}");
+                    System.Console.WriteLine($"From: {res.Name}:{res.Port}");
                     System.Console.WriteLine($"Status code: {res.StatusCode} {res.ResponseReason}");
                     System.Console.WriteLine($"Location: {res.Location.AbsoluteUri}");
                     System.Console.WriteLine($"Date: {res.Date.ToLongDateString()}");
@@ -188,8 +188,8 @@ namespace SSDP.Console.Test.NET
             {
                 SearchCastMethod = CastMethod.Multicast,
                 CPFN = "TestXamarin",
-                HostIp = "239.255.255.250",
-                HostPort = 1900,
+                Name = "239.255.255.250",
+                Port = 1900,
                 MX = TimeSpan.FromSeconds(1),
                 //Headers = new Dictionary<string, string>
                 //{

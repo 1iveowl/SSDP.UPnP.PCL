@@ -53,8 +53,8 @@ class Program
                 BOOTID = i.ToString(),
                 CacheControl = TimeSpan.FromSeconds(5),
                 CONFIGID = "1",
-                HostIp = _remoteControlPointHost,
-                HostPort = 1900,
+                Name = _remoteControlPointHost,
+                Port = 1900,
                 Location = new Uri($"http://{_deviceLocalIp}:1900/Test"),
                 NotifyCastMethod = CastMethod.Multicast,
                 NT = "upnp:rootdevice",
@@ -82,7 +82,7 @@ class Program
         var mSearchObservable = await _device.CreateMSearchObservable();
 
         var subscription= mSearchObservable
-            .Where(req => req.HostIp == _remoteControlPointHost)
+            .Where(req => req.Name == _remoteControlPointHost)
             .Subscribe(
             async req =>
             {
@@ -91,7 +91,7 @@ class Program
                 System.Console.WriteLine($"---### Device Received a M-SEARCH REQUEST ###---");
                 System.Console.ResetColor();
                 System.Console.WriteLine($"{req.SearchCastMethod.ToString()}");
-                System.Console.WriteLine($"HOST: {req.HostIp}:{req.HostPort}");
+                System.Console.WriteLine($"HOST: {req.Name}:{req.Port}");
                 System.Console.WriteLine($"MAN: {req.MAN}");
                 System.Console.WriteLine($"MX: {req.MX.TotalSeconds}");
                 System.Console.WriteLine($"USER-AGENT: " +

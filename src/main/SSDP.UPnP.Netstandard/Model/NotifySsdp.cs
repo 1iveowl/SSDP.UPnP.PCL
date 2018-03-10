@@ -12,8 +12,8 @@ namespace SSDP.UPnP.PCL.Model
 {
     internal class NotifySsdp : ParserErrorBase, INotifySsdp
     {
-        public string HostIp { get; }
-        public int HostPort { get;  }
+        public string Name { get; }
+        public int Port { get;  }
         public CastMethod NotifyCastMethod { get; } = CastMethod.NoCast;
         public TimeSpan CacheControl { get; }
         public Uri Location { get; }
@@ -29,25 +29,21 @@ namespace SSDP.UPnP.PCL.Model
         public string SECURELOCATION { get; }
         public bool IsUuidUpnp2Compliant { get; }
         public IDictionary<string, string> Headers { get; }
-        //public MemoryStream Data { get; }
+
 
         internal NotifySsdp(IHttpRequest request)
         {
             try
             {
                 NotifyCastMethod = GetCastMetod(request);
-                HostIp = request.RemoteAddress;
-                HostPort = request.RemotePort;
+                Name = request.RemoteAddress;
+                Port = request.RemotePort;
                 CacheControl = TimeSpan.FromSeconds(GetMaxAge(request.Headers));
                 Location = UrlToUri(GetHeaderValue(request.Headers, "LOCATION"));
                 NT = GetHeaderValue(request.Headers, "NT");
                 NTS = ConvertToNotificationSubTypeEnum(GetHeaderValue(request.Headers, "NTS"));
                 Server = ConvertToServer(GetHeaderValue(request.Headers, "SERVER"));
                 USN = GetHeaderValue(request.Headers, "USN");
-                //SID = Convert.GetHeaderValue(request.Headers, "SID");
-                //SVCID = Convert.GetHeaderValue(request.Headers, "SVCID");
-                //SEQ = Convert.GetHeaderValue(request.Headers, "SEQ");
-                //LVL = Convert.GetHeaderValue(request.Headers, "LVL");
 
                 BOOTID = GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG");
                 CONFIGID = GetHeaderValue(request.Headers, "CONFIGID.UPNP.ORG");
@@ -58,11 +54,9 @@ namespace SSDP.UPnP.PCL.Model
                 Headers = HeaderHelper.SingleOutAdditionalHeaders(new List<string>
                 {
                     "HOST", "CACHE-CONTROL", "LOCATION", "NT", "NTS", "SERVER", "USN",
-                    "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG", //"SID", "SVCID", "SEQ", "LVL",
+                    "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG", 
                     "SEARCHPORT.UPNP.ORG", "NEXTBOOTID.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
                 }, request.Headers);
-
-                //Data = request.Body;
             }
             catch (Exception)
             {
