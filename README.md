@@ -1,6 +1,6 @@
 # SSDP Library for UPnP version 2.0 
 
-[![NuGet Badge](https://buildstats.info/nuget/SSDP.UPnP.PCL)](https://github.com/1iveowl/SSDP.UPnP.PCL)
+[![NuGet Badge](https://buildstats.info/nuget/SSDP.UPnP.PCL)](https://www.nuget.org/packages/SSDP.UPnP.PCL/)
 
 [![.NET Standard](http://img.shields.io/badge/.NET_Standard-v1.2-green.svg)](https://docs.microsoft.com/da-dk/dotnet/articles/standard/library) 
 
@@ -13,7 +13,7 @@
 ## Why This Library
 There are other SSDP Libraries available, so why this library?
 
-This library support the v2.0 version of the UPnP Arhitecture. Most other libraries are only for UPnP v1.1.
+This library support the v2.0 version of the UPnP Arhitecture. Most other libraries are for UPnP v1.1.
 
 This library is created for [Reactive Extensions](http://reactivex.io/ "Reactive Extensions"). As SSDP deals with a stream of messages continuously coming in, Rx IMHO provides a much more elegant programming paradigm than what exists already. Sure the Rx learning curve can feel a bit steep at first, but it is worth the effort.
 
@@ -25,7 +25,7 @@ This project is based on [SocketLite.PCL](https://github.com/1iveowl/SocketLite.
 ## Version 4.0
 Version 4.0 represents a major overhaul of this library. Version 4.0 is still backwards compatible, but many of the methods have been marked as deprecated to inspire developers to use the newer versions of this library. In previous versions you had to subscribe to an observable and then start the action. In version 4.0 you just subscribe, that's it. Much more clean and better aligned with the Rx patterns.
 
-There us still UWP support in version 4.0, but the emphasis has been on .NET Core and it will be going forward
+There is still UWP support in version 4.0, but the emphasis has been on .NET Core and it will be going forward
 
 ## Getting Started With Control Point and Devices Easy
 
@@ -265,7 +265,7 @@ private static async Task ListenToMSearchResponse()
 ```
 ### 
 
-**IMPORTANT** If you are not seeing MSearcg responses or Notify messages try and your are running Windows, the try and stop the SSDP service so that it does not intercept the messages before they reach your code. 
+**IMPORTANT** If you are not seeing MSearch responses or Notify messages and your are running Windows, then try and stop the Windows SSDP Service to prevent this server intercepting these messages before they reach your code. 
 
 For details about what a multicast M-SEARCH Request is and how to use it: see the [UPnP Architecture documentation](http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v2.0.pdf)). 
 
