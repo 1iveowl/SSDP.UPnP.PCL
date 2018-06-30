@@ -17,7 +17,7 @@ This library support the v2.0 version of the UPnP Arhitecture. Most other librar
 
 This library is created for [Reactive Extensions](http://reactivex.io/ "Reactive Extensions"). As SSDP deals with a stream of messages continuously coming in, Rx IMHO provides a much more elegant programming paradigm than what exists already. Sure the Rx learning curve can feel a bit steep at first, but it is worth the effort.
 
-This library is created for .NET Standard 1.2 making it modern and ready for the future. Also, the library seeks to balance broad compatibility with simplicity by supporting only the most recent platforms - i.e. iOS, Android, UWP, .NET Core 1.0+ and .NET 4.5.1+ and Mono. So no support for older versions of Windows Phone or Silver Light for this library.
+This library is created for .NET Standard 2.0 making it modern and ready for the future. Also, the library seeks to balance broad compatibility with simplicity by supporting only the most recent platforms - i.e. iOS, Android, UWP (16299+), .NET Core 1.0+ and .NET 4.6.1+ and Mono. So no support for older versions of Windows Phone or Silver Light for this library.
 
 This project is based on [SocketLite.PCL](https://github.com/1iveowl/SocketLite.PCL) for cross platform TCP sockets support, that uses the "Bait and Switch" pattern. To read about "Bait and Switch" I can recoomend reading this great short blog post: [The Bait and Switch PCL Trick](http://log.paulbetts.org/the-bait-and-switch-pcl-trick/).
 
