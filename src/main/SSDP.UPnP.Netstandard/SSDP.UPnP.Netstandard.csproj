@@ -1,16 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard1.3</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <AssemblyName>SSDP.UPnP.PCL</AssemblyName>
     <RootNamespace>SSDP.UPnP.PCL</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="HttpMachine.PCL" Version="3.1.0" />
-    <PackageReference Include="SimpleHttpListener" Version="4.2.3" />
-    <PackageReference Include="SocketLite.PCL" Version="4.2.1" />
-    <PackageReference Include="System.Reactive" Version="3.1.1" />
+    <PackageReference Include="SimpleHttpListener" Version="5.0.0" />
+    <PackageReference Include="SocketLite.PCL" Version="5.0.0" />
+    <PackageReference Include="System.Reactive" Version="4.0.0" />
   </ItemGroup>
 
   <ItemGroup>

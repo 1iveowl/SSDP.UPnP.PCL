@@ -20,7 +20,7 @@ namespace Console.Device.NETCore.Model
         public Uri Location { get; internal set; }
         public bool Ext { get; internal set; }
         public IServer Server { get; internal set; }
-        public string ST { get; internal set; }
+        public IST ST { get; internal set; }
         public string USN { get; internal set; }
         public string BOOTID { get; internal set; }
         public string CONFIGID { get; internal set; }

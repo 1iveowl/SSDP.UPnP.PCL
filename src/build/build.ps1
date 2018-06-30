@@ -3,8 +3,6 @@
 ## This project include C# 7.0 features        ##
 #################################################
 
-## Install VS 2017 MSBuild tools from here: https://www.visualstudio.com/downloads/#build-tools-for-visual-studio-2017-rc
-
 param([string]$version)
 
 if ([string]::IsNullOrEmpty($version)) {$version = "0.0.1"}

@@ -18,50 +18,6 @@ namespace SSDP.UPnP.PCL.Service
     {
         private readonly IHttpListener _httpListener;
 
-        #region Obsolete
-
-        private IObservable<INotifySsdp> _notifyObs => Observable.Create<INotifySsdp>(
-            obs =>
-            {
-                var disp = _httpListener
-                    .HttpRequestObservable
-                    .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
-                    .Where(req => req.Method == "NOTIFY")
-                    .Select(req => new NotifySsdp(req))
-                    .Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update)
-                    .Subscribe(
-                        obs.OnNext,
-                        obs.OnError,
-                        obs.OnCompleted);
-
-                return disp;
-            }).Publish().RefCount();
-
-        private IObservable<IMSearchResponse> _msearchResponse => Observable.Create<IMSearchResponse>(
-            obs =>
-            {
-                var disp = _httpListener
-                    .HttpResponseObservable
-                    .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
-                    .Select(response => new MSearchResponse(response))
-                    .Subscribe(
-                        obs.OnNext,
-                        obs.OnError,
-                        obs.OnCompleted);
-
-                return disp;
-
-
-            }).Publish().RefCount();
-
-        [Obsolete("Deprecated")]
-        public IObservable<INotifySsdp> NotifyObservable => _notifyObs.SubscribeOn(Scheduler.Default);
-
-        [Obsolete("Deprecated")]
-        public IObservable<IMSearchResponse> MSearchResponseObservable => _msearchResponse.SubscribeOn(Scheduler.Default);
-
-        #endregion
-
         public async Task<IObservable<IMSearchResponse>> CreateMSearchResponseObservable(int tcpReponsePort)
         {
             var multicastResObs = await _httpListener.UdpMulticastHttpResponseObservable(

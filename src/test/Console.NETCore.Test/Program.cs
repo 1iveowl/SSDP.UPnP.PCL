@@ -22,14 +22,19 @@ class Program
     // For this test to work you most likely need to stop the SSDP Discovery service on Windows
     // If you don't stop the SSDP Windows Service, the service will intercept the UPnP multicasts and consequently nothing will show up in the console. 
 
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
-        StartAsync();
+        await StartAsync();
 
         System.Console.ReadKey();
+
+        while (true)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(10));
+        }
     }
 
-    private static async void StartAsync()
+    private static async Task StartAsync()
     {
 
 
