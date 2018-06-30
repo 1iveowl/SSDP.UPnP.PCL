@@ -11,7 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GitHub", "GitHub", "{015D60
 		..\..\README.md = ..\..\README.md
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NuGet", "NuGet", "{8BC53D6F-77B4-48B6-9E02-7CA37AB28631}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{8BC53D6F-77B4-48B6-9E02-7CA37AB28631}"
 	ProjectSection(SolutionItems) = preProject
 		..\build\build.ps1 = ..\build\build.ps1
 		..\build\publish.ps1 = ..\build\publish.ps1
@@ -23,15 +23,17 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Console.NETCore.Test", "..\
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Interface", "Interface", "{FDE3A49E-DCC0-45F4-805F-6EF5A587C453}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ISSDP.UPnP.Netstandard", "..\interfaces\ISSDP.UPnP.Netstandard\ISSDP.UPnP.Netstandard.csproj", "{2BD29D3B-B6BF-4D12-BEAA-46DE15EA1205}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ISSDP.UPnP.Netstandard", "..\interfaces\ISSDP.UPnP.Netstandard\ISSDP.UPnP.Netstandard.csproj", "{2BD29D3B-B6BF-4D12-BEAA-46DE15EA1205}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SSDP.UPnP.Netstandard", "SSDP.UPnP.Netstandard\SSDP.UPnP.Netstandard.csproj", "{E45219B3-B516-40C7-8958-81ADA0F4A4AC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SSDP.UPnP.Netstandard", "SSDP.UPnP.Netstandard\SSDP.UPnP.Netstandard.csproj", "{E45219B3-B516-40C7-8958-81ADA0F4A4AC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Console.Device.NETCore", "..\test\Console.Device.NETCore\Console.Device.NETCore.csproj", "{23150099-727B-401B-8AF3-2306CA17D68B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Console.Device.NETCore", "..\test\Console.Device.NETCore\Console.Device.NETCore.csproj", "{23150099-727B-401B-8AF3-2306CA17D68B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UWP.Test", "..\test\UWP.Test\UWP.Test.csproj", "{7DCC714C-1C4E-4FB0-93CD-131BCF708C98}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Console.SSDP.NET", "Console.SSDP.NET\Console.SSDP.NET.csproj", "{68C0D28B-697C-401E-9EAE-E722F0F3E1F1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Main", "Main", "{A9E003ED-366F-4737-A411-062CD968D5B4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -152,8 +154,12 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{49A9FD1A-7DC6-4035-8BFC-E1EDFAF9CC1E} = {1B7C27F1-87A9-4882-9856-EA1BC3908472}
 		{2BD29D3B-B6BF-4D12-BEAA-46DE15EA1205} = {FDE3A49E-DCC0-45F4-805F-6EF5A587C453}
+		{E45219B3-B516-40C7-8958-81ADA0F4A4AC} = {A9E003ED-366F-4737-A411-062CD968D5B4}
 		{23150099-727B-401B-8AF3-2306CA17D68B} = {1B7C27F1-87A9-4882-9856-EA1BC3908472}
 		{7DCC714C-1C4E-4FB0-93CD-131BCF708C98} = {1B7C27F1-87A9-4882-9856-EA1BC3908472}
 		{68C0D28B-697C-401E-9EAE-E722F0F3E1F1} = {1B7C27F1-87A9-4882-9856-EA1BC3908472}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {832936AD-6C64-4340-A622-9CC256C8D7B5}
 	EndGlobalSection
 EndGlobal

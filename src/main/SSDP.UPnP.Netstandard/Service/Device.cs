@@ -19,34 +19,6 @@ namespace SSDP.UPnP.PCL.Service
     {
         private readonly IHttpListener _httpListener;
 
-        #region Obsolete
-
-        public IObservable<IMSearchRequest> MSearchObservable =>
-            _httpListener
-                .HttpRequestObservable
-                .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
-                .Where(req => req.Method == "M-SEARCH")
-                .Select(req => new MSearchRequest(req));
-
-        public Device(IHttpListener httpListener)
-        {
-            _httpListener = httpListener;
-        }
-
-        [Obsolete("Deprecated")]
-        public async Task MSearchResponse(IMSearchResponse mSearchResponse, IMSearchRequest mSearchRequest)
-        {
-            await SendMSearchResponseAsync(mSearchResponse, mSearchRequest);
-        }
-
-        [Obsolete("Deprecated")]
-        public async Task Notify(INotifySsdp notifySsdp)
-        {
-            await SendNotifyAsync(notifySsdp);
-        }
-
-        #endregion
-
         public async Task<IObservable<IMSearchRequest>> CreateMSearchObservable()
         {
 

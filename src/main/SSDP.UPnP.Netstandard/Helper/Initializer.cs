@@ -31,6 +31,7 @@ namespace SSDP.UPnP.Netstandard.Helper
             }
 
             var communicationInterface = new CommunicationsInterface();
+
             var allInterfaces = communicationInterface.GetAllInterfaces();
 
             var firstUsableInterface = allInterfaces.FirstOrDefault(x => x.IpAddress == ipAddress);

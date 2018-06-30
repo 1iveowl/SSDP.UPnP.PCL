@@ -11,22 +11,22 @@
     <iconUrl>https://nuget.org/Content/Images/packageDefaultIcon.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>
-      SSDP .NET Standard Library for UPnP v2.0. SSDP for the UPnP v2.0 Architecture.
-      Makes it easy to receive and send SSDP Notification and M-Search messages.
-      Uses Reactive Extensions (Rx) for simplicity. </description>
+[.NET Standard] Moved to version 2.0
+[All] Removed Obsolete methods from Library.
+    </description>
     <releaseNotes>
 Moved to .NET Standard 1.3 (from .NET Standard 1.2)
     </releaseNotes>
     <copyright>Copyright 2018</copyright>
     <tags>ssdp upnp iot ios android uwp netcore</tags>
         <dependencies>
-          <dependency id="System.Reactive" version="3.1.1"/>
-          <dependency id="SocketLite.PCL" version="4.2.1"/>
-          <dependency id="SimpleHttpListener" version="4.2.3"/>
+          <dependency id="System.Reactive" version="4.0.0"/>
+          <dependency id="SocketLite.PCL" version="5.0.0"/>
+          <dependency id="SimpleHttpListener" version="5.0.0"/>
         </dependencies>
   </metadata>
   <files>
-        <file src="..\main\SSDP.UPnP.Netstandard\bin\Release\netstandard1.3\SSDP.UPnP.PCL.*" target="lib\netstandard1.3\" />
-        <file src="..\interfaces\ISSDP.UPnP.Netstandard\bin\Release\netstandard1.3\ISSDP.UPnP.PCL.*" target="lib\netstandard1.3\" />
+        <file src="..\main\SSDP.UPnP.Netstandard\bin\Release\netstandard2.0\SSDP.UPnP.PCL.*" target="lib\netstandard2.0\" />
+        <file src="..\interfaces\ISSDP.UPnP.Netstandard\bin\Release\netstandard2.0\ISSDP.UPnP.PCL.*" target="lib\netstandard2.0\" />
     </files>
 </package>

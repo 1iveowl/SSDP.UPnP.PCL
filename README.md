@@ -2,9 +2,9 @@
 
 [![NuGet Badge](https://buildstats.info/nuget/SSDP.UPnP.PCL)](https://www.nuget.org/packages/SSDP.UPnP.PCL/)
 
-[![.NET Standard](http://img.shields.io/badge/.NET_Standard-v1.2-green.svg)](https://docs.microsoft.com/da-dk/dotnet/articles/standard/library) 
+[![.NET Standard](http://img.shields.io/badge/.NET_Standard-v2.0-red.svg)](https://docs.microsoft.com/da-dk/dotnet/articles/standard/library) 
 
-[![System.Reactive](http://img.shields.io/badge/Rx-v3.1.1-ff69b4.svg)](http://reactivex.io/) 
+[![System.Reactive](http://img.shields.io/badge/Rx-v4.0.0-ff69b4.svg)](http://reactivex.io/) 
 
 [![UPnP](http://img.shields.io/badge/UPnP_Device_Architecture-v2.0-blue.svg)](http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v2.0.pdf)
 
@@ -21,6 +21,10 @@ This library is created for .NET Standard 1.2 making it modern and ready for the
 
 This project is based on [SocketLite.PCL](https://github.com/1iveowl/SocketLite.PCL) for cross platform TCP sockets support, that uses the "Bait and Switch" pattern. To read about "Bait and Switch" I can recoomend reading this great short blog post: [The Bait and Switch PCL Trick](http://log.paulbetts.org/the-bait-and-switch-pcl-trick/).
 
+## Version 5.0
+Moved from .NET Standard 1.3 to .NET Standard 2.0. IF you need to use this library in projects that does not support .NET Standard 2.0 then use an earlier version if this library.
+
+Removed Obsolete methods from Library.
 
 ## Version 4.0
 Version 4.0 represents a major overhaul of this library. Version 4.0 is still backwards compatible, but many of the methods have been marked as deprecated to inspire developers to use the newer versions of this library. In previous versions you had to subscribe to an observable and then start the action. In version 4.0 you just subscribe, that's it. Much more clean and better aligned with the Rx patterns.

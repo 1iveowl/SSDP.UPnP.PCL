@@ -17,7 +17,7 @@ class Program
     private static IControlPoint _controlPoint;
     private static IDevice _device;
 
-    private static string _deviceLocalIp = "192.168.0.36";
+    private static string _deviceLocalIp = "192.168.0.59";
     private static string _remoteControlPointHost = "192.168.0.23";
 
 
@@ -78,7 +78,7 @@ class Program
 
     private static async Task StartDeviceListening()
     {
-        _device = new Device(_httpListener);
+        _device = new Device();
         var mSearchObservable = await _device.CreateMSearchObservable();
 
         var subscription= mSearchObservable

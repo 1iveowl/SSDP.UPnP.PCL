@@ -14,11 +14,10 @@ namespace Console.Device.NETCore.Model
         public CastMethod SearchCastMethod { get; internal set; }
         public string MAN { get; internal set; }
         public TimeSpan MX { get; internal set; }
-        public string ST { get; internal set; }
+        public IST ST { get; internal set; }
         public IUserAgent UserAgent { get; internal set; }
         public string CPFN { get; internal set; }
         public string CPUUID { get; internal set; }
         public string TCPPORT { get; internal set; }
-
     }
 }
