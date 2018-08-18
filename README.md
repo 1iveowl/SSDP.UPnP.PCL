@@ -66,9 +66,10 @@ private static async Task ListenToNotify()
 {
     var counter = 0;
 
-    var observerNotify = await _controlPoint.CreateNotifyObservable();
+	// The allowMultipleBindingToPort option is useful on Windows, that by default does not allow multiple binding to a port
+    var observerNotify = await _controlPoint.CreateNotifyObservable(allowMultipleBindingToPort:false);
 
-    var subscription = observerNotify
+    var disposableNotify = observerNotify
         .Subscribe(
             n =>
             {
@@ -281,7 +282,8 @@ private static async Task StartDeviceListening()
 {
     _device = new Device(_httpListener);
 
-    var mSearchObservable = await _device.CreateMSearchObservable();
+	// The allowMultipleBindingToPort option is useful on Windows, that by default does not allow multiple binding to a port
+    var mSearchObservable = await _device.CreateMSearchObservable(allowMultipleBindingToPort:false);
 
     var subscription= mSearchObservable
         .Subscribe(

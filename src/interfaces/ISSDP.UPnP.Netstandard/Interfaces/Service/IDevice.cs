@@ -6,7 +6,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
 {
     public interface IDevice
     {
-        Task<IObservable<IMSearchRequest>> CreateMSearchObservable();
+        Task<IObservable<IMSearchRequest>> CreateMSearchObservable(bool allowMultipleBindingToPort = false);
 
         Task SendNotifyAsync(INotifySsdp notifySsdp);
 

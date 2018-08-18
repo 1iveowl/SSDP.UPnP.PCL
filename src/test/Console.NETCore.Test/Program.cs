@@ -58,9 +58,10 @@ class Program
     {
         var counter = 0;
 
-        var observerNotify = await _controlPoint.CreateNotifyObservable();
+        // Use allowMultipleBindingToPort:true on Windows
+        var observerNotify = await _controlPoint.CreateNotifyObservable(allowMultipleBindingToPort:true);
 
-        var subscription = observerNotify
+        var disposableNotify = observerNotify
             .Subscribe(
                 n =>
                 {

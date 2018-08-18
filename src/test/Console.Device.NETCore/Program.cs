@@ -35,7 +35,7 @@ class Program
     {
         _httpListener = await Initializer.GetHttpListener(_deviceLocalIp);
 
-        await StartDeviceListening();
+        await StartDeviceListening(_httpListener);
         await StartSendingRandomNotify();
     }
 
@@ -76,12 +76,12 @@ class Program
         }
     }
 
-    private static async Task StartDeviceListening()
+    private static async Task StartDeviceListening(IHttpListener listener)
     {
-        _device = new Device();
-        var mSearchObservable = await _device.CreateMSearchObservable();
+        _device = new Device(listener);
+        var mSearchObservable = await _device.CreateMSearchObservable(allowMultipleBindingToPort:true);
 
-        var subscription= mSearchObservable
+        var diposableMSearch= mSearchObservable
             .Where(req => req.Name == _remoteControlPointHost)
             .Subscribe(
             async req =>
