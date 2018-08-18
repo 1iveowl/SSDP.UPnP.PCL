@@ -7,7 +7,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
 {
     public interface IControlPoint
     {
-        Task<IObservable<INotifySsdp>> CreateNotifyObservable();
+        Task<IObservable<INotifySsdp>> CreateNotifyObservable(bool allowMultipleBindingToPort = false);
 
         Task<IObservable<IMSearchResponse>> CreateMSearchResponseObservable(int tcpReponsePort);
 

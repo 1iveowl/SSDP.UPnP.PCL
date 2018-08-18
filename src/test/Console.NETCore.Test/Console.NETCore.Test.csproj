@@ -7,8 +7,8 @@
     <LangVersion>7.3</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="SimpleHttpListener" Version="5.0.0" />
-    <PackageReference Include="SocketLite.PCL" Version="5.0.0" />
+    <PackageReference Include="SimpleHttpListener" Version="5.1.1" />
+    <PackageReference Include="SocketLite.PCL" Version="5.1.1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\interfaces\ISSDP.UPnP.Netstandard\ISSDP.UPnP.Netstandard.csproj" />

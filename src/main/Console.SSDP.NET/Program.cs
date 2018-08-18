@@ -55,7 +55,8 @@ namespace Console.SSDP.NET
         {
             var counter = 0;
 
-            var observerNotify = await _controlPoint.CreateNotifyObservable();
+            // Use allowMultipleBindingToPort:true on Windows PC's
+            var observerNotify = await _controlPoint.CreateNotifyObservable(allowMultipleBindingToPort:true);
 
             var subscription = observerNotify
                 .Subscribe(

@@ -19,13 +19,18 @@ namespace SSDP.UPnP.PCL.Service
     {
         private readonly IHttpListener _httpListener;
 
-        public async Task<IObservable<IMSearchRequest>> CreateMSearchObservable()
+        public Device(IHttpListener listener)
+        {
+            _httpListener = listener;
+        }
+
+        public async Task<IObservable<IMSearchRequest>> CreateMSearchObservable(bool allowMultipleBindingToPort = false)
         {
 
             var multicastReqObs = await _httpListener.UdpMulticastHttpRequestObservable(
                 Initializer.UdpSSDPMultiCastAddress,
                 Initializer.UdpSSDPMulticastPort,
-                false);
+                allowMultipleBindingToPort);
 
             return multicastReqObs
                 .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)

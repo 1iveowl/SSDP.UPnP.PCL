@@ -33,12 +33,12 @@ namespace SSDP.UPnP.PCL.Service
                 .Select(res => new MSearchResponse(res));
         }
 
-        public async Task<IObservable<INotifySsdp>> CreateNotifyObservable()
+        public async Task<IObservable<INotifySsdp>> CreateNotifyObservable(bool allowMultipleBindingToPort = false)
         {
             var multicastReqObs = await _httpListener.UdpMulticastHttpRequestObservable(
                     Initializer.UdpSSDPMultiCastAddress,
                     Initializer.UdpSSDPMulticastPort, 
-                    false);
+                    allowMultipleBindingToPort);
 
             return multicastReqObs
                 .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
