@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using ISimpleHttpServer.Model;
+using ISimpleHttpListener.Rx.Enum;
+using ISimpleHttpListener.Rx.Model;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 using SSDP.UPnP.PCL.Model;

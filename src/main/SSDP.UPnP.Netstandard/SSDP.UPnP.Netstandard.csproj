@@ -8,12 +8,12 @@
 
   <ItemGroup>
     <PackageReference Include="HttpMachine.PCL" Version="3.1.0" />
-    <PackageReference Include="SimpleHttpListener" Version="5.1.1" />
-    <PackageReference Include="SocketLite.PCL" Version="5.1.1" />
     <PackageReference Include="System.Reactive" Version="4.1.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\HttpListener.Rx\src\interface\ISimpleHttpListener.Rx\ISimpleHttpListener.Rx.csproj" />
+    <ProjectReference Include="..\..\..\..\HttpListener.Rx\src\main\SimpleHttpListener.Rx\SimpleHttpListener.Rx.csproj" />
     <ProjectReference Include="..\..\interfaces\ISSDP.UPnP.Netstandard\ISSDP.UPnP.Netstandard.csproj" />
   </ItemGroup>
 

@@ -1,41 +1,72 @@
 ﻿using System;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Reactive.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using ISimpleHttpServer.Service;
+using HttpMachine;
+using ISimpleHttpListener.Rx.Model;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 using ISSDP.UPnP.PCL.Interfaces.Service;
-using SSDP.UPnP.Netstandard.Helper;
+using SimpleHttpListener.Rx.Extension;
 using SSDP.UPnP.PCL.Helper;
 using SSDP.UPnP.PCL.Model;
 using SSDP.UPnP.PCL.Service.Base;
 using Convert = SSDP.UPnP.PCL.Helper.Convert;
+using static SSDP.UPnP.PCL.Helper.Constants;
 
 namespace SSDP.UPnP.PCL.Service
 {
     public class Device : CommonBase, IDevice
     {
-        private readonly IHttpListener _httpListener;
 
-        public Device(IHttpListener listener)
+        private readonly IPEndPoint _ipUdpEndPoint;
+        private readonly IPEndPoint _ipTcpRequestEndPoint;
+
+        private readonly UdpClient _udpClient;
+
+        public Device(IPAddress ipAddress)
         {
-            _httpListener = listener;
+            _ipUdpEndPoint = new IPEndPoint(ipAddress, UdpSSDPMulticastPort);
+
+            _ipTcpRequestEndPoint = new IPEndPoint(ipAddress, TcpResponseListenerPort);
+
+            _udpClient = new UdpClient
+            {
+                ExclusiveAddressUse = false
+            };
+
+            _udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+
+            _udpClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress));
         }
 
-        public async Task<IObservable<IMSearchRequest>> CreateMSearchObservable(bool allowMultipleBindingToPort = false)
+        public async Task<IObservable<IMSearchRequest>> CreateMSearchObservable(CancellationToken ct)
         {
+            if (!_udpClient?.Client?.IsBound ?? false)
+            {
+                _udpClient.Client.Bind(_ipUdpEndPoint);
+            }
 
-            var multicastReqObs = await _httpListener.UdpMulticastHttpRequestObservable(
-                Initializer.UdpSSDPMultiCastAddress,
-                Initializer.UdpSSDPMulticastPort,
-                allowMultipleBindingToPort);
+            return _udpClient.ToHttpListenerObservable(ct)
+                    .Where(x => x.MessageType == MessageType.Request)
+                    .Select(x => x as IHttpRequest)
+                    .Where(res => res != null)
+                    .Where(req => req?.Method == "M-SEARCH")
+                    .Select(req => new MSearchRequest(req));
 
-            return multicastReqObs
-                .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
-                .Where(req => req.Method == "M-SEARCH")
-                .Select(req => new MSearchRequest(req));
+            //var multicastReqObs = await _httpListener.UdpMulticastHttpRequestObservable(
+            //    Initializer.UdpSSDPMultiCastAddress,
+            //    Initializer.UdpSSDPMulticastPort,
+            //    allowMultipleBindingToPort);
+
+            //return multicastReqObs
+            //    .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
+            //    .Where(req => req.Method == "M-SEARCH")
+            //    .Select(req => new MSearchRequest(req));
         }
 
         public async Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse, IMSearchRequest mSearchRequest)
@@ -45,7 +76,8 @@ namespace SSDP.UPnP.PCL.Service
 
             if (mSearchResponse.ResponseCastMethod != CastMethod.Unicast)
             {
-                await _httpListener.SendOnMulticast(ComposeMSearchResponseDatagram(mSearchResponse));
+                var datagram = ComposeMSearchResponseDatagram(mSearchResponse);
+                await _udpClient.SendAsync(datagram, datagram.Length, _ipUdpEndPoint);
             }
 
             if (int.TryParse(mSearchRequest.TCPPORT, out int tcpSpecifiedRemotePort))
@@ -69,7 +101,8 @@ namespace SSDP.UPnP.PCL.Service
             // According to the UPnP spec the UDP Multicast Notify should be send three times
             for (var i = 0; i < 3; i++)
             {
-                await _httpListener.SendOnMulticast(ComposeNotifyDatagram(notifySsdp));
+                var datagram = ComposeNotifyDatagram(notifySsdp);
+                await _udpClient.SendAsync(datagram, datagram.Length, _ipUdpEndPoint);
                 // Random delay between resends of 200 - 400 milliseconds. 
                 await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(200, 400)));
             }

@@ -1,45 +1,44 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Console.Device.NETCore.Model;
-using ISimpleHttpServer.Service;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Service;
-using SSDP.UPnP.Netstandard.Helper;
 using SSDP.UPnP.PCL.Service;
 
 class Program
 {
-    private static IHttpListener _httpListener;
-
     private static IControlPoint _controlPoint;
     private static IDevice _device;
 
-    private static string _deviceLocalIp = "192.168.0.59";
-    private static string _remoteControlPointHost = "192.168.0.23";
-
+    private static IPAddress _deviceLocalIpAddress;
+    private static IPAddress _remoteControlPointHost;
 
     // For this test to work you most likely need to stop the SSDP Discovery service on Windows
     // If you don't stop the SSDP Windows Service, the service will intercept the UPnP multicasts and consequently nothing will show up in the console. 
 
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
-        StartAsync();
+        _deviceLocalIpAddress = IPAddress.Parse("192.168.0.59");
+        _remoteControlPointHost = IPAddress.Parse("192.168.0.23");
+
+        var cts = new CancellationTokenSource();
+
+        StartAsync(cts.Token);
       
         System.Console.ReadKey();
     }
 
-    private static async void StartAsync()
+    private static async void StartAsync(CancellationToken ct)
     {
-        _httpListener = await Initializer.GetHttpListener(_deviceLocalIp);
-
-        await StartDeviceListening(_httpListener);
-        await StartSendingRandomNotify();
+        await StartDeviceListening(ct);
+        await StartSendingRandomNotify(ct);
     }
 
-    private static async Task StartSendingRandomNotify()
+    private static async Task StartSendingRandomNotify(CancellationToken ct)
     {
         var wait = new Random();
         var i = 0;
@@ -53,9 +52,9 @@ class Program
                 BOOTID = i.ToString(),
                 CacheControl = TimeSpan.FromSeconds(5),
                 CONFIGID = "1",
-                Name = _remoteControlPointHost,
+                Name = _remoteControlPointHost.ToString(),
                 Port = 1900,
-                Location = new Uri($"http://{_deviceLocalIp}:1900/Test"),
+                Location = new Uri($"http://{_deviceLocalIpAddress.ToString()}:1900/Test"),
                 NotifyCastMethod = CastMethod.Multicast,
                 NT = "upnp:rootdevice",
                 NTS = NTS.Alive,
@@ -76,13 +75,14 @@ class Program
         }
     }
 
-    private static async Task StartDeviceListening(IHttpListener listener)
+    private static async Task StartDeviceListening(CancellationToken ct)
     {
-        _device = new Device(listener);
-        var mSearchObservable = await _device.CreateMSearchObservable(allowMultipleBindingToPort:true);
+
+        _device = new Device(_deviceLocalIpAddress);
+        var mSearchObservable = await _device.CreateMSearchObservable(ct);
 
         var diposableMSearch= mSearchObservable
-            .Where(req => req.Name == _remoteControlPointHost)
+            .Where(req => req.Name == _remoteControlPointHost.ToString())
             .Subscribe(
             async req =>
             {
