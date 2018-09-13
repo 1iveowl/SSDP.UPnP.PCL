@@ -8,6 +8,7 @@ namespace Console.NETCore.Test.Model
     internal class MSearch : IMSearchRequest
     {
         public bool InvalidRequest { get; } = false;
+        public int ParsingErrors { get; internal set; }
         public string Name { get; internal set; }
         public int Port { get; internal set; }
         public IDictionary<string, string> Headers { get; internal set; }

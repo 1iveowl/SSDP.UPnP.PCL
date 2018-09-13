@@ -45,6 +45,8 @@ namespace SSDP.UPnP.PCL.Model
                     "HOST", "CACHE-CONTROL","MAN", "MX", "ST", "USER-AGENT",
                     "CPFN.UPNP.ORG", "CPUUID.UPNP.ORG", "TCPPORT.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
                 }, request.Headers);
+
+                ParsingErrors = request.ParsingErrors;
             }
             catch (Exception)
             {

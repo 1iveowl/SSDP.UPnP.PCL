@@ -34,6 +34,8 @@ namespace SSDP.UPnP.PCL.Model
         {
             try
             {
+                ParsingErrors = response.ParsingErrors;
+
                 ResponseCastMethod = Convert.GetCastMetod(response);
                 Name = response.RemoteAddress;
                 Port = response.RemotePort;
@@ -56,6 +58,8 @@ namespace SSDP.UPnP.PCL.Model
                     "HOST", "CACHE-CONTROL", "LOCATION", "DATE", "EXT", "SERVER", "ST", "USN",
                     "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG", "SEARCHPORT.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
                 }, response.Headers);
+
+                
             }
             catch (Exception)
             {

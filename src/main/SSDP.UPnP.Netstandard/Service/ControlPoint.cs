@@ -94,6 +94,10 @@ namespace SSDP.UPnP.PCL.Service
             return _udpMulticastHttpListener
                 .Where(x => x.MessageType == MessageType.Request)
                 .Select(x => x as IHttpRequest)
+                .Where(x =>
+                {
+                    return x.ParsingErrors > -1;
+                })
                 .Where(req => req != null)
                 .Where(req => req.Method == "NOTIFY")
                 .Select(req => new NotifySsdp(req))

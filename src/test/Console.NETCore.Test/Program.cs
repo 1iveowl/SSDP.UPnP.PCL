@@ -114,6 +114,11 @@ class Program
                         System.Console.ResetColor();
                     }
 
+                    if (n.ParsingErrors > 0)
+                    {
+                        System.Console.WriteLine($"Parsing errors: {n.ParsingErrors}");
+                    }
+
                     System.Console.WriteLine();
                 });
     }
@@ -165,6 +170,11 @@ class Program
                             System.Console.WriteLine($"{header.Key}: {header.Value}; ");
                         }
                         System.Console.ResetColor();
+                    }
+
+                    if (res.ParsingErrors > 0)
+                    {
+                        System.Console.WriteLine($"Parsing errors: {res.ParsingErrors}");
                     }
 
                     System.Console.WriteLine();
