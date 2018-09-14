@@ -8,6 +8,7 @@ using Console.NETCore.Test.Model;
 
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Service;
+using SSDP.UPnP.PCL.Model;
 using SSDP.UPnP.PCL.Service;
 using static SSDP.UPnP.PCL.Helper.Constants;
 
@@ -71,8 +72,7 @@ class Program
     {
         var counter = 0;
 
-        // Use allowMultipleBindingToPort:true on Windows
-        var observerNotify = await _controlPoint.CreateNotifyObservable();
+        var observerNotify = _controlPoint.CreateNotifyObservable();
 
         var disposableNotify = observerNotify
             .Subscribe(
@@ -114,9 +114,9 @@ class Program
                         System.Console.ResetColor();
                     }
 
-                    if (n.ParsingErrors > 0)
+                    if (n.HasParsingError)
                     {
-                        System.Console.WriteLine($"Parsing errors: {n.ParsingErrors}");
+                        System.Console.WriteLine($"Parsing errors: {n.HasParsingError}");
                     }
 
                     System.Console.WriteLine();
@@ -126,7 +126,7 @@ class Program
     private static async Task ListenToMSearchResponse(CancellationToken ct)
     {
 
-        var mSeachResObs = await _controlPoint.CreateMSearchResponseObservable();
+        var mSeachResObs = _controlPoint.CreateMSearchResponseObservable();
 
         var counter = 0;
 
@@ -154,8 +154,8 @@ class Program
                                              $" " +
                                              $"{res?.Server?.ProductName}/{res?.Server?.ProductVersion}" +
                                              $" - ({res?.Server?.FullString})");
-                    System.Console.WriteLine($"ST: {res?.ST}");
-                    System.Console.WriteLine($"USN: {res?.USN}");
+                    System.Console.WriteLine($"ST: {res.ST}");
+                    System.Console.WriteLine($"USN: {res.USN}");
                     System.Console.WriteLine($"BOOTID.UPNP.ORG: {res?.BOOTID}");
                     System.Console.WriteLine($"CONFIGID.UPNP.ORG: {res?.CONFIGID}");
                     System.Console.WriteLine($"SEARCHPORT.UPNP.ORG: {res?.SEARCHPORT}");
@@ -172,9 +172,9 @@ class Program
                         System.Console.ResetColor();
                     }
 
-                    if (res.ParsingErrors > 0)
+                    if (res.HasParsingError)
                     {
-                        System.Console.WriteLine($"Parsing errors: {res.ParsingErrors}");
+                        System.Console.WriteLine($"Parsing errors: {res.HasParsingError}");
                     }
 
                     System.Console.WriteLine();
@@ -193,10 +193,11 @@ class Program
             Port = UdpSSDPMulticastPort,
             MX = TimeSpan.FromSeconds(5),
             TCPPORT = TcpResponseListenerPort.ToString(),
-            ST = new ST
-            {
-                STtype = STtype.All
-            },
+            ST = new ST("urn:myharmony-com:device:harmony:1"),
+            //ST = new ST
+            //{
+            //    StSearchType = STSearchType.All
+            //},
             //ST = new ST
             //{
             //    STtype  = STtype.ServiceType,
@@ -204,7 +205,20 @@ class Program
             //    Version = "1",
             //    HasDomain = false
             //},
-            
+            //ST = new ST
+            //{
+            //    StSearchType = STSearchType.DomainDeviceSearch,
+            //    Domain = "myharmony-com", 
+            //    DeviceType = "harmony",
+            //    Version = "1",
+            //    //STtype = STtype.DeviceType,
+            //    ////DeviceUUID = "myharmony-com:device:harmony:1",
+            //    //Type = "harmony",
+            //    //Version = "1",
+            //    //HasDomain = true,
+            //    //DomainName = "myharmony-com"
+            //},
+
             UserAgent = new UserAgent
             {
                 OperatingSystem = "Windows",

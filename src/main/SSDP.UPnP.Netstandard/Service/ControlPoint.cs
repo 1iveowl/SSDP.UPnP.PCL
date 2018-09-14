@@ -51,6 +51,8 @@ namespace SSDP.UPnP.PCL.Service
                 MulticastLoopback = true
             };
 
+            //_udpClient.Client.ReceiveBufferSize = 8 * 4092;
+
             _udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
             _udpClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress));
@@ -69,7 +71,7 @@ namespace SSDP.UPnP.PCL.Service
             _isStarted = true;
         }
 
-        public async Task<IObservable<IMSearchResponse>> CreateMSearchResponseObservable()
+        public IObservable<IMSearchResponse> CreateMSearchResponseObservable()
         {
             if (!_isStarted)
             {
@@ -84,7 +86,7 @@ namespace SSDP.UPnP.PCL.Service
                 .Select(res => new MSearchResponse(res));
         }
 
-        public async Task<IObservable<INotifySsdp>> CreateNotifyObservable()
+        public IObservable<INotifySsdp> CreateNotifyObservable()
         {
             if (!_isStarted)
             {
@@ -94,10 +96,6 @@ namespace SSDP.UPnP.PCL.Service
             return _udpMulticastHttpListener
                 .Where(x => x.MessageType == MessageType.Request)
                 .Select(x => x as IHttpRequest)
-                .Where(x =>
-                {
-                    return x.ParsingErrors > -1;
-                })
                 .Where(req => req != null)
                 .Where(req => req.Method == "NOTIFY")
                 .Select(req => new NotifySsdp(req))
@@ -164,42 +162,87 @@ namespace SSDP.UPnP.PCL.Service
             return Encoding.UTF8.GetBytes(stringBuilder.ToString());
         }
 
+        // TODO add to documentation
         private string GetSTSting(IST st)
         {
-            switch (st.STtype)
+            switch (st.StSearchType)
             {
-                case STtype.All: return "ssdp:all";
-                case STtype.RootDevice: return "upnp:rootdevice";
-                case STtype.UIID:
+                case STSearchType.All: return "ssdp:all";
+                case STSearchType.RootDeviceSearch: return "upnp:rootdevice";
+                case STSearchType.UIIDSearch:
                 {
                     return $"uuid:{st.DeviceUUID}";
                 }
-                case STtype.DeviceType:
+                case STSearchType.DeviceTypeSearch:
                 {
-                    if (st.HasDomain)
+                    if (string.IsNullOrEmpty(st.DeviceType))
                     {
-                        return $"urn:{st.DomainName}:device:{st.Type}:{st.Version}";
-                        }
-                    else
+                        throw new SSDPException("Device Type Search requires a Device Type to be specified.");
+                    }
+
+                    if (string.IsNullOrEmpty(st.Version))
                     {
-                        return $"urn:schemas-upnp-org:device:{st.Type}:{st.Version}";
-                        }
+                        throw new SSDPException("Device Type Search requires a version to be specified.");
+                    }
+
+                    return $"urn:schemas-upnp-org:device:{st.DeviceType}:{st.Version}";
                     
                 }
-                case STtype.ServiceType:
+                case STSearchType.ServiceTypeSearch:
                 {
-                    if (st.HasDomain)
+                    if (string.IsNullOrEmpty(st.ServiceType))
                     {
-                        return $"urn:{st.DomainName}:service:{st.Type}:{st.Version}";
+                        throw new SSDPException("Service Type Search requires a Service Type to be specified.");
                     }
-                    else
-                    {
-                        return $"urn:schemas-upnp-org:service:{st.Type}:{st.Version}";
-                    }
-                }
-            }
 
-            return null;
+                    if (string.IsNullOrEmpty(st.Version))
+                    {
+                        throw new SSDPException("Service Type Search requires a version to be specified.");
+                    }
+
+                    return $"urn:schemas-upnp-org:service:{st.ServiceType}:{st.Version}";
+                }
+                case STSearchType.DomainDeviceSearch:
+
+                    if (string.IsNullOrEmpty(st.Domain))
+                    {
+                        throw new SSDPException("Domain Device Type Search requires a Domain Type to be specified.");
+                    }
+
+                    if (string.IsNullOrEmpty(st.DeviceType))
+                    {
+                        throw new SSDPException("Device Type Search requires a Device Type to be specified.");
+                    }
+
+                    if (string.IsNullOrEmpty(st.Version))
+                    {
+                        throw new SSDPException("Device Type Search requires a version to be specified.");
+                    }
+
+                    return $"urn:{st.Domain}:device:{st.DeviceType}:{st.Version}";
+
+                case STSearchType.DomainServiceSearch:
+
+                    if (string.IsNullOrEmpty(st.Domain))
+                    {
+                        throw new SSDPException("Service Service Type Search requires a Domain Type to be specified.");
+                    }
+                    
+                    if (string.IsNullOrEmpty(st.ServiceType))
+                    {
+                        throw new SSDPException("Service Type Search requires a Service Type to be specified.");
+                    }
+
+                    if (string.IsNullOrEmpty(st.Version))
+                    {
+                        throw new SSDPException("Device Type Search requires a version to be specified.");
+                    }
+
+                    return $"urn:{st.Domain}:service:{st.ServiceType}:{st.Version}";
+
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
     }
 }

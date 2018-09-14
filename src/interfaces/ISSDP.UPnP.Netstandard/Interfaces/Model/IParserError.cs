@@ -4,6 +4,6 @@
     {
         bool InvalidRequest { get; }
 
-        int ParsingErrors { get; }
+        bool HasParsingError { get; }
     }
 }

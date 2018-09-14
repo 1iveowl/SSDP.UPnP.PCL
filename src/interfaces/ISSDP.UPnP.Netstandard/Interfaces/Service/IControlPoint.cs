@@ -11,9 +11,9 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
     {
         void Start(CancellationToken ct);
 
-        Task<IObservable<INotifySsdp>> CreateNotifyObservable();
+        IObservable<INotifySsdp> CreateNotifyObservable();
 
-        Task<IObservable<IMSearchResponse>> CreateMSearchResponseObservable();
+        IObservable<IMSearchResponse> CreateMSearchResponseObservable();
 
         Task SendMSearchAsync(IMSearchRequest mSearch);
     }

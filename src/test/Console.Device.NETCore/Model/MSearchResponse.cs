@@ -12,6 +12,8 @@ namespace Console.Device.NETCore.Model
         public int Port { get; internal set; }
         public IDictionary<string, string> Headers { get; internal set; }
         public bool InvalidRequest { get; internal set; }
+        public bool HasParsingError { get; internal set; }
+
         public CastMethod ResponseCastMethod { get; internal set; }
         public int StatusCode { get; internal set; }
         public string ResponseReason { get; internal set; }

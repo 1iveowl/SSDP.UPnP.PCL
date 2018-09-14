@@ -38,7 +38,7 @@ namespace SSDP.UPnP.PCL.Helper
 
         internal static string GetHeaderValue(IDictionary<string, string> headers, string key)
         {
-            headers.TryGetValue(key.ToUpper(), out string value);
+            headers.TryGetValue(key.ToUpper(), out var value);
             return value;
         }
 
@@ -51,24 +51,24 @@ namespace SSDP.UPnP.PCL.Helper
                 case "ssdp":
                     return new ST
                     {
-                        STtype = STtype.All
+                        StSearchType = STSearchType.All
                     };
                 case "uuid":
                     return new ST
                     {
-                        STtype = STtype.UIID
+                        StSearchType = STSearchType.UIIDSearch
                     };
                 case "upnp":
                     return new ST
                     {
-                        STtype = STtype.RootDevice
+                        StSearchType = STSearchType.RootDeviceSearch
                     };
                 case "urn":
                 {
                     var st = new ST();
                     if (stringParts[1].ToLower() != "schemas-upnp-org")
                     {
-                        st.DomainName = stringParts[1];
+                        st.Domain = stringParts[1];
                         st.HasDomain = true;
                         }
                     else
@@ -78,13 +78,13 @@ namespace SSDP.UPnP.PCL.Helper
 
                     if (stringParts[2].ToLower() == "device")
                     {
-                        st.STtype = STtype.DeviceType;
+                        st.StSearchType = STSearchType.DeviceTypeSearch;
                     }
                     if (stringParts[2].ToLower() == "service")
                     {
-                        st.STtype = STtype.ServiceType;
+                        st.StSearchType = STSearchType.ServiceTypeSearch;
                     }
-                    st.Type = stringParts[3];
+                    st.DeviceType = stringParts[3];
                     st.Version = stringParts[4];
                     return st;
                 }

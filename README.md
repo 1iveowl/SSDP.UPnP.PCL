@@ -124,6 +124,18 @@ private static async Task ListenToNotify()
 ```
 
 ### Start Search for UPnP Devices
+Searching for devices is specified in the UPnP Specification:
+
+ST 
+Required. Field value contains Search Target. shall be one of the following. (See NT header field in NOTIFY with ssdp:alive above.) Single URI. 
+* ssdp:all Search for all devices and services. 
+* upnp:rootdevice Search for root devices only. 
+* uuid:device-UUID Search for a particular device. device-UUID specified by UPnP vendor. See clause 1.1.4, “UUID format and recommended generation algorithms” for the MANDATORY UUID format. 
+* urn:schemas-upnp-org:device:deviceType:ver Search for any device of this type where deviceType and ver are defined by the UPnP Forum working committee. 
+* urn:schemas-upnp-org:service:serviceType:ver Search for any service of this type where serviceType and ver are defined by the UPnP Forum working committee. 
+* urn:domain-name:device:deviceType:ver Search for any device of this typewhere domain-name (a Vendor Domain Name), deviceType and ver are defined by the UPnP vendor and ver specifies the highest specifies the highest supported version of the device type. Period characters in the Vendor Domain Name shall be replaced with hyphens in accordance with RFC 2141. 
+* urn:domain-name:service:serviceType:ver Search for any service of this type. Where domain-name (a Vendor Domain Name), serviceType and ver are defined by the UPnP vendor and ver specifies the highest specifies the highest supported version of the service type. Period characters in the Vendor Domain Name shall be replaced with hyphens in accordance with RFC 2141. 
+
 To search for devices like this:
 ```csharp
 

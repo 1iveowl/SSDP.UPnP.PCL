@@ -8,6 +8,7 @@ namespace Console.Device.NETCore.Model
     internal class MSearch : IMSearchRequest
     {
         public bool InvalidRequest { get; } = false;
+        public bool HasParsingError { get; internal set; }
         public string Name { get; internal set; }
         public int Port { get; internal set; }
         public IDictionary<string, string> Headers { get; internal set; }

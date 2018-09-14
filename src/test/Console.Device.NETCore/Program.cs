@@ -116,8 +116,7 @@ class Program
                     }
                     System.Console.ResetColor();
                 }
-
-
+                
                 System.Console.WriteLine();
 
                 var mSearchResponse = new MSearchResponse
@@ -145,6 +144,7 @@ class Program
                     USN = "uuid:device-UUID::upnp:rootdevice",
                     BOOTID = "1"
                 };
+
                 await _device.SendMSearchResponseAsync(mSearchResponse, req);
             });
     }

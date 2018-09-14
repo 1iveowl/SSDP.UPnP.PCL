@@ -7,11 +7,12 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
 {
     public interface IST
     {
-        STtype STtype { get; }
+        STSearchType StSearchType { get; }
         string DeviceUUID { get; }
-        string Type { get; }
+        string DeviceType { get; }
+        string ServiceType { get; }
         string Version { get; }
-        string DomainName { get; }
+        string Domain { get; }
         bool HasDomain { get; }
     }
 }

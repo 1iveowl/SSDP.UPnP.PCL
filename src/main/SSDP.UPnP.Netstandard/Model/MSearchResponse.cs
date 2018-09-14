@@ -34,7 +34,7 @@ namespace SSDP.UPnP.PCL.Model
         {
             try
             {
-                ParsingErrors = response.ParsingErrors;
+                HasParsingError = response.HasParsingErrors;
 
                 ResponseCastMethod = Convert.GetCastMetod(response);
                 Name = response.RemoteAddress;

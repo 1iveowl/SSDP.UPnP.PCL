@@ -46,7 +46,7 @@ namespace SSDP.UPnP.PCL.Model
                     "CPFN.UPNP.ORG", "CPUUID.UPNP.ORG", "TCPPORT.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
                 }, request.Headers);
 
-                ParsingErrors = request.ParsingErrors;
+                HasParsingError = request.HasParsingErrors;
             }
             catch (Exception)
             {

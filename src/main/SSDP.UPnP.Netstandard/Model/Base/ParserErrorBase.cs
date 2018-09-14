@@ -6,6 +6,6 @@ namespace SSDP.UPnP.PCL.Model.Base
     {
         public bool InvalidRequest { get; protected set; }
 
-        public int ParsingErrors { get; protected set; }
+        public bool HasParsingError { get; protected set; }
     }
 }
