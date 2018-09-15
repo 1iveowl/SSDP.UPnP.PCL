@@ -27,12 +27,12 @@ class Program
 
         var cts = new CancellationTokenSource();
 
-        StartAsync(cts.Token);
+        await StartAsync(cts.Token);
       
         System.Console.ReadKey();
     }
 
-    private static async void StartAsync(CancellationToken ct)
+    private static async Task StartAsync(CancellationToken ct)
     {
         StartDeviceListening();
         await StartSendingRandomNotify(ct);
