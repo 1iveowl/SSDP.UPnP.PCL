@@ -22,8 +22,8 @@ class Program
 
     static async Task Main(string[] args)
     {
-        _deviceLocalIpAddress = IPAddress.Parse("192.168.0.59");
-        _remoteControlPointHost = IPAddress.Parse("192.168.0.48");
+        _deviceLocalIpAddress = IPAddress.Parse("192.168.0.48");
+        _remoteControlPointHost = IPAddress.Parse("192.168.0.59");
 
         var cts = new CancellationTokenSource();
 
@@ -86,7 +86,7 @@ class Program
         var mSearchObservable = _device.CreateMSearchObservable();
 
         var disposableMSearch= mSearchObservable
-            .Where(req => req.Name == _remoteControlPointHost.ToString())
+            //.Where(req => req.Name == _remoteControlPointHost.ToString())
             .Do(req =>
             {
                 System.Console.BackgroundColor = ConsoleColor.DarkGreen;

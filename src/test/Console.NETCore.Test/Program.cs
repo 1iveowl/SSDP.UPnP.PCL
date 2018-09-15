@@ -53,7 +53,7 @@ class Program
 
         _controlPoint.Start(ct);
 
-        await ListenToNotify(ct);
+        //await ListenToNotify(ct);
 
         await ListenToMSearchResponse(ct);
         
