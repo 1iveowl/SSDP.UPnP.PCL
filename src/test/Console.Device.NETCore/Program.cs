@@ -78,6 +78,11 @@ class Program
     private static void StartDeviceListening()
     {
         _device = new Device(_deviceLocalIpAddress);
+
+        var cts = new CancellationTokenSource();
+
+        _device.Start(cts.Token);
+
         var mSearchObservable = _device.CreateMSearchObservable();
 
         var disposableMSearch= mSearchObservable
