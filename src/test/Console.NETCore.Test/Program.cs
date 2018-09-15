@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Linq;
 using System.Net;
+using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Console.NETCore.Test.Model;
@@ -123,8 +124,7 @@ class Program
         var counter = 0;
 
         var disposableMSearchresponse = mSearchResObs
-            //.Where(req => req.HostIp == _remoteDeviceIp)
-            //.SubscribeOn(Scheduler.CurrentThread)
+            .Where(res => res.RemoteHost.Name == "192.168.0.48")
             .Subscribe(
                 res =>
                 {

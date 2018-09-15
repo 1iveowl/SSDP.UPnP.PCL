@@ -19,8 +19,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
         string CONFIGID { get; }
         string SEARCHPORT { get; }
         string SECURELOCATION { get; }
-        string RequestTCPPort { get; }
-        IHost RequestHost { get; }
+        IHost RemoteHost { get; }
         TimeSpan MX { get; }
     }
 }

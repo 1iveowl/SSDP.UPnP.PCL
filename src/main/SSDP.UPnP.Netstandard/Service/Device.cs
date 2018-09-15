@@ -99,18 +99,23 @@ namespace SSDP.UPnP.PCL.Service
             {
                 var datagram = ComposeMSearchResponseDatagram(mSearchResponse);
                 await _udpClient.SendAsync(datagram, datagram.Length, _ipUdpEndPoint);
+
+
             }
 
-            if (int.TryParse(mSearchResponse.RequestTCPPort, out var tcpSpecifiedRemotePort))
-            {
-                await SendOnTcp(mSearchResponse.RequestHost.Name, tcpSpecifiedRemotePort,
-                    ComposeMSearchResponseDatagram(mSearchResponse));
-            }
-            else
-            {
-                await SendOnTcp(mSearchResponse.RequestHost.Name, mSearchResponse.RequestHost.Port,
-                    ComposeMSearchResponseDatagram(mSearchResponse));
-            }
+            await SendOnTcp(mSearchResponse.RemoteHost.Name, mSearchResponse.RemoteHost.Port,
+                ComposeMSearchResponseDatagram(mSearchResponse));
+
+            //if (int.TryParse(mSearchResponse.RemoteHost.Port, out var tcpSpecifiedRemotePort))
+            //{
+            //    await SendOnTcp(mSearchResponse.RemoteHost.Name, tcpSpecifiedRemotePort,
+            //        ComposeMSearchResponseDatagram(mSearchResponse));
+            //}
+            //else
+            //{
+            //    await SendOnTcp(mSearchResponse.RemoteHost.Name, mSearchResponse.RemoteHost.Port,
+            //        ComposeMSearchResponseDatagram(mSearchResponse));
+            //}
         }
 
         public async Task SendNotifyAsync(INotifySsdp notifySsdp)

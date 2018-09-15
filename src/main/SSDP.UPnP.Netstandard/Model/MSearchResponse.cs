@@ -27,8 +27,7 @@ namespace SSDP.UPnP.PCL.Model
         public string CONFIGID { get; }
         public string SEARCHPORT { get; }
         public string SECURELOCATION { get; }
-        public string RequestTCPPort { get; }
-        public IHost RequestHost { get; }
+        public IHost RemoteHost { get; }
         public TimeSpan MX { get; }
 
         public IDictionary<string, string> Headers { get; }
@@ -61,7 +60,7 @@ namespace SSDP.UPnP.PCL.Model
                     "HOST", "CACHE-CONTROL", "LOCATION", "DATE", "EXT", "SERVER", "ST", "USN",
                     "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG", "SEARCHPORT.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
                 }, response.Headers);
-
+                RemoteHost = new Host(response);
                 
             }
             catch (Exception)

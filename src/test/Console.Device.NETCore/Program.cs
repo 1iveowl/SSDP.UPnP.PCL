@@ -139,8 +139,7 @@ class Program
                 ST = req.ST,
                 USN = "uuid:device-UUID::upnp:rootdevice",
                 BOOTID = "1",
-                RequestHost = new Host(req),
-                RequestTCPPort = req.TCPPORT,
+                RemoteHost = new Host(req),
                 MX = req.MX
             })
             .Select(res => Observable.FromAsync(() => _device.SendMSearchResponseAsync(res)))
