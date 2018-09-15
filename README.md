@@ -21,6 +21,9 @@ This library is created for .NET Standard 2.0 making it modern and ready for the
 
 This project is based on [SocketLite.PCL](https://github.com/1iveowl/SocketLite.PCL) for cross platform TCP sockets support, that uses the "Bait and Switch" pattern. To read about "Bait and Switch" I can recoomend reading this great short blog post: [The Bait and Switch PCL Trick](http://log.paulbetts.org/the-bait-and-switch-pcl-trick/).
 
+## Version 6.0
+In this version large parts of this library was improved for much higher reliability and stability. This also introduced some breaking changes. It is strong encouraged to adapt this version over previous versions.
+
 ## Version 5.0
 Moved from .NET Standard 1.3 to .NET Standard 2.0. IF you need to use this library in projects that does not support .NET Standard 2.0 then use an earlier version if this library.
 
@@ -31,145 +34,217 @@ Version 4.0 represents a major overhaul of this library. Version 4.0 is still ba
 
 There is still UWP support in version 4.0, but the emphasis has been on .NET Core and it will be going forward
 
-## Getting Started With Control Point and Devices Easy
+## Getting Started With the Control Point
+Using the ControlPoint is easy. In the sample code we will start a listener that sends out a SSDP search request and listens for all SSDP search replies as well as any SSDP notifications that my be on the local network.
 
+**IMPORTANT** If you are not seeing MSearch responses or Notify messages when using the following example and your are running Windows, then try and stop the Windows SSDP Service to prevent this service from intercepting these messages so that thet neven reach you clint code. 
 
-### Using Statements
-Using Statements assumed in the following code examples:
 ```csharp
-using ISimpleHttpServer.Service;
-using SimpleHttpServer.Service;
-
-using ISSDP.UPnP.PCL.Enum;
-using ISSDP.UPnP.PCL.Interfaces.Service;
-
-using SSDP.Console.Test.NET.Model;
-using SSDP.UPnP.PCL.Service;
-```
-
-Start with getting a HttpListener that is configuered for SSDP:
-```csharp
-httpListener = await Initializer.GetHttpListener("192.168.0.2");
-```
-Then create a SSDP Control Point or a Device Control using the just created listener:
-```csharp
-var controlPoint = new new ControlPoint(httpListener);
-// or
-var device = new Device(httpListener);
-```
-## Control Point
-
-### Listening For Notify Message
-This can be done like this:
-```csharp
-private static async Task ListenToNotify()
+class Program
 {
-    var counter = 0;
+    private static IControlPoint _controlPoint;
+    private static IPAddress _controlPointLocalIp;
 
-	// The allowMultipleBindingToPort option is useful on Windows, that by default does not allow multiple binding to a port
-    var observerNotify = await _controlPoint.CreateNotifyObservable(allowMultipleBindingToPort:false);
 
-    var disposableNotify = observerNotify
-        .Subscribe(
-            n =>
-            {
-                // Example code
-                counter++;
-                System.Console.BackgroundColor = ConsoleColor.DarkBlue;
-                System.Console.ForegroundColor = ConsoleColor.White;
-                System.Console.WriteLine($"---### Control Point Received a NOTIFY - #{counter} ###---");
-                System.Console.ResetColor();
-                System.Console.WriteLine($"{n.NotifyCastMethod.ToString()}");
-                System.Console.WriteLine($"From: {n.HostIp}:{n.HostPort}");
-                System.Console.WriteLine($"Location: {n?.Location?.AbsoluteUri}");
-                System.Console.WriteLine($"Cache-Control: max-age = {n.CacheControl}");
-                System.Console.WriteLine($"Server: " +
-                                            $"{n.Server.OperatingSystem}/{n.Server.OperatingSystemVersion} " +
-                                            $"UPNP/" +
-                                            $"{n.Server.UpnpMajorVersion}.{n.Server.UpnpMinorVersion}" +
-                                            $" " +
-                                            $"{n.Server.ProductName}/{n.Server.ProductVersion}" +
-                                            $" - ({n.Server.FullString})");
-                System.Console.WriteLine($"NT: {n.NT}");
-                System.Console.WriteLine($"NTS: {n.NTS}");
-                System.Console.WriteLine($"USN: {n.USN}");
-                System.Console.WriteLine($"BOOTID: {n.BOOTID}");
-                System.Console.WriteLine($"CONFIGID: {n.CONFIGID}");
-                System.Console.WriteLine($"NEXTBOOTID: {n.NEXTBOOTID}");
-                System.Console.WriteLine($"SEARCHPORT: {n.SEARCHPORT}");
-                System.Console.WriteLine($"SECURELOCATION: {n.SECURELOCATION}");
+   // For this test to work you most likely need to stop the SSDP Discovery service on Windows
+    // If you don't stop the SSDP Windows Service, the service will intercept the UPnP multicasts and consequently nothing will show up in the console. 
 
-                if (n.Headers.Any())
+    static async Task Main(string[] args)
+    {
+        _controlPointLocalIp = IPAddress.Parse("192.168.0.59");
+
+        var cts = new CancellationTokenSource();
+
+        await StartAsync(cts.Token);
+
+        System.Console.WriteLine("Press any key to end (1).");
+
+        System.Console.ReadKey();
+
+        cts.Cancel();
+
+        System.Console.WriteLine("Press any key to end (2)");
+        System.Console.ReadKey();
+
+    }
+
+    private static async Task StartAsync(CancellationToken ct)
+    {
+        //StartDeviceListening();
+
+        await StartControlPointListeningAsync(ct);
+    }
+
+    private static async Task StartControlPointListeningAsync(CancellationToken ct)
+    {
+        _controlPoint = new ControlPoint(_controlPointLocalIp);
+
+        _controlPoint.Start(ct);
+
+        await ListenToNotify(ct);
+
+        await ListenToMSearchResponse(ct);
+        
+        await StartMSearchRequestMulticastAsync();
+    }
+
+    private static async Task ListenToNotify(CancellationToken ct)
+    {
+        var counter = 0;
+
+        var observerNotify = _controlPoint.CreateNotifyObservable();
+
+        var disposableNotify = observerNotify
+            .Subscribe(
+                n =>
                 {
-                    System.Console.ForegroundColor = ConsoleColor.DarkYellow;
-                    System.Console.WriteLine($"Additional Headers: {n.Headers.Count}");
-                    foreach (var header in n.Headers)
-                    {
-                        System.Console.WriteLine($"{header.Key}: {header.Value}; ");
-                    }
+                    counter++;
+                    System.Console.BackgroundColor = ConsoleColor.DarkBlue;
+                    System.Console.ForegroundColor = ConsoleColor.White;
+                    System.Console.WriteLine($"---### Control Point Received a NOTIFY - #{counter} ###---");
                     System.Console.ResetColor();
-                }
+                    System.Console.WriteLine($"{n.NotifyCastMethod.ToString()}");
+                    System.Console.WriteLine($"From: {n.Name}:{n.Port}");
+                    System.Console.WriteLine($"Location: {n?.Location?.AbsoluteUri}");
+                    System.Console.WriteLine($"Cache-Control: max-age = {n.CacheControl}");
+                    System.Console.WriteLine($"Server: " +
+                                             $"{n.Server.OperatingSystem}/{n.Server.OperatingSystemVersion} " +
+                                             $"UPNP/" +
+                                             $"{n.Server.UpnpMajorVersion}.{n.Server.UpnpMinorVersion}" +
+                                             $" " +
+                                             $"{n.Server.ProductName}/{n.Server.ProductVersion}" +
+                                             $" - ({n.Server.FullString})");
+                    System.Console.WriteLine($"NT: {n.NT}");
+                    System.Console.WriteLine($"NTS: {n.NTS}");
+                    System.Console.WriteLine($"USN: {n.USN}");
+                    System.Console.WriteLine($"BOOTID: {n.BOOTID}");
+                    System.Console.WriteLine($"CONFIGID: {n.CONFIGID}");
+                    System.Console.WriteLine($"NEXTBOOTID: {n.NEXTBOOTID}");
+                    System.Console.WriteLine($"SEARCHPORT: {n.SEARCHPORT}");
+                    System.Console.WriteLine($"SECURELOCATION: {n.SECURELOCATION}");
 
-                System.Console.WriteLine();
-            },
-            ex => 
+                    if (n.Headers.Any())
+                    {
+                        System.Console.ForegroundColor = ConsoleColor.DarkYellow;
+                        System.Console.WriteLine($"Additional Headers: {n.Headers.Count}");
+                        foreach (var header in n.Headers)
+                        {
+                            System.Console.WriteLine($"{header.Key}: {header.Value}; ");
+                        }
+                        System.Console.ResetColor();
+                    }
+
+                    if (n.HasParsingError)
+                    {
+                        System.Console.WriteLine($"Parsing errors: {n.HasParsingError}");
+                    }
+
+                    System.Console.WriteLine();
+                });
+    }
+
+    private static async Task ListenToMSearchResponse(CancellationToken ct)
+    {
+
+        var mSearchResObs = _controlPoint.CreateMSearchResponseObservable();
+
+        var counter = 0;
+
+        var disposableMSearchresponse = mSearchResObs
+            .Subscribe(
+                res =>
+                {
+                    counter++;
+                    System.Console.BackgroundColor = ConsoleColor.DarkBlue;
+                    System.Console.ForegroundColor = ConsoleColor.White;
+                    System.Console.WriteLine($"---### Control Point Received a  M-SEARCH RESPONSE #{counter} ###---");
+                    System.Console.ResetColor();
+                    System.Console.WriteLine($"{res?.ResponseCastMethod.ToString()}");
+                    System.Console.WriteLine($"From: {res?.Name}:{res.Port}");
+                    System.Console.WriteLine($"Status code: {res.StatusCode} {res.ResponseReason}");
+                    System.Console.WriteLine($"Location: {res?.Location?.AbsoluteUri}");
+                    System.Console.WriteLine($"Date: {res.Date.ToString(CultureInfo.CurrentCulture)}");
+                    System.Console.WriteLine($"Cache-Control: max-age = {res.CacheControl}");
+                    System.Console.WriteLine($"Server: " +
+                                             $"{res?.Server?.OperatingSystem}/{res?.Server?.OperatingSystemVersion} " +
+                                             $"UPNP/" +
+                                             $"{res?.Server?.UpnpMajorVersion}.{res?.Server?.UpnpMinorVersion}" +
+                                             $" " +
+                                             $"{res?.Server?.ProductName}/{res?.Server?.ProductVersion}" +
+                                             $" - ({res?.Server?.FullString})");
+                    System.Console.WriteLine($"ST: {res.ST}");
+                    System.Console.WriteLine($"USN: {res.USN}");
+                    System.Console.WriteLine($"BOOTID.UPNP.ORG: {res?.BOOTID}");
+                    System.Console.WriteLine($"CONFIGID.UPNP.ORG: {res?.CONFIGID}");
+                    System.Console.WriteLine($"SEARCHPORT.UPNP.ORG: {res?.SEARCHPORT}");
+                    System.Console.WriteLine($"SECURELOCATION: {res?.SECURELOCATION}");
+
+                    if (res?.Headers?.Any() ?? false)
+                    {
+                        System.Console.ForegroundColor = ConsoleColor.DarkYellow;
+                        System.Console.WriteLine($"Additional Headers: {res.Headers?.Count}");
+                        foreach (var header in res.Headers)
+                        {
+                            System.Console.WriteLine($"{header.Key}: {header.Value}; ");
+                        }
+                        System.Console.ResetColor();
+                    }
+
+                    if (res.HasParsingError)
+                    {
+                        System.Console.WriteLine($"Parsing errors: {res.HasParsingError}");
+                    }
+
+                    System.Console.WriteLine();
+                });
+    }
+
+    
+    private static async Task StartMSearchRequestMulticastAsync()
+    {
+        var mSearchMessage = new MSearch
+        {
+            SearchCastMethod = CastMethod.Multicast,
+            CPFN = "MyTestSSDPControlPoint",
+            Name = UdpSSDPMultiCastAddress,
+            Port = UdpSSDPMulticastPort,
+            MX = TimeSpan.FromSeconds(5),
+            TCPPORT = TcpResponseListenerPort.ToString(),
+            ST = new ST
             {
-                // Insert code to deal with exceptions here.
+                StSearchType = STSearchType.All
             },
-            () => 
+            UserAgent = new UserAgent
             {
-                // Insert code dealing with completion here.
-            });
+                OperatingSystem = "Windows",
+                OperatingSystemVersion = "10.0",
+                ProductName = "SSDP.UPNP.PCL",
+                ProductVersion = "0.9",
+                UpnpMajorVersion = "2",
+                UpnpMinorVersion = "0",
+            }
+        };
+
+        // Send out SDDP Search request:
+        await _controlPoint.SendMSearchAsync(mSearchMessage);
+    }
 }
 ```
 
 ### Start Search for UPnP Devices
-Searching for devices is specified in the UPnP Specification:
+More details about searching for devices is specified in the UPnP Specification. Regarding the ST paramater the [UPnP v2.0 specification](http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v2.0.pdf) states:
 
 ST 
 Required. Field value contains Search Target. shall be one of the following. (See NT header field in NOTIFY with ssdp:alive above.) Single URI. 
-* ssdp:all Search for all devices and services. 
-* upnp:rootdevice Search for root devices only. 
-* uuid:device-UUID Search for a particular device. device-UUID specified by UPnP vendor. See clause 1.1.4, “UUID format and recommended generation algorithms” for the MANDATORY UUID format. 
-* urn:schemas-upnp-org:device:deviceType:ver Search for any device of this type where deviceType and ver are defined by the UPnP Forum working committee. 
-* urn:schemas-upnp-org:service:serviceType:ver Search for any service of this type where serviceType and ver are defined by the UPnP Forum working committee. 
-* urn:domain-name:device:deviceType:ver Search for any device of this typewhere domain-name (a Vendor Domain Name), deviceType and ver are defined by the UPnP vendor and ver specifies the highest specifies the highest supported version of the device type. Period characters in the Vendor Domain Name shall be replaced with hyphens in accordance with RFC 2141. 
-* urn:domain-name:service:serviceType:ver Search for any service of this type. Where domain-name (a Vendor Domain Name), serviceType and ver are defined by the UPnP vendor and ver specifies the highest specifies the highest supported version of the service type. Period characters in the Vendor Domain Name shall be replaced with hyphens in accordance with RFC 2141. 
+* `ssdp:all` Search for all devices and services. 
+* `upnp:rootdevice` Search for root devices only. 
+* `uuid:device-UUID` Search for a particular device. device-UUID specified by UPnP vendor. See clause 1.1.4, UUID format and recommended generation algorithms for the MANDATORY UUID format. 
+* `urn:schemas-upnp-org:device:deviceType:ver` Search for any device of this type where deviceType and ver are defined by the UPnP Forum working committee. 
+* `urn:schemas-upnp-org:service:serviceType:ver` Search for any service of this type where serviceType and ver are defined by the UPnP Forum working committee. 
+* `urn:domain-name:device:deviceType:ver` Search for any device of this typewhere domain-name (a Vendor Domain Name), deviceType and ver are defined by the UPnP vendor and ver specifies the highest specifies the highest supported version of the device type. Period characters in the Vendor Domain Name shall be replaced with hyphens in accordance with RFC 2141. 
+* `urn:domain-name:service:serviceType:ver` Search for any service of this type. Where domain-name (a Vendor Domain Name), serviceType and ver are defined by the UPnP vendor and ver specifies the highest specifies the highest supported version of the service type. Period characters in the Vendor Domain Name shall be replaced with hyphens in accordance with RFC 2141. 
 
-To search for devices like this:
-```csharp
-
-private static async Task StartMSearchRequestMulticastAsync()
-{
-    // Create a search package
-    var mSearchMessage = new MSearch
-    {
-        SearchCastMethod = CastMethod.Multicast,
-        CPFN = "TestXamarin",
-        HostIp = "239.255.255.250",
-        HostPort = 1900,
-        MX = TimeSpan.FromSeconds(5),
-        TCPPORT = Initializer.TcpResponseListenerPort.ToString(),
-        ST = new ST
-            {
-                STtype  = STtype.RootDevice
-            },
-        UserAgent = new UserAgent
-        {
-            OperatingSystem = "Windows",
-            OperatingSystemVersion = "10.0",
-            ProductName = "SSDP.UPNP.PCL",
-            ProductVersion = "0.9",
-            UpnpMajorVersion = "2",
-            UpnpMinorVersion = "0",
-        }
-    };
-
-    // Send out a search
-    await _controlPoint.SendMSearchAsync(mSearchMessage);
-}
-```
-
+T
 **IMPORTANT** Notice that you must create your own instance of the MSearch class and that it must implement the `IMSearchRequest` interface. It could be as simple as below or it could be more complex. You could even give the class a different name. It all depends on your needs. Only requirement is that it implements the interface `IMSearchRequest`:
 ```csharp
 internal class MSearch : IMSearchRequest
@@ -199,92 +274,7 @@ internal class UserAgent : IUserAgent
     public string UpnpMinorVersion { get; internal set; }
     public bool IsUpnp2 { get; internal set; }
 }
-
-internal class ST : IST
-{
-    public STtype STtype { get; internal set; }
-    public string DeviceUUID { get; internal set; }
-    public string Type { get; internal set; }
-    public string Version { get; internal set; }
-    public string DomainName { get; internal set; }
-    public bool HasDomain { get; internal set; }
-}
-
 ```
-
-### Listen to MSearch Reponses
-To listen to MSearch responses
-
-```csharp
-private static async Task ListenToMSearchResponse()
-{
-
-    var mSeachResObs = await _controlPoint.CreateMSearchResponseObservable(Initializer.TcpResponseListenerPort);
-
-    var counter = 0;
-
-    var mSearchresponseSubscribe = mSeachResObs
-        //.Where(req => req.HostIp == _remoteDeviceIp)
-        //.SubscribeOn(Scheduler.CurrentThread)
-        .Subscribe(
-            res =>
-            {
-                // Example code
-                counter++;
-                System.Console.BackgroundColor = ConsoleColor.DarkBlue;
-                System.Console.ForegroundColor = ConsoleColor.White;
-                System.Console.WriteLine($"---### Control Point Received a  M-SEARCH RESPONSE #{counter} ###---");
-                System.Console.ResetColor();
-                System.Console.WriteLine($"{res.ResponseCastMethod.ToString()}");
-                System.Console.WriteLine($"From: {res.HostIp}:{res.HostPort}");
-                System.Console.WriteLine($"Status code: {res.StatusCode} {res.ResponseReason}");
-                System.Console.WriteLine($"Location: {res.Location.AbsoluteUri}");
-                System.Console.WriteLine($"Date: {res.Date.ToString(CultureInfo.CurrentCulture)}");
-                System.Console.WriteLine($"Cache-Control: max-age = {res.CacheControl}");
-                System.Console.WriteLine($"Server: " +
-                                            $"{res.Server.OperatingSystem}/{res.Server.OperatingSystemVersion} " +
-                                            $"UPNP/" +
-                                            $"{res.Server.UpnpMajorVersion}.{res.Server.UpnpMinorVersion}" +
-                                            $" " +
-                                            $"{res.Server.ProductName}/{res.Server.ProductVersion}" +
-                                            $" - ({res.Server.FullString})");
-                System.Console.WriteLine($"ST: {res.ST}");
-                System.Console.WriteLine($"USN: {res.USN}");
-                System.Console.WriteLine($"BOOTID.UPNP.ORG: {res.BOOTID}");
-                System.Console.WriteLine($"CONFIGID.UPNP.ORG: {res.CONFIGID}");
-                System.Console.WriteLine($"SEARCHPORT.UPNP.ORG: {res.SEARCHPORT}");
-                System.Console.WriteLine($"SECURELOCATION: {res.SECURELOCATION}");
-
-                if (res.Headers.Any())
-                {
-                    System.Console.ForegroundColor = ConsoleColor.DarkYellow;
-                    System.Console.WriteLine($"Additional Headers: {res.Headers.Count}");
-                    foreach (var header in res.Headers)
-                    {
-                        System.Console.WriteLine($"{header.Key}: {header.Value}; ");
-                    }
-                    System.Console.ResetColor();
-                }
-
-                System.Console.WriteLine();
-            },
-            ex => 
-            {
-                // Insert code to deal with exceptions here.
-            },
-            () => 
-            {
-                // Insert code dealing with completion here.
-            });
-
-    await StartMSearchRequestMulticastAsync();
-}
-```
-### 
-
-**IMPORTANT** If you are not seeing MSearch responses or Notify messages and your are running Windows, then try and stop the Windows SSDP Service to prevent this server intercepting these messages before they reach your code. 
-
-For details about what a multicast M-SEARCH Request is and how to use it: see the [UPnP Architecture documentation](http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v2.0.pdf)). 
 
 ## Device
 

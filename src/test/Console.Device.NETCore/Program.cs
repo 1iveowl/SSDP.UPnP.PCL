@@ -23,7 +23,7 @@ class Program
     static async Task Main(string[] args)
     {
         _deviceLocalIpAddress = IPAddress.Parse("192.168.0.59");
-        _remoteControlPointHost = IPAddress.Parse("192.168.0.23");
+        _remoteControlPointHost = IPAddress.Parse("192.168.0.48");
 
         var cts = new CancellationTokenSource();
 
@@ -34,7 +34,7 @@ class Program
 
     private static async void StartAsync(CancellationToken ct)
     {
-        await StartDeviceListening(ct);
+        StartDeviceListening();
         await StartSendingRandomNotify(ct);
     }
 
@@ -45,7 +45,7 @@ class Program
 
         while (true)
         {
-            await Task.Delay(TimeSpan.FromSeconds(wait.Next(1,6)));
+            await Task.Delay(TimeSpan.FromSeconds(wait.Next(1,6)), ct);
             i++;
             var newNotify = new Notify
             {
@@ -54,7 +54,7 @@ class Program
                 CONFIGID = "1",
                 Name = _remoteControlPointHost.ToString(),
                 Port = 1900,
-                Location = new Uri($"http://{_deviceLocalIpAddress.ToString()}:1900/Test"),
+                Location = new Uri($"http://{_deviceLocalIpAddress}:1900/Test"),
                 NotifyCastMethod = CastMethod.Multicast,
                 NT = "upnp:rootdevice",
                 NTS = NTS.Alive,
@@ -75,16 +75,14 @@ class Program
         }
     }
 
-    private static async Task StartDeviceListening(CancellationToken ct)
+    private static void StartDeviceListening()
     {
-
         _device = new Device(_deviceLocalIpAddress);
-        var mSearchObservable = await _device.CreateMSearchObservable(ct);
+        var mSearchObservable = _device.CreateMSearchObservable();
 
-        var diposableMSearch= mSearchObservable
+        var disposableMSearch= mSearchObservable
             .Where(req => req.Name == _remoteControlPointHost.ToString())
-            .Subscribe(
-            async req =>
+            .Do(req =>
             {
                 System.Console.BackgroundColor = ConsoleColor.DarkGreen;
                 System.Console.ForegroundColor = ConsoleColor.White;
@@ -116,36 +114,49 @@ class Program
                     }
                     System.Console.ResetColor();
                 }
-                
+
                 System.Console.WriteLine();
-
-                var mSearchResponse = new MSearchResponse
+            })
+            .Select(req => new MSearchResponse
+            {
+                ResponseCastMethod = CastMethod.Unicast,
+                StatusCode = 200,
+                ResponseReason = "OK",
+                CacheControl = TimeSpan.FromSeconds(30),
+                Date = DateTime.Now,
+                Ext = true,
+                Location = new Uri($"http://{_remoteControlPointHost}:{req.TCPPORT}/test"),
+                Server = new Server
                 {
-                    //HostIp = _hostIp,
-                    //HostPort = Initializer.UdpListenerPort,
-                    ResponseCastMethod = CastMethod.Unicast,
-                    StatusCode = 200,
-                    ResponseReason = "OK",
-                    CacheControl = TimeSpan.FromSeconds(30),
-                    Date = DateTime.Now,
-                    Ext = true,
-                    Location = new Uri($"http://{_remoteControlPointHost}:{req.TCPPORT}/test"),
-                    Server = new Server
-                    {
-                        OperatingSystem = "Windows",
-                        OperatingSystemVersion = "10.0",
-                        IsUpnp2 = true,
-                        ProductName = "Tester",
-                        ProductVersion = "0.1",
-                        UpnpMajorVersion = "2",
-                        UpnpMinorVersion = "0"
-                    },
-                    ST = req.ST,
-                    USN = "uuid:device-UUID::upnp:rootdevice",
-                    BOOTID = "1"
-                };
-
-                await _device.SendMSearchResponseAsync(mSearchResponse, req);
-            });
+                    OperatingSystem = "Windows",
+                    OperatingSystemVersion = "10.0",
+                    IsUpnp2 = true,
+                    ProductName = "Tester",
+                    ProductVersion = "0.1",
+                    UpnpMajorVersion = "2",
+                    UpnpMinorVersion = "0"
+                },
+                ST = req.ST,
+                USN = "uuid:device-UUID::upnp:rootdevice",
+                BOOTID = "1",
+                RequestHost = new Host(req),
+                RequestTCPPort = req.TCPPORT,
+                MX = req.MX
+            })
+            .Select(res => Observable.FromAsync(() => _device.SendMSearchResponseAsync(res)))
+            .Concat()
+            .Subscribe(
+                _ =>
+                {
+                    System.Console.WriteLine("M-Search Response send.");
+                },
+                ex =>
+                {
+                    System.Console.WriteLine(ex);
+                },
+                () =>
+                {
+                    System.Console.WriteLine("Completed.");
+                });
     }
 }

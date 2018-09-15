@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using HttpMachine;
+using ISimpleHttpListener.Rx.Enum;
 using ISimpleHttpListener.Rx.Model;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
@@ -59,14 +60,14 @@ namespace SSDP.UPnP.PCL.Service
 
             _udpClient.Client.Bind(_localEnpoint);
 
-            _udpMulticastHttpListener = _udpClient.ToHttpListenerObservable(ct).Publish().RefCount();
+            _udpMulticastHttpListener = _udpClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError).Publish().RefCount();
 
             var tcpListener = new TcpListener(_ipTcpResponseEndPoint)
             {
                 ExclusiveAddressUse = false
             };
 
-            _tcpMulticastHttpListener = tcpListener.ToHttpListenerObservable(ct).Publish().RefCount();
+            _tcpMulticastHttpListener = tcpListener.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError).Publish().RefCount();
 
             _isStarted = true;
         }
@@ -75,7 +76,7 @@ namespace SSDP.UPnP.PCL.Service
         {
             if (!_isStarted)
             {
-                throw new Exception("Not Control Point started...");
+                throw new Exception("No Control Point started...");
             }
 
             return _tcpMulticastHttpListener
@@ -90,7 +91,7 @@ namespace SSDP.UPnP.PCL.Service
         {
             if (!_isStarted)
             {
-                throw new Exception("Not Control Point started...");
+                throw new Exception("No Control Point started...");
             }
 
             return _udpMulticastHttpListener

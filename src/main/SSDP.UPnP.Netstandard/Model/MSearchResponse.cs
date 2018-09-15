@@ -27,6 +27,9 @@ namespace SSDP.UPnP.PCL.Model
         public string CONFIGID { get; }
         public string SEARCHPORT { get; }
         public string SECURELOCATION { get; }
+        public string RequestTCPPort { get; }
+        public IHost RequestHost { get; }
+        public TimeSpan MX { get; }
 
         public IDictionary<string, string> Headers { get; }
 

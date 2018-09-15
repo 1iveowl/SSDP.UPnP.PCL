@@ -7,10 +7,12 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
 {
     public interface IDevice
     {
-        Task<IObservable<IMSearchRequest>> CreateMSearchObservable(CancellationToken ct);
+        IObservable<IMSearchRequest> CreateMSearchObservable();
+
+        void Start(CancellationToken ct);
 
         Task SendNotifyAsync(INotifySsdp notifySsdp);
 
-        Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse, IMSearchRequest mSearchRequest);
+        Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse);
     }
 }

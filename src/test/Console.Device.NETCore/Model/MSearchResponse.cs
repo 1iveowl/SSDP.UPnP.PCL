@@ -15,6 +15,7 @@ namespace Console.Device.NETCore.Model
         public bool HasParsingError { get; internal set; }
 
         public CastMethod ResponseCastMethod { get; internal set; }
+
         public int StatusCode { get; internal set; }
         public string ResponseReason { get; internal set; }
         public TimeSpan CacheControl { get; internal set; }
@@ -28,5 +29,8 @@ namespace Console.Device.NETCore.Model
         public string CONFIGID { get; internal set; }
         public string SEARCHPORT { get; internal set; }
         public string SECURELOCATION { get; internal set; }
+        public string RequestTCPPort { get; internal set; }
+        public IHost RequestHost { get; internal set; }
+        public TimeSpan MX { get; internal set; }
     }
 }

@@ -5,7 +5,6 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Console.NETCore.Test.Model;
-
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Service;
 using SSDP.UPnP.PCL.Model;
@@ -15,14 +14,10 @@ using static SSDP.UPnP.PCL.Helper.Constants;
 class Program
 {
     private static IControlPoint _controlPoint;
-    private static IDevice _device;
     private static IPAddress _controlPointLocalIp;
 
 
-    //private static string _remoteDeviceIp = "10.10.2.170";
-
-
-    // For this test to work you most likely need to stop the SSDP Discovery service on Windows
+   // For this test to work you most likely need to stop the SSDP Discovery service on Windows
     // If you don't stop the SSDP Windows Service, the service will intercept the UPnP multicasts and consequently nothing will show up in the console. 
 
     static async Task Main(string[] args)
@@ -41,11 +36,7 @@ class Program
 
         System.Console.WriteLine("Press any key to end (2)");
         System.Console.ReadKey();
-        
-        //while (true)
-        //{
-        //    await Task.Delay(TimeSpan.FromSeconds(10));
-        //}
+
     }
 
     private static async Task StartAsync(CancellationToken ct)
@@ -65,6 +56,7 @@ class Program
 
         await ListenToMSearchResponse(ct);
         
+
         await StartMSearchRequestMulticastAsync();
     }
 
@@ -126,11 +118,11 @@ class Program
     private static async Task ListenToMSearchResponse(CancellationToken ct)
     {
 
-        var mSeachResObs = _controlPoint.CreateMSearchResponseObservable();
+        var mSearchResObs = _controlPoint.CreateMSearchResponseObservable();
 
         var counter = 0;
 
-        var mSearchresponseSubscribe = mSeachResObs
+        var disposableMSearchresponse = mSearchResObs
             //.Where(req => req.HostIp == _remoteDeviceIp)
             //.SubscribeOn(Scheduler.CurrentThread)
             .Subscribe(
@@ -193,11 +185,11 @@ class Program
             Port = UdpSSDPMulticastPort,
             MX = TimeSpan.FromSeconds(5),
             TCPPORT = TcpResponseListenerPort.ToString(),
-            ST = new ST("urn:myharmony-com:device:harmony:1"),
-            //ST = new ST
-            //{
-            //    StSearchType = STSearchType.All
-            //},
+            //ST = new ST("urn:myharmony-com:device:harmony:1"),
+            ST = new ST
+            {
+                StSearchType = STSearchType.All
+            },
             //ST = new ST
             //{
             //    STtype  = STtype.ServiceType,

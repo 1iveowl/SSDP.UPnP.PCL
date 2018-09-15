@@ -11,20 +11,18 @@
     <iconUrl>https://nuget.org/Content/Images/packageDefaultIcon.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>
-      [Feature] Extended with allowMultipleBindingToPort -- CreateNotifyObservable(bool allowMultipleBindingToPort = false) and CreateMSearchObservable(allowMultipleBindingToPort:true)
-      [Rx] Moved to System.Reactive 4.1.0
-      [.NET Standard] Moved to version 2.0
-      [All] Removed Obsolete methods from Library.
+An implementation of SSDP for both ControlPoint and Device according to the UPnP 2.0 specification. Utilizes Reactive Extensions for easy use and reliability. 
     </description>
     <releaseNotes>
-Moved to .NET Standard 1.3 (from .NET Standard 1.2)
+[All] No longer relies on SocketLite.
+[All] Great improvements in the reliability and performance.
+[All] Breaking changes in version 6.0. See project site for details.
     </releaseNotes>
     <copyright>Copyright 2018</copyright>
-    <tags>ssdp upnp iot ios android uwp netcore</tags>
+    <tags>ssdp upnp upnp2.0 iot ios android uwp netcore rx reactivex reactiveextensions</tags>
         <dependencies>
           <dependency id="System.Reactive" version="4.1.0"/>
-          <dependency id="SocketLite.PCL" version="5.1.1"/>
-          <dependency id="SimpleHttpListener" version="5.1.1"/>
+          <dependency id="SimpleHttpListener" version="6.0.0"/>
         </dependencies>
   </metadata>
   <files>

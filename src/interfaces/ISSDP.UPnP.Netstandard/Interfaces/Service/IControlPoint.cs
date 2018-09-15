@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using ISimpleHttpListener.Rx.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 
 namespace ISSDP.UPnP.PCL.Interfaces.Service

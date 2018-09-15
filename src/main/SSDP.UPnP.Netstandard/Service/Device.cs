@@ -7,11 +7,13 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using HttpMachine;
+using ISimpleHttpListener.Rx.Enum;
 using ISimpleHttpListener.Rx.Model;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 using ISSDP.UPnP.PCL.Interfaces.Service;
 using SimpleHttpListener.Rx.Extension;
+using SimpleHttpListener.Rx.Model;
 using SSDP.UPnP.PCL.Helper;
 using SSDP.UPnP.PCL.Model;
 using SSDP.UPnP.PCL.Service.Base;
@@ -25,54 +27,73 @@ namespace SSDP.UPnP.PCL.Service
 
         private readonly IPEndPoint _ipUdpEndPoint;
         private readonly IPEndPoint _ipTcpRequestEndPoint;
+        private readonly IPEndPoint _localEnpoint;
 
-        private readonly UdpClient _udpClient;
+        private UdpClient _udpClient;
+
+        private IObservable<IHttpRequestResponse> _udpMulticastHttpListener;
+
+        //private IObservable<IHttpRequestResponse> _tcpMulticastHttpListener;
+
+        private bool _isStarted;
 
         public Device(IPAddress ipAddress)
         {
-            _ipUdpEndPoint = new IPEndPoint(ipAddress, UdpSSDPMulticastPort);
+            _localEnpoint = new IPEndPoint(ipAddress, UdpSSDPMulticastPort);
 
-            _ipTcpRequestEndPoint = new IPEndPoint(ipAddress, TcpResponseListenerPort);
+            _ipUdpEndPoint = new IPEndPoint(IPAddress.Parse(UdpSSDPMultiCastAddress), UdpSSDPMulticastPort);
 
+            _ipTcpRequestEndPoint = new IPEndPoint(ipAddress, TcpRequestListenerPort);
+
+        }
+
+        public void Start(CancellationToken ct)
+        {
             _udpClient = new UdpClient
             {
-                ExclusiveAddressUse = false
+                ExclusiveAddressUse = false,
+                MulticastLoopback = true
             };
+
+            //_udpClient.Client.ReceiveBufferSize = 8 * 4092;
 
             _udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
             _udpClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress));
+
+            _udpClient.Client.Bind(_localEnpoint);
+
+            _udpMulticastHttpListener = _udpClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError); //.Publish().RefCount();
+
+            //var tcpListener = new TcpListener(_ipTcpRequestEndPoint)
+            //{
+            //    ExclusiveAddressUse = false
+            //};
+
+            //_tcpMulticastHttpListener = tcpListener.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError).Publish().RefCount();
+
+            _isStarted = true;
         }
 
-        public async Task<IObservable<IMSearchRequest>> CreateMSearchObservable(CancellationToken ct)
+        public IObservable<IMSearchRequest> CreateMSearchObservable()
         {
             if (!_udpClient?.Client?.IsBound ?? false)
             {
                 _udpClient.Client.Bind(_ipUdpEndPoint);
             }
 
-            return _udpClient.ToHttpListenerObservable(ct)
+            return _udpMulticastHttpListener
                     .Where(x => x.MessageType == MessageType.Request)
                     .Select(x => x as IHttpRequest)
                     .Where(res => res != null)
                     .Where(req => req?.Method == "M-SEARCH")
                     .Select(req => new MSearchRequest(req));
-
-            //var multicastReqObs = await _httpListener.UdpMulticastHttpRequestObservable(
-            //    Initializer.UdpSSDPMultiCastAddress,
-            //    Initializer.UdpSSDPMulticastPort,
-            //    allowMultipleBindingToPort);
-
-            //return multicastReqObs
-            //    .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
-            //    .Where(req => req.Method == "M-SEARCH")
-            //    .Select(req => new MSearchRequest(req));
         }
 
-        public async Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse, IMSearchRequest mSearchRequest)
+        public async Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse)
         {
             var wait = new Random();
-            await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(50, (int)mSearchRequest.MX.TotalMilliseconds)));
+            await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(50, (int)mSearchResponse.MX.TotalMilliseconds)));
 
             if (mSearchResponse.ResponseCastMethod != CastMethod.Unicast)
             {
@@ -80,14 +101,14 @@ namespace SSDP.UPnP.PCL.Service
                 await _udpClient.SendAsync(datagram, datagram.Length, _ipUdpEndPoint);
             }
 
-            if (int.TryParse(mSearchRequest.TCPPORT, out int tcpSpecifiedRemotePort))
+            if (int.TryParse(mSearchResponse.RequestTCPPort, out var tcpSpecifiedRemotePort))
             {
-                await SendOnTcp(mSearchRequest.Name, tcpSpecifiedRemotePort,
+                await SendOnTcp(mSearchResponse.RequestHost.Name, tcpSpecifiedRemotePort,
                     ComposeMSearchResponseDatagram(mSearchResponse));
             }
             else
             {
-                await SendOnTcp(mSearchRequest.Name, mSearchRequest.Port,
+                await SendOnTcp(mSearchResponse.RequestHost.Name, mSearchResponse.RequestHost.Port,
                     ComposeMSearchResponseDatagram(mSearchResponse));
             }
         }
