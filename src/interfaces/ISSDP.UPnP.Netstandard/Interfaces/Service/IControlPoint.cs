@@ -17,6 +17,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
 
         Task SendMSearchAsync(IMSearchRequest mSearch, IPAddress ipAddress);
 
+        bool IsStarted { get; }
         bool IsMultihomed { get; }
     }
 }

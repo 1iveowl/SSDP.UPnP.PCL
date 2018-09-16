@@ -27,13 +27,13 @@ namespace SSDP.UPnP.PCL.Service
 
         private readonly IEnumerable<IControlPointInterface> _controlPointInterfaces;
 
-        private bool _isStarted;
-
         private IObservable<IHttpRequestResponse> _udpMulticastHttpListener;
 
         private IObservable<IHttpRequestResponse> _tcpMulticastHttpListener;
 
         private readonly bool _isClientsProvided;
+
+        public bool IsStarted { get; private set; }
 
         public bool IsMultihomed => _controlPointInterfaces.Count() > 1;
 
@@ -124,12 +124,12 @@ namespace SSDP.UPnP.PCL.Service
                 }
             }
 
-            _isStarted = true;
+            IsStarted = true;
         }
 
         public IObservable<IMSearchResponse> MSearchResponseObservable()
         {
-            if (!_isStarted)
+            if (!IsStarted)
             {
                 throw new Exception("Control Point not started.");
             }
@@ -144,7 +144,7 @@ namespace SSDP.UPnP.PCL.Service
 
         public IObservable<INotifySsdp> NotifyObservable()
         {
-            if (!_isStarted)
+            if (!IsStarted)
             {
                 throw new Exception("Control Point not started.");
             }
@@ -160,7 +160,7 @@ namespace SSDP.UPnP.PCL.Service
         
         public async Task SendMSearchAsync(IMSearchRequest mSearch, IPAddress ipAddress)
         {
-            if (!_isStarted)
+            if (!IsStarted)
             {
                 throw new Exception("Control Point not started.");
             }

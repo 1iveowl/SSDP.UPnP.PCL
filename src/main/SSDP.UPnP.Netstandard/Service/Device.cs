@@ -53,6 +53,8 @@ namespace SSDP.UPnP.PCL.Service
 
         public bool IsStarted { get; private set; }
 
+        public bool IsMultiHomed => _rootDeviceInterfaces.Count() > 1;
+
         public Device(IRootDevice rootDevice)
         {
             if (rootDevice?.IpEndPoint == null)
@@ -90,6 +92,7 @@ namespace SSDP.UPnP.PCL.Service
 
         public Device(params IRootDeviceInterface[] rootDeviceInterfaces)
         {
+            _rootDeviceInterfaces = rootDeviceInterfaces;
 
             //SEARCHPORT = ipEndPoint.Port;
 
@@ -103,32 +106,82 @@ namespace SSDP.UPnP.PCL.Service
 
         public void Start(CancellationToken ct)
         {
-            var multicastClient = new UdpClient
+
+            if (!_rootDeviceInterfaces?.Any() ?? false)
             {
-                ExclusiveAddressUse = false,
-                MulticastLoopback = true
-            };
+                throw new SSDPException("No Root Device specified.");
+            }
 
-            //_udpClient.Client.ReceiveBufferSize = 8 * 4092;
-
-            _multicastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-
-            _multicastClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress));
-
-            _multicastClient.Client.Bind(_deviceMulticastEndpoint);
-
-
-            var unicastClient = new UdpClient
+            foreach (var rootDevice in _rootDeviceInterfaces)
             {
-                ExclusiveAddressUse = false
-            };
+                if (_udpMulticastHttpListener == null)
+                {
+                    _udpMulticastHttpListener = rootDevice.UdpMulticastClient
+                        .ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError)
+                        .Publish().RefCount();
+                }
+                else
+                {
+                    _udpMulticastHttpListener = _udpMulticastHttpListener.Merge(
+                        rootDevice.UdpMulticastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError))
+                        .Publish().RefCount();
+                }
 
-            _unicastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                if (_udpUnicastHttpListener == null)
+                {
+                    _udpUnicastHttpListener = rootDevice.UdpUnicastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError)
+                        .Publish().RefCount();
+                }
+                else
+                {
+                    _udpUnicastHttpListener = _udpUnicastHttpListener.Merge(
+                        rootDevice.UdpUnicastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError))
+                        .Publish().RefCount();
+                }
+            }
 
-            _unicastClient.Client.Bind(_deviceUnicastEndpoint);
+            IsStarted = true;
 
-            Start(multicastClient, unicastClient, ct);
+            //var multicastClient = new UdpClient
+            //{
+            //    ExclusiveAddressUse = false,
+            //    MulticastLoopback = true
+            //};
+
+            ////_udpClient.Client.ReceiveBufferSize = 8 * 4092;
+
+            //_multicastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+
+            //_multicastClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress));
+
+            //_multicastClient.Client.Bind(_deviceMulticastEndpoint);
+
+
+            //var unicastClient = new UdpClient
+            //{
+            //    ExclusiveAddressUse = false
+            //};
+
+            //_unicastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+
+            //_unicastClient.Client.Bind(_deviceUnicastEndpoint);
+
+            //Start(multicastClient, unicastClient, ct);
         }
+        
+        //private void Start(UdpClient multicastClint, UdpClient unicastClient, CancellationToken ct)
+        //{
+        //    _multicastClient = multicastClint;
+        //    _unicastClient = unicastClient;
+
+        //    _udpMulticastHttpListener =
+        //        multicastClint.ToHttpListenerObservable(ct,
+        //            ErrorCorrection.HeaderCompletionError); //.Publish().RefCount();
+
+        //    _udpUnicastHttpListener = unicastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError);
+
+        //    IsStarted = true;
+        //}
 
         public void Stop()
         {
@@ -137,26 +190,14 @@ namespace SSDP.UPnP.PCL.Service
 
         // Constructor overload provides the opportunity to define the UDP Multicast and UDP Unicast client elsewhere.
         // This could come in handy if combining this SSDP library with UPnP Eventing and sharing the UDP clients between the UPnP layers.
-        private void Start(UdpClient multicastClint, UdpClient unicastClient, CancellationToken ct)
+
+
+        private IObservable<IMSearchResponse> MSearchRequestObservable()
         {
-            _multicastClient = multicastClint;
-            _unicastClient = unicastClient;
-
-            _udpMulticastHttpListener =
-                multicastClint.ToHttpListenerObservable(ct,
-                    ErrorCorrection.HeaderCompletionError); //.Publish().RefCount();
-
-            _udpUnicastHttpListener = unicastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError);
-
-            IsStarted = true;
-        }
-
-        public IObservable<IMSearchResponse> MSearchRequestObservable()
-        {
-            if (!_multicastClient?.Client?.IsBound ?? false)
-            {
-                _multicastClient.Client.Bind(_multicastEndPoint);
-            }
+            //if (!_multicastClient?.Client?.IsBound ?? false)
+            //{
+            //    _multicastClient.Client.Bind(_multicastEndPoint);
+            //}
 
             return _udpMulticastHttpListener
                 .Where(x => x.MessageType == MessageType.Request)
@@ -197,31 +238,32 @@ namespace SSDP.UPnP.PCL.Service
                 .Select(res => res);
         }
 
-        public async Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse)
-        {
-            var wait = new Random();
-            await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(50, (int) mSearchResponse.MX.TotalMilliseconds)));
+        //public async Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse, IPAddress ipAddress)
+        //{
+        //    var wait = new Random();
 
-            if (mSearchResponse.ResponseCastMethod != CastMethod.Unicast)
-            {
-                var datagram = ComposeMSearchResponseDatagram(mSearchResponse);
-                await _multicastClient.SendAsync(datagram, datagram.Length, _multicastEndPoint);
-            }
+        //    await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(50, (int) mSearchResponse.MX.TotalMilliseconds)));
 
-            await SendOnTcpASync(mSearchResponse.RemoteHost.Name, mSearchResponse.RemoteHost.Port,
-                ComposeMSearchResponseDatagram(mSearchResponse));
+        //    if (mSearchResponse.ResponseCastMethod != CastMethod.Unicast)
+        //    {
+        //        var datagram = ComposeMSearchResponseDatagram(mSearchResponse);
+        //        await _multicastClient.SendAsync(datagram, datagram.Length, _multicastEndPoint);
+        //    }
 
-            //if (int.TryParse(mSearchResponse.RemoteHost.Port, out var tcpSpecifiedRemotePort))
-            //{
-            //    await SendOnTcp(mSearchResponse.RemoteHost.Name, tcpSpecifiedRemotePort,
-            //        ComposeMSearchResponseDatagram(mSearchResponse));
-            //}
-            //else
-            //{
-            //    await SendOnTcp(mSearchResponse.RemoteHost.Name, mSearchResponse.RemoteHost.Port,
-            //        ComposeMSearchResponseDatagram(mSearchResponse));
-            //}
-        }
+        //    await SendOnTcpASync(mSearchResponse.RemoteHost.Name, mSearchResponse.RemoteHost.Port,
+        //        ComposeMSearchResponseDatagram(mSearchResponse));
+
+        //    //if (int.TryParse(mSearchResponse.RemoteHost.Port, out var tcpSpecifiedRemotePort))
+        //    //{
+        //    //    await SendOnTcp(mSearchResponse.RemoteHost.Name, tcpSpecifiedRemotePort,
+        //    //        ComposeMSearchResponseDatagram(mSearchResponse));
+        //    //}
+        //    //else
+        //    //{
+        //    //    await SendOnTcp(mSearchResponse.RemoteHost.Name, mSearchResponse.RemoteHost.Port,
+        //    //        ComposeMSearchResponseDatagram(mSearchResponse));
+        //    //}
+        //}
 
         public async Task SendNotifyAsync(INotifySsdp notifySsdp)
         {

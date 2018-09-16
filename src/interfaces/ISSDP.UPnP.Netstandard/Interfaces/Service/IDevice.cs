@@ -24,5 +24,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
         //Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse);
 
         bool IsStarted { get; }
+
+        bool IsMultiHomed { get; }
     }
 }
