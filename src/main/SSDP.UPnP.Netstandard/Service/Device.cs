@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -36,6 +37,12 @@ namespace SSDP.UPnP.PCL.Service
         //private IObservable<IHttpRequestResponse> _tcpMulticastHttpListener;
 
         private bool _isStarted;
+
+        public Uri Location { get; set; }
+        public IServer Server { get; set; }
+        public IEnumerable<IUSN> USNs { get; set; }
+        public IST ST { get; set; }
+        public int SEARCHPORT { get; set; }
 
         public Device(IPAddress ipAddress)
         {
@@ -103,7 +110,7 @@ namespace SSDP.UPnP.PCL.Service
 
             }
 
-            await SendOnTcp(mSearchResponse.RemoteHost.Name, mSearchResponse.RemoteHost.Port,
+            await SendOnTcpASync(mSearchResponse.RemoteHost.Name, mSearchResponse.RemoteHost.Port,
                 ComposeMSearchResponseDatagram(mSearchResponse));
 
             //if (int.TryParse(mSearchResponse.RemoteHost.Port, out var tcpSpecifiedRemotePort))

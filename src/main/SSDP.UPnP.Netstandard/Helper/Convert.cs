@@ -66,20 +66,17 @@ namespace SSDP.UPnP.PCL.Helper
                 case "urn":
                 {
                     var st = new ST();
+
                     if (stringParts[1].ToLower() != "schemas-upnp-org")
                     {
                         st.Domain = stringParts[1];
-                        st.HasDomain = true;
-                        }
-                    else
-                    {
-                        st.HasDomain = false;
                     }
 
                     if (stringParts[2].ToLower() == "device")
                     {
                         st.StSearchType = STSearchType.DeviceTypeSearch;
                     }
+
                     if (stringParts[2].ToLower() == "service")
                     {
                         st.StSearchType = STSearchType.ServiceTypeSearch;

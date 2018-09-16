@@ -35,7 +35,9 @@ Version 4.0 represents a major overhaul of this library. Version 4.0 is still ba
 There is still UWP support in version 4.0, but the emphasis has been on .NET Core and it will be going forward
 
 ## Getting Started With the Control Point
-Using the ControlPoint is easy. In the sample code we will start a listener that sends out a SSDP search request and listens for all SSDP search replies as well as any SSDP notifications that my be on the local network.
+Using the ControlPoint provided in this library is easy. Still, to fully appreciate the SSDP protocol and how it should be used it is highly recommended to read about the details in the [UPnP 2.0 Specification](http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v2.0.pdf).
+
+In the sample code we will start a listener that sends out a SSDP search request and listens for all SSDP search replies as well as any SSDP notifications that my be on the local network.
 
 **IMPORTANT** If you are not seeing MSearch responses or Notify messages when using the following example and your are running Windows, then try and stop the Windows SSDP Service to prevent this service from intercepting these messages so that thet neven reach you clint code. 
 
@@ -277,6 +279,7 @@ internal class UserAgent : IUserAgent
 ```
 
 ## Device
+Using the Device provided in this library is easy. Still, to fully appreciate the SSDP protocol and how it should be used it is highly recommended to read about the details in the [UPnP 2.0 Specification](http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v2.0.pdf).
 
 Listening and responding to MSearch Requests from Control Points could look something like this:
 ```csharp

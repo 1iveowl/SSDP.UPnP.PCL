@@ -3,15 +3,10 @@ using ISSDP.UPnP.PCL.Interfaces.Model;
 
 namespace SSDP.UPnP.PCL.Model
 {
-    public class ST : IST
+    public class ST : USN, IST
     {
         public STSearchType StSearchType { get; set; }
-        public string DeviceUUID { get; set; }
-        public string DeviceType { get; set; }
-        public string ServiceType { get; set; }
-        public string Version { get; set; }
-        public string Domain { get; set; }
-        public bool HasDomain { get; set; }
+
 
         public ST()
         { }

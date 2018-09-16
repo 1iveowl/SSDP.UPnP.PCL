@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Reactive.Linq;
@@ -6,8 +7,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Console.Device.NETCore.Model;
 using ISSDP.UPnP.PCL.Enum;
+using ISSDP.UPnP.PCL.Interfaces.Model;
 using ISSDP.UPnP.PCL.Interfaces.Service;
+using SSDP.UPnP.PCL.Model;
 using SSDP.UPnP.PCL.Service;
+using Host = Console.Device.NETCore.Model.Host;
 
 class Program
 {
@@ -22,8 +26,8 @@ class Program
 
     static async Task Main(string[] args)
     {
-        _deviceLocalIpAddress = IPAddress.Parse("192.168.0.48");
-        _remoteControlPointHost = IPAddress.Parse("192.168.0.59");
+        _deviceLocalIpAddress = IPAddress.Parse("192.168.0.59");
+        _remoteControlPointHost = IPAddress.Parse("192.168.0.48");
 
         var cts = new CancellationTokenSource();
 
@@ -77,7 +81,34 @@ class Program
 
     private static void StartDeviceListening()
     {
-        _device = new Device(_deviceLocalIpAddress);
+        _device = new Device(_deviceLocalIpAddress)
+        {
+            Location = new Uri($"http://{_remoteControlPointHost}/test"),
+            USNs = new List<IUSN>
+            {
+                new USN
+                {
+
+                },
+                new USN
+                {
+
+                },
+            },
+            Server = new Server
+            {
+                OperatingSystem = "Windows",
+                OperatingSystemVersion = "10.0",
+                IsUpnp2 = true,
+                ProductName = "Tester",
+                ProductVersion = "0.1",
+                UpnpMajorVersion = "2",
+                UpnpMinorVersion = "0"
+            },
+
+
+        };
+
 
         var cts = new CancellationTokenSource();
 

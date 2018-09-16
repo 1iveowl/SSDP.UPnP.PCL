@@ -24,7 +24,7 @@ namespace SSDP.UPnP.PCL.Service
     {
         private readonly IPEndPoint _ipUdpEndPoint;
         private readonly IPEndPoint _ipTcpResponseEndPoint;
-        private readonly IPEndPoint _localEnpoint;
+        private readonly IPEndPoint _localEndpoint;
 
         private bool _isStarted;
 
@@ -37,7 +37,7 @@ namespace SSDP.UPnP.PCL.Service
 
         public ControlPoint(IPAddress ipAddress)
         {
-            _localEnpoint = new IPEndPoint(ipAddress, UdpSSDPMulticastPort);
+            _localEndpoint = new IPEndPoint(ipAddress, UdpSSDPMulticastPort);
 
             _ipUdpEndPoint = new IPEndPoint(IPAddress.Parse(UdpSSDPMultiCastAddress), UdpSSDPMulticastPort);
 
@@ -58,7 +58,7 @@ namespace SSDP.UPnP.PCL.Service
 
             _udpClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress));
 
-            _udpClient.Client.Bind(_localEnpoint);
+            _udpClient.Client.Bind(_localEndpoint);
 
             _udpMulticastHttpListener = _udpClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError).Publish().RefCount();
 
@@ -105,19 +105,26 @@ namespace SSDP.UPnP.PCL.Service
         
         public async Task SendMSearchAsync(IMSearchRequest mSearch)
         {
-            if (mSearch.SearchCastMethod == CastMethod.Multicast)
-            {
-                var datagram = ComposeMSearchDatagram(mSearch);
-                await _udpClient.SendAsync(datagram, datagram.Length, _ipUdpEndPoint);
-            }
+            var dataGram = ComposeMSearchRequestDataGram(mSearch);
 
-            if (mSearch.SearchCastMethod == CastMethod.Unicast)
+            switch (mSearch?.SearchCastMethod)
             {
-                await SendOnTcp(mSearch.Name, mSearch.Port, ComposeMSearchDatagram(mSearch));
+                case CastMethod.Multicast:
+                    await _udpClient.SendAsync(dataGram, dataGram.Length, _ipUdpEndPoint);
+                    break;
+                case CastMethod.Unicast:
+                    await SendOnTcpASync(mSearch.Name, mSearch.Port, dataGram);
+                    break;
+                case CastMethod.NoCast:
+                    throw new SSDPException("M-SEARCH must be either Multicast or Unicast.");
+                case null:
+                    throw new SSDPException("M-SEARCH cannot be null.");
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(mSearch));
             }
         }
 
-        private byte[] ComposeMSearchDatagram(IMSearchRequest request)
+        private byte[] ComposeMSearchRequestDataGram(IMSearchRequest request)
         {
             var stringBuilder = new StringBuilder();
 
@@ -163,7 +170,6 @@ namespace SSDP.UPnP.PCL.Service
             return Encoding.UTF8.GetBytes(stringBuilder.ToString());
         }
 
-        // TODO add to documentation
         private string GetSTSting(IST st)
         {
             switch (st.StSearchType)
