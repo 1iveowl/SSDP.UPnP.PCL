@@ -6,11 +6,11 @@ using System.Text;
 
 namespace ISSDP.UPnP.PCL.Interfaces.Model
 {
-    public interface IDeviceInterface : IDeviceConfiguration
+    public interface IRootDeviceInterface 
     {
-        IPEndPoint IpEndPoint { get; }
         UdpClient UdpMulticastClient { get; }
         UdpClient UdpUnicastClient { get; }
-        int UnicastSearchPort { get; }
+
+        IRootDevice RootDevice { get; }
     }
 }

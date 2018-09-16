@@ -7,11 +7,11 @@ using ISSDP.UPnP.PCL.Interfaces.Model;
 
 namespace SSDP.UPnP.PCL.Model
 {
-    public class DeviceInterface : DeviceConfiguration, IDeviceInterface
+    public class RootDeviceInterface : IRootDeviceInterface
     {
-        public IPEndPoint IpEndPoint { get; set; }
         public UdpClient UdpMulticastClient { get; set; }
         public UdpClient UdpUnicastClient { get; set; }
-        public int UnicastSearchPort { get; set; }
+
+        public IRootDevice RootDevice { get; set; }
     }
 }

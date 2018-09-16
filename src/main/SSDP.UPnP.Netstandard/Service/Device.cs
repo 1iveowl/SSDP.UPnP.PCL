@@ -27,12 +27,14 @@ namespace SSDP.UPnP.PCL.Service
 {
     public class Device : CommonBase, IDevice
     {
-        private readonly IPEndPoint _multicastEndPoint;
-        private readonly IPEndPoint _deviceMulticastEndpoint;
-        private readonly IPEndPoint _deviceUnicastEndpoint;
+        //private readonly IPEndPoint _multicastEndPoint;
+        //private readonly IPEndPoint _deviceMulticastEndpoint;
+        //private readonly IPEndPoint _deviceUnicastEndpoint;
 
-        private UdpClient _multicastClient;
-        private UdpClient _unicastClient;
+        //private UdpClient _multicastClient;
+        //private UdpClient _unicastClient;
+
+        private readonly IEnumerable<IRootDeviceInterface> _rootDeviceInterfaces;
 
         private IObservable<IHttpRequestResponse> _udpMulticastHttpListener;
 
@@ -42,31 +44,62 @@ namespace SSDP.UPnP.PCL.Service
 
         public ILogger Logger { get; set; }
 
-        public Uri Location { get; set; }
-        public IServer Server { get; set; }
-        public IEnumerable<IUSN> USNs { get; set; }
-        public IST ST { get; set; }
-        public int SEARCHPORT { get; private set; }
+        //public Uri Location { get; set; }
+        //public IServer Server { get; set; }
+        //public IEnumerable<IUSN> USNs { get; set; }
+        //public IST ST { get; set; }
+        //public int SEARCHPORT { get; private set; }
 
 
         public bool IsStarted { get; private set; }
 
-        public Device(params IPEndPoint[] ipEndPoints)
+        public Device(IRootDevice rootDevice)
         {
+            if (rootDevice?.IpEndPoint == null)
+            {
+                throw new SSDPException("At least one Root Device must be fully specified.");
+            }
+            var rootDeviceInterface = new RootDeviceInterface
+            {
+                RootDevice = rootDevice,
+                UdpMulticastClient = new UdpClient
+                {
+                    ExclusiveAddressUse = false,
+                    MulticastLoopback = true
+                },
+                UdpUnicastClient = new UdpClient
+                {
+                    ExclusiveAddressUse = false
+                }
+            };
 
-            SEARCHPORT = ipEndPoint.Port;
+            rootDeviceInterface.UdpMulticastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
-            _deviceMulticastEndpoint = new IPEndPoint(ipEndPoint.Address, UdpSSDPMulticastPort);
+            rootDeviceInterface.UdpMulticastClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress));
 
-            _deviceUnicastEndpoint = new IPEndPoint(ipEndPoint.Address, SEARCHPORT);
+            rootDeviceInterface.UdpMulticastClient.Client.Bind(new IPEndPoint(rootDevice.IpEndPoint?.Address, UdpSSDPMulticastPort));
 
-            _multicastEndPoint = new IPEndPoint(IPAddress.Parse(UdpSSDPMultiCastAddress), UdpSSDPMulticastPort);
+
+            rootDeviceInterface.UdpUnicastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+
+            rootDeviceInterface.UdpUnicastClient.Client.Bind(new IPEndPoint(rootDevice.IpEndPoint.Address, rootDevice.IpEndPoint.Port));
+
+            _rootDeviceInterfaces = new List<IRootDeviceInterface> {rootDeviceInterface};
+
         }
 
-        public Device(params IDeviceInterface[] deviceInterfaces)
+        public Device(params IRootDeviceInterface[] rootDeviceInterfaces)
         {
 
+            //SEARCHPORT = ipEndPoint.Port;
+
+            //_deviceMulticastEndpoint = new IPEndPoint(ipEndPoint.Address, UdpSSDPMulticastPort);
+
+            //_deviceUnicastEndpoint = new IPEndPoint(ipEndPoint.Address, SEARCHPORT);
+
+            //_multicastEndPoint = new IPEndPoint(IPAddress.Parse(UdpSSDPMultiCastAddress), UdpSSDPMulticastPort);
         }
+
 
         public void Start(CancellationToken ct)
         {
@@ -97,9 +130,14 @@ namespace SSDP.UPnP.PCL.Service
             Start(multicastClient, unicastClient, ct);
         }
 
+        public void Stop()
+        {
+            throw new NotImplementedException();
+        }
+
         // Constructor overload provides the opportunity to define the UDP Multicast and UDP Unicast client elsewhere.
         // This could come in handy if combining this SSDP library with UPnP Eventing and sharing the UDP clients between the UPnP layers.
-        public void Start(UdpClient multicastClint, UdpClient unicastClient, CancellationToken ct)
+        private void Start(UdpClient multicastClint, UdpClient unicastClient, CancellationToken ct)
         {
             _multicastClient = multicastClint;
             _unicastClient = unicastClient;
@@ -318,6 +356,11 @@ namespace SSDP.UPnP.PCL.Service
                     Logger?.Info($"{header.Key}: {header.Value}; ");
                 }
             }
+        }
+
+        public void Dispose()
+        {
+            throw new NotImplementedException();
         }
     }
 }

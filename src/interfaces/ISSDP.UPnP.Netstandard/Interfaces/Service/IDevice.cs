@@ -6,7 +6,7 @@ using ISSDP.UPnP.PCL.Interfaces.Model;
 
 namespace ISSDP.UPnP.PCL.Interfaces.Service
 {
-    public interface IDevice
+    public interface IDevice : IDisposable
     {
         //Uri Location { get; set; }
         //IServer Server { get; set; }
@@ -17,9 +17,11 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
 
         void Start(CancellationToken ct);
 
+        void Stop();
+
         Task SendNotifyAsync(INotifySsdp notifySsdp);
 
-        Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse);
+        //Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse);
 
         bool IsStarted { get; }
     }
