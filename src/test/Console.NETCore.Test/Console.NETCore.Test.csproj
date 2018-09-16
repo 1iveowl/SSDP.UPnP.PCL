@@ -7,6 +7,9 @@
     <LangVersion>7.3</LangVersion>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="NLog" Version="4.5.9" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\interfaces\ISSDP.UPnP.Netstandard\ISSDP.UPnP.Netstandard.csproj" />
     <ProjectReference Include="..\..\main\SSDP.UPnP.Netstandard\SSDP.UPnP.Netstandard.csproj" />
   </ItemGroup>

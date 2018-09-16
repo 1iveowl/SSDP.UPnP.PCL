@@ -11,26 +11,31 @@ namespace SSDP.UPnP.PCL.Model
 {
     internal class MSearchResponse : ParserErrorBase, IMSearchResponse
     {
-        public string Name { get; }
-        public int Port { get; }
-        public CastMethod ResponseCastMethod { get; } = CastMethod.NoCast;
-        public int StatusCode { get;  }
-        public string ResponseReason { get; }
-        public TimeSpan CacheControl { get; }
-        public DateTime Date { get;  }
-        public Uri Location { get;  }
-        public bool Ext { get;  }
-        public IServer Server { get;  }
-        public IST ST { get; }
-        public string USN { get; }
-        public string BOOTID { get; }
-        public string CONFIGID { get; }
-        public string SEARCHPORT { get; }
-        public string SECURELOCATION { get; }
-        public IHost RemoteHost { get; }
-        public TimeSpan MX { get; }
+        public string Name { get; internal set; }
+        public int Port { get; internal set; }
+        public CastMethod ResponseCastMethod { get; internal set; } = CastMethod.NoCast;
+        public int StatusCode { get; internal set; }
+        public string ResponseReason { get; internal set; }
+        public TimeSpan CacheControl { get; internal set; }
+        public DateTime Date { get; internal set; }
+        public Uri Location { get; internal set; }
+        public bool Ext { get; internal set; }
+        public IServer Server { get; internal set; }
+        public IST ST { get; internal set; }
+        public string USN { get; internal set; }
+        public string BOOTID { get; internal set; }
+        public string CONFIGID { get; internal set; }
+        public string SEARCHPORT { get; internal set; }
+        public string SECURELOCATION { get; internal set; }
+        public IHost RemoteHost { get; internal set; }
+        public TimeSpan MX { get; internal set; }
 
         public IDictionary<string, string> Headers { get; }
+
+        internal MSearchResponse()
+        {
+
+        }
 
         internal MSearchResponse(IHttpResponse response)
         {

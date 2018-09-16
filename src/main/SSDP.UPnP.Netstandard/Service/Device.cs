@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -13,6 +14,7 @@ using ISimpleHttpListener.Rx.Model;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 using ISSDP.UPnP.PCL.Interfaces.Service;
+using NLog;
 using SimpleHttpListener.Rx.Extension;
 using SimpleHttpListener.Rx.Model;
 using SSDP.UPnP.PCL.Helper;
@@ -25,6 +27,7 @@ namespace SSDP.UPnP.PCL.Service
 {
     public class Device : CommonBase, IDevice
     {
+        private readonly ILogger _logger;
 
         private readonly IPEndPoint _ipUdpEndPoint;
         private readonly IPEndPoint _localMulticastEndpoint;
@@ -47,8 +50,10 @@ namespace SSDP.UPnP.PCL.Service
 
         public bool IsStarted { get; private set; }
 
-        public Device(IPAddress ipAddress, int searchPort)
+        public Device(IPAddress ipAddress, int searchPort, ILogger logger = null)
         {
+            _logger = logger;
+
             SEARCHPORT = searchPort;
 
             _localMulticastEndpoint = new IPEndPoint(ipAddress, UdpSSDPMulticastPort);
@@ -94,14 +99,16 @@ namespace SSDP.UPnP.PCL.Service
             _multicastClient = multicastClint;
             _unicastClient = unicastClient;
 
-            _udpMulticastHttpListener = multicastClint.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError); //.Publish().RefCount();
+            _udpMulticastHttpListener =
+                multicastClint.ToHttpListenerObservable(ct,
+                    ErrorCorrection.HeaderCompletionError); //.Publish().RefCount();
 
             _udpUnicastHttpListener = unicastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError);
 
             IsStarted = true;
         }
 
-        public IObservable<IMSearchRequest> CreateMSearchObservable()
+        public IObservable<IMSearchResponse> MSearchRequestObservable()
         {
             if (!_multicastClient?.Client?.IsBound ?? false)
             {
@@ -109,24 +116,53 @@ namespace SSDP.UPnP.PCL.Service
             }
 
             return _udpMulticastHttpListener
-                    .Where(x => x.MessageType == MessageType.Request)
-                    .Select(x => x as IHttpRequest)
-                    .Where(res => res != null)
-                    .Where(req => req?.Method == "M-SEARCH")
-                    .Select(req => new MSearchRequest(req));
+                .Where(x => x.MessageType == MessageType.Request)
+                .Select(x => x as IHttpRequest)
+                .Where(req => req != null)
+                .Where(req => req?.Method == "M-SEARCH")
+                .Select(req => new MSearchRequest(req))
+                .Do(LogRequest)
+                .SelectMany(mSearchReq =>
+                {
+                    var responseList = new List<IMSearchResponse>();
+
+                    switch (mSearchReq.ST.StSearchType)
+                    {
+                        case STSearchType.All:
+                            responseList.Add(new MSearchResponse());
+                            break;
+                        case STSearchType.RootDeviceSearch:
+                            break;
+                        case STSearchType.UIIDSearch:
+
+                            break;
+                        case STSearchType.DeviceTypeSearch:
+                            break;
+                        case STSearchType.ServiceTypeSearch:
+                            break;
+                        case STSearchType.DomainDeviceSearch:
+                            break;
+                        case STSearchType.DomainServiceSearch:
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
+                    }
+
+                    return responseList;
+                })
+                .Where(res => res != null)
+                .Select(res => res);
         }
 
         public async Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse)
         {
             var wait = new Random();
-            await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(50, (int)mSearchResponse.MX.TotalMilliseconds)));
+            await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(50, (int) mSearchResponse.MX.TotalMilliseconds)));
 
             if (mSearchResponse.ResponseCastMethod != CastMethod.Unicast)
             {
                 var datagram = ComposeMSearchResponseDatagram(mSearchResponse);
                 await _multicastClient.SendAsync(datagram, datagram.Length, _ipUdpEndPoint);
-
-
             }
 
             await SendOnTcpASync(mSearchResponse.RemoteHost.Name, mSearchResponse.RemoteHost.Port,
@@ -224,11 +260,11 @@ namespace SSDP.UPnP.PCL.Service
             if (notifySsdp.NTS == NTS.Alive)
             {
                 stringBuilder.Append($"SERVER: " +
-                                 $"{notifySsdp.Server.OperatingSystem}/{notifySsdp.Server.OperatingSystemVersion}/" +
-                                 $" " +
-                                 $"UPnP/{notifySsdp.Server.UpnpMajorVersion}.{notifySsdp.Server.UpnpMinorVersion}" +
-                                 $" " +
-                                 $"{notifySsdp.Server.ProductName}/{notifySsdp.Server.ProductVersion}\r\n");
+                                     $"{notifySsdp.Server.OperatingSystem}/{notifySsdp.Server.OperatingSystemVersion}/" +
+                                     $" " +
+                                     $"UPnP/{notifySsdp.Server.UpnpMajorVersion}.{notifySsdp.Server.UpnpMinorVersion}" +
+                                     $" " +
+                                     $"{notifySsdp.Server.ProductName}/{notifySsdp.Server.ProductVersion}\r\n");
             }
 
             stringBuilder.Append($"USN: {notifySsdp.USN}\r\n");
@@ -253,6 +289,30 @@ namespace SSDP.UPnP.PCL.Service
             stringBuilder.Append("\r\n");
 
             return Encoding.UTF8.GetBytes(stringBuilder.ToString());
+        }
+
+        private void LogRequest(IMSearchRequest req)
+        {
+            _logger?.Info("---### Device Received a M-SEARCH REQUEST ###---");
+            _logger?.Info($"USER-AGENT: " +
+                          $"{req.UserAgent?.OperatingSystem}/{req.UserAgent?.OperatingSystemVersion} " +
+                          $"UPNP/" +
+                          $"{req.UserAgent?.UpnpMajorVersion}.{req.UserAgent?.UpnpMinorVersion}" +
+                          $" " +
+                          $"{req.UserAgent?.ProductName}/{req.UserAgent?.ProductVersion}" +
+                          $" - ({req.UserAgent?.FullString})");
+            _logger?.Info($"CPFN: {req.CPFN}");
+            _logger?.Info($"CPUUID: {req.CPUUID}");
+            _logger?.Info($"TCPPORT: {req.TCPPORT}");
+
+            if (req.Headers.Any())
+            {
+                _logger?.Info($"Additional Headers: {req.Headers.Count}");
+                foreach (var header in req.Headers)
+                {
+                    _logger?.Info($"{header.Key}: {header.Value}; ");
+                }
+            }
         }
     }
 }

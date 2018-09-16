@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reactive.Linq;
@@ -22,9 +24,8 @@ namespace SSDP.UPnP.PCL.Service
 {
     public class ControlPoint : CommonBase, IControlPoint
     {
-        private readonly IPEndPoint _ipUdpEndPoint;
-        private readonly IPEndPoint _ipTcpResponseEndPoint;
-        private readonly IPEndPoint _localEndpoint;
+
+        private readonly IEnumerable<IControlPointEndpointClient> _controlPointEndpointClients;
 
         private bool _isStarted;
 
@@ -32,47 +33,84 @@ namespace SSDP.UPnP.PCL.Service
 
         private IObservable<IHttpRequestResponse> _tcpMulticastHttpListener;
 
-        private UdpClient _udpClient;
+        //private UdpClient _udpClient;
+
+        public bool IsMultihomed => _controlPointEndpointClients.Count() > 1;
 
 
-        public ControlPoint(IPAddress ipAddress)
+        public ControlPoint(params IPAddress[] ipAddressParam)
         {
-            _localEndpoint = new IPEndPoint(ipAddress, UdpSSDPMulticastPort);
+            var cpEndpointClient = new List<ControlPointEndpointClient>();
 
-            _ipUdpEndPoint = new IPEndPoint(IPAddress.Parse(UdpSSDPMultiCastAddress), UdpSSDPMulticastPort);
+            foreach (var ipAddress in ipAddressParam)
+            {
 
-            _ipTcpResponseEndPoint = new IPEndPoint(ipAddress, TcpResponseListenerPort);
+                var controlPointEndpointClient = new ControlPointEndpointClient
+                {
+                    IpAddress = ipAddress,
+                };
+
+                var udpClient = new UdpClient
+                {
+                    ExclusiveAddressUse = false,
+                    MulticastLoopback = true,
+                };
+
+                udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+
+                udpClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress));
+
+                udpClient.Client.Bind(new IPEndPoint(ipAddress, UdpSSDPMulticastPort));
+
+                controlPointEndpointClient.UdpClient = udpClient;
+
+                controlPointEndpointClient.TcpListener = new TcpListener(new IPEndPoint(ipAddress, TcpResponseListenerPort))
+                {
+                    ExclusiveAddressUse = false
+                };
+
+                cpEndpointClient.Add(controlPointEndpointClient);
+            }
+
+            _controlPointEndpointClients = cpEndpointClient;
+        }
+
+        public ControlPoint(params IControlPointEndpointClient[] controlPointEndpointClientParams)
+        {
+            _controlPointEndpointClients = controlPointEndpointClientParams;
         }
 
         public void Start(CancellationToken ct)
         {
-            _udpClient = new UdpClient
+            foreach (var client in _controlPointEndpointClients)
             {
-                ExclusiveAddressUse = false,
-                MulticastLoopback = true
-            };
+                if (_udpMulticastHttpListener == null)
+                {
+                    _udpMulticastHttpListener =
+                        client.UdpClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError).Publish().RefCount();
+                }
+                else
+                {
+                    _udpMulticastHttpListener.Merge(
+                        client.UdpClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError)).Publish().RefCount();
+                }
 
-            //_udpClient.Client.ReceiveBufferSize = 8 * 4092;
-
-            _udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-
-            _udpClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress));
-
-            _udpClient.Client.Bind(_localEndpoint);
-
-            _udpMulticastHttpListener = _udpClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError).Publish().RefCount();
-
-            var tcpListener = new TcpListener(_ipTcpResponseEndPoint)
-            {
-                ExclusiveAddressUse = false
-            };
-
-            _tcpMulticastHttpListener = tcpListener.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError).Publish().RefCount();
+                if (_tcpMulticastHttpListener == null)
+                {
+                    _tcpMulticastHttpListener =
+                        client.TcpListener.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError).Publish().RefCount();
+                }
+                else
+                {
+                    _tcpMulticastHttpListener.Merge(
+                        client.TcpListener.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError)).Publish().RefCount();
+                }
+            }
 
             _isStarted = true;
         }
 
-        public IObservable<IMSearchResponse> CreateMSearchResponseObservable()
+        public IObservable<IMSearchResponse> MSearchResponseObservable()
         {
             if (!_isStarted)
             {
@@ -87,7 +125,7 @@ namespace SSDP.UPnP.PCL.Service
                 .Select(res => new MSearchResponse(res));
         }
 
-        public IObservable<INotifySsdp> CreateNotifyObservable()
+        public IObservable<INotifySsdp> NotifyObservable()
         {
             if (!_isStarted)
             {
@@ -103,14 +141,24 @@ namespace SSDP.UPnP.PCL.Service
                 .Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update);
         }
         
-        public async Task SendMSearchAsync(IMSearchRequest mSearch)
+        public async Task SendMSearchAsync(IMSearchRequest mSearch, IPAddress ipAddress)
         {
+            var cp = _controlPointEndpointClients?.FirstOrDefault(c => Equals(c?.IpAddress, ipAddress));
+
+            if (cp?.UdpClient == null)
+            {
+                throw new SSDPException("IP Address provided is not associated with any ControlPoint EndPoint.");
+            }
+
             var dataGram = ComposeMSearchRequestDataGram(mSearch);
 
             switch (mSearch?.SearchCastMethod)
             {
                 case CastMethod.Multicast:
-                    await _udpClient.SendAsync(dataGram, dataGram.Length, _ipUdpEndPoint);
+                    await cp.UdpClient.SendAsync(
+                        dataGram, 
+                        dataGram.Length, 
+                        new IPEndPoint(IPAddress.Parse(UdpSSDPMultiCastAddress), UdpSSDPMulticastPort));
                     break;
                 case CastMethod.Unicast:
                     await SendOnTcpASync(mSearch.Name, mSearch.Port, dataGram);
@@ -249,6 +297,15 @@ namespace SSDP.UPnP.PCL.Service
 
                 default:
                     throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        public void Dispose()
+        {
+            foreach (var client in _controlPointEndpointClients)
+            {
+                client?.UdpClient?.Client?.Dispose();
+                client?.TcpListener?.Stop();
             }
         }
     }

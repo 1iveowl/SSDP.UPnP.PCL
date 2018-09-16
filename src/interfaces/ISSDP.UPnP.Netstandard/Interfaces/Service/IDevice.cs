@@ -13,7 +13,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
         IEnumerable<IUSN> USNs { get; set; }
         int SEARCHPORT { get; }
 
-        IObservable<IMSearchRequest> CreateMSearchObservable();
+        //IObservable<IMSearchRequest> MSearchRequestObservable();
 
         void Start(CancellationToken ct);
 

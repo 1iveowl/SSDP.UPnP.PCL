@@ -65,7 +65,7 @@ class Program
     {
         var counter = 0;
 
-        var observerNotify = _controlPoint.CreateNotifyObservable();
+        var observerNotify = _controlPoint.NotifyObservable();
 
         var disposableNotify = observerNotify
             .Subscribe(
@@ -119,7 +119,7 @@ class Program
     private static async Task ListenToMSearchResponse(CancellationToken ct)
     {
 
-        var mSearchResObs = _controlPoint.CreateMSearchResponseObservable();
+        var mSearchResObs = _controlPoint.MSearchResponseObservable();
 
         var counter = 0;
 
@@ -222,7 +222,7 @@ class Program
             }
         };
 
-        await _controlPoint.SendMSearchAsync(mSearchMessage);
+        await _controlPoint.SendMSearchAsync(mSearchMessage, _controlPointLocalIp);
 
         //await Task.Delay(TimeSpan.FromSeconds(1));
 

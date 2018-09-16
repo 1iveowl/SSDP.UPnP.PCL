@@ -41,6 +41,8 @@ In the sample code we will start a listener that sends out a SSDP search request
 
 **IMPORTANT** If you are not seeing MSearch responses or Notify messages when using the following example and your are running Windows, then try and stop the Windows SSDP Service to prevent this service from intercepting these messages so that thet neven reach you clint code. 
 
+A ControlPoint can be multi-homed. The ControlPoint constructor accepts `params` and for each `IPAddress` added to the constructor, an additional ControlPoint interface is created.
+
 ```csharp
 class Program
 {
@@ -53,7 +55,7 @@ class Program
 
     static async Task Main(string[] args)
     {
-        _controlPointLocalIp = IPAddress.Parse("192.168.0.59");
+        _controlPointLocalIp = IPAddress.Parse("<You IP address>");
 
         var cts = new CancellationTokenSource();
 
