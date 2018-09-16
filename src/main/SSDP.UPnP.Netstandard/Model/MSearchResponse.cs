@@ -48,7 +48,7 @@ namespace SSDP.UPnP.PCL.Model
                 Date = Convert.ToRfc2616Date(Convert.GetHeaderValue(response.Headers, "DATE"));
                 Ext = response.Headers.ContainsKey("EXT");
                 Server = Convert.ConvertToServer(Convert.GetHeaderValue(response.Headers, "SERVER"));
-                ST = Convert.GetSTValue(Convert.GetHeaderValue(response.Headers, "ST"));
+                ST = new ST(Convert.GetHeaderValue(response.Headers, "ST"), ignoreError:true);
                 USN = Convert.GetHeaderValue(response.Headers, "USN");
                 BOOTID = Convert.GetHeaderValue(response.Headers, "BOOTID.UPNP.ORG");
                 CONFIGID = Convert.GetHeaderValue(response.Headers, "CONFIGID.UPNP.ORG");

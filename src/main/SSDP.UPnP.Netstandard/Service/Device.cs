@@ -27,36 +27,40 @@ namespace SSDP.UPnP.PCL.Service
     {
 
         private readonly IPEndPoint _ipUdpEndPoint;
-        private readonly IPEndPoint _ipTcpRequestEndPoint;
-        private readonly IPEndPoint _localEnpoint;
+        private readonly IPEndPoint _localMulticastEndpoint;
+        private readonly IPEndPoint _localUnicastEndpoint;
 
-        private UdpClient _udpClient;
+        private UdpClient _multicastClient;
+        private UdpClient _unicastClient;
 
         private IObservable<IHttpRequestResponse> _udpMulticastHttpListener;
 
-        //private IObservable<IHttpRequestResponse> _tcpMulticastHttpListener;
+        private IObservable<IHttpRequestResponse> _udpUnicastHttpListener;
 
-        private bool _isStarted;
+        //private IObservable<IHttpRequestResponse> _tcpMulticastHttpListener;
 
         public Uri Location { get; set; }
         public IServer Server { get; set; }
         public IEnumerable<IUSN> USNs { get; set; }
         public IST ST { get; set; }
-        public int SEARCHPORT { get; set; }
+        public int SEARCHPORT { get; private set; }
 
-        public Device(IPAddress ipAddress)
+        public bool IsStarted { get; private set; }
+
+        public Device(IPAddress ipAddress, int searchPort)
         {
-            _localEnpoint = new IPEndPoint(ipAddress, UdpSSDPMulticastPort);
+            SEARCHPORT = searchPort;
+
+            _localMulticastEndpoint = new IPEndPoint(ipAddress, UdpSSDPMulticastPort);
+
+            _localUnicastEndpoint = new IPEndPoint(ipAddress, SEARCHPORT);
 
             _ipUdpEndPoint = new IPEndPoint(IPAddress.Parse(UdpSSDPMultiCastAddress), UdpSSDPMulticastPort);
-
-            _ipTcpRequestEndPoint = new IPEndPoint(ipAddress, TcpRequestListenerPort);
-
         }
 
         public void Start(CancellationToken ct)
         {
-            _udpClient = new UdpClient
+            var multicastClient = new UdpClient
             {
                 ExclusiveAddressUse = false,
                 MulticastLoopback = true
@@ -64,29 +68,44 @@ namespace SSDP.UPnP.PCL.Service
 
             //_udpClient.Client.ReceiveBufferSize = 8 * 4092;
 
-            _udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            _multicastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
-            _udpClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress));
+            _multicastClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress));
 
-            _udpClient.Client.Bind(_localEnpoint);
+            _multicastClient.Client.Bind(_localMulticastEndpoint);
 
-            _udpMulticastHttpListener = _udpClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError); //.Publish().RefCount();
 
-            //var tcpListener = new TcpListener(_ipTcpRequestEndPoint)
-            //{
-            //    ExclusiveAddressUse = false
-            //};
+            var unicastClient = new UdpClient
+            {
+                ExclusiveAddressUse = false
+            };
 
-            //_tcpMulticastHttpListener = tcpListener.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError).Publish().RefCount();
+            _unicastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
-            _isStarted = true;
+            _unicastClient.Client.Bind(_localUnicastEndpoint);
+
+            Start(multicastClient, unicastClient, ct);
+        }
+
+        // Constructor overload provides the opportunity to define the UDP Multicast and UDP Unicast client elsewhere.
+        // This could come in handy if combining this SSDP library with UPnP Eventing and sharing the UDP clients between the UPnP layers.
+        public void Start(UdpClient multicastClint, UdpClient unicastClient, CancellationToken ct)
+        {
+            _multicastClient = multicastClint;
+            _unicastClient = unicastClient;
+
+            _udpMulticastHttpListener = multicastClint.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError); //.Publish().RefCount();
+
+            _udpUnicastHttpListener = unicastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError);
+
+            IsStarted = true;
         }
 
         public IObservable<IMSearchRequest> CreateMSearchObservable()
         {
-            if (!_udpClient?.Client?.IsBound ?? false)
+            if (!_multicastClient?.Client?.IsBound ?? false)
             {
-                _udpClient.Client.Bind(_ipUdpEndPoint);
+                _multicastClient.Client.Bind(_ipUdpEndPoint);
             }
 
             return _udpMulticastHttpListener
@@ -105,7 +124,7 @@ namespace SSDP.UPnP.PCL.Service
             if (mSearchResponse.ResponseCastMethod != CastMethod.Unicast)
             {
                 var datagram = ComposeMSearchResponseDatagram(mSearchResponse);
-                await _udpClient.SendAsync(datagram, datagram.Length, _ipUdpEndPoint);
+                await _multicastClient.SendAsync(datagram, datagram.Length, _ipUdpEndPoint);
 
 
             }
@@ -135,7 +154,7 @@ namespace SSDP.UPnP.PCL.Service
             for (var i = 0; i < 3; i++)
             {
                 var datagram = ComposeNotifyDatagram(notifySsdp);
-                await _udpClient.SendAsync(datagram, datagram.Length, _ipUdpEndPoint);
+                await _multicastClient.SendAsync(datagram, datagram.Length, _ipUdpEndPoint);
                 // Random delay between resends of 200 - 400 milliseconds. 
                 await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(200, 400)));
             }

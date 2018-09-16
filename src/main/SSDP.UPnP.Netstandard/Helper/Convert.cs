@@ -42,53 +42,54 @@ namespace SSDP.UPnP.PCL.Helper
             return value;
         }
 
-        internal static IST GetSTValue(string stString)
-        {
-            var stringParts = stString.Split(':');
+        //internal static IST GetSTValue(string stString)
+        //{
+        //    var stringParts = stString.Split(':');
 
-            switch (stringParts[0].ToLower())
-            {
-                case "ssdp":
-                    return new ST
-                    {
-                        StSearchType = STSearchType.All
-                    };
-                case "uuid":
-                    return new ST
-                    {
-                        StSearchType = STSearchType.UIIDSearch
-                    };
-                case "upnp":
-                    return new ST
-                    {
-                        StSearchType = STSearchType.RootDeviceSearch
-                    };
-                case "urn":
-                {
-                    var st = new ST();
+        //    var st = new ST();
 
-                    if (stringParts[1].ToLower() != "schemas-upnp-org")
-                    {
-                        st.Domain = stringParts[1];
-                    }
+        //    switch (stringParts[0].ToLower())
+        //    {
+        //        case "ssdp":
+        //            return new ST
+        //            {
+        //                StSearchType = STSearchType.All
+        //            };
+        //        case "uuid":
+        //            return new ST
+        //            {
+        //                StSearchType = STSearchType.UIIDSearch
+        //            };
+        //        case "upnp":
+        //            return new ST
+        //            {
+        //                StSearchType = STSearchType.RootDeviceSearch
+        //            };
+        //        case "urn":
+        //        {
 
-                    if (stringParts[2].ToLower() == "device")
-                    {
-                        st.StSearchType = STSearchType.DeviceTypeSearch;
-                    }
+        //            if (stringParts[1].ToLower() != "schemas-upnp-org")
+        //            {
+        //                st.Domain = stringParts[1];
+        //            }
 
-                    if (stringParts[2].ToLower() == "service")
-                    {
-                        st.StSearchType = STSearchType.ServiceTypeSearch;
-                    }
-                    st.DeviceType = stringParts[3];
-                    st.Version = stringParts[4];
-                    return st;
-                }
-            }
+        //            if (stringParts[2].ToLower() == "device")
+        //            {
+        //                st.StSearchType = STSearchType.DeviceTypeSearch;
+        //            }
 
-            return null;
-        }
+        //            if (stringParts[2].ToLower() == "service")
+        //            {
+        //                st.StSearchType = STSearchType.ServiceTypeSearch;
+        //            }
+        //            st.DeviceType = stringParts[3];
+        //            st.Version = stringParts[4];
+        //            return st;
+        //        }
+        //    }
+
+        //    return null;
+        //}
 
         private static T ConvertToDeviceInfo<T>(string str) where T : DeviceInfo, IDeviceInfo, new()
         {

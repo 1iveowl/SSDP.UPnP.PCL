@@ -33,7 +33,7 @@ namespace SSDP.UPnP.PCL.Model
                 Name = request.RemoteAddress;
                 Port = request.RemotePort;
                 MX = TimeSpan.FromSeconds(Convert.ConvertStringToInt(Convert.GetHeaderValue(request.Headers, "MX")));
-                ST = Convert.GetSTValue(Convert.GetHeaderValue(request.Headers, "ST"));
+                ST = new ST(Convert.GetHeaderValue(request.Headers, "ST"), ignoreError:true);
                 UserAgent = Convert.ConvertToUserAgent(Convert.GetHeaderValue(request.Headers, "USER-AGENT"));
                 CPFN = Convert.GetHeaderValue(request.Headers, "CPFN.UPNP.ORG");
                 CPUUID = Convert.GetHeaderValue(request.Headers, "CPUUID.UPNP.ORG");

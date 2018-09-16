@@ -11,7 +11,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
         Uri Location { get; set; }
         IServer Server { get; set; }
         IEnumerable<IUSN> USNs { get; set; }
-        int SEARCHPORT { get; set; }
+        int SEARCHPORT { get; }
 
         IObservable<IMSearchRequest> CreateMSearchObservable();
 
@@ -20,5 +20,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
         Task SendNotifyAsync(INotifySsdp notifySsdp);
 
         Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse);
+
+        bool IsStarted { get; }
     }
 }

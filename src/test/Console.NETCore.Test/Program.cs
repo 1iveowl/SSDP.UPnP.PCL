@@ -23,7 +23,7 @@ class Program
 
     static async Task Main(string[] args)
     {
-        _controlPointLocalIp = IPAddress.Parse("192.168.0.48");
+        _controlPointLocalIp = IPAddress.Parse("192.168.0.59");
 
         var cts = new CancellationTokenSource();
 
@@ -53,7 +53,7 @@ class Program
 
         _controlPoint.Start(ct);
 
-        //await ListenToNotify(ct);
+        await ListenToNotify(ct);
 
         await ListenToMSearchResponse(ct);
         
@@ -124,7 +124,7 @@ class Program
         var counter = 0;
 
         var disposableMSearchresponse = mSearchResObs
-            .Where(res => res.RemoteHost.Name == "192.168.0.59")
+            //.Where(res => res.RemoteHost.Name == "192.168.0.59")
             .Subscribe(
                 res =>
                 {
@@ -146,7 +146,7 @@ class Program
                                              $" " +
                                              $"{res?.Server?.ProductName}/{res?.Server?.ProductVersion}" +
                                              $" - ({res?.Server?.FullString})");
-                    System.Console.WriteLine($"ST: {res.ST}");
+                    System.Console.WriteLine($"ST: {res?.ST?.STString}");
                     System.Console.WriteLine($"USN: {res.USN}");
                     System.Console.WriteLine($"BOOTID.UPNP.ORG: {res?.BOOTID}");
                     System.Console.WriteLine($"CONFIGID.UPNP.ORG: {res?.CONFIGID}");
@@ -224,14 +224,14 @@ class Program
 
         await _controlPoint.SendMSearchAsync(mSearchMessage);
 
-        await Task.Delay(TimeSpan.FromSeconds(1));
+        //await Task.Delay(TimeSpan.FromSeconds(1));
 
-        await _controlPoint.SendMSearchAsync(mSearchMessage);
+        //await _controlPoint.SendMSearchAsync(mSearchMessage);
 
-        await Task.Delay(TimeSpan.FromSeconds(1));
-        await _controlPoint.SendMSearchAsync(mSearchMessage);
-        await Task.Delay(TimeSpan.FromSeconds(1));
+        //await Task.Delay(TimeSpan.FromSeconds(1));
+        //await _controlPoint.SendMSearchAsync(mSearchMessage);
+        //await Task.Delay(TimeSpan.FromSeconds(1));
 
-        await _controlPoint.SendMSearchAsync(mSearchMessage);
+        //await _controlPoint.SendMSearchAsync(mSearchMessage);
     }
 }

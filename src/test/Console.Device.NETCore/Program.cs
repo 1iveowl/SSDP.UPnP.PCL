@@ -81,7 +81,7 @@ class Program
 
     private static void StartDeviceListening()
     {
-        _device = new Device(_deviceLocalIpAddress)
+        _device = new Device(_deviceLocalIpAddress, searchPort:1901)
         {
             Location = new Uri($"http://{_remoteControlPointHost}/test"),
             USNs = new List<IUSN>

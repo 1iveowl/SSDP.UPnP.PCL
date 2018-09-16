@@ -8,5 +8,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
     public interface IST : IUSN
     {
         STSearchType StSearchType { get; }
+
+        string STString { get; }
     }
 }
