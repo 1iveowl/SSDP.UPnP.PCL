@@ -15,15 +15,17 @@ using static SSDP.UPnP.PCL.Helper.Constants;
 class Program
 {
     private static IControlPoint _controlPoint;
-    private static IPAddress _controlPointLocalIp;
+    private static IPAddress _controlPointLocalIp1;
+    private static IPAddress _controlPointLocalIp2;
 
 
-   // For this test to work you most likely need to stop the SSDP Discovery service on Windows
+    // For this test to work you most likely need to stop the SSDP Discovery service on Windows
     // If you don't stop the SSDP Windows Service, the service will intercept the UPnP multicasts and consequently nothing will show up in the console. 
 
     static async Task Main(string[] args)
     {
-        _controlPointLocalIp = IPAddress.Parse("192.168.0.59");
+        _controlPointLocalIp1 = IPAddress.Parse("192.168.0.59");
+        _controlPointLocalIp2 = IPAddress.Parse("169.254.38.70");
 
         var cts = new CancellationTokenSource();
 
@@ -49,19 +51,19 @@ class Program
 
     private static async Task StartControlPointListeningAsync(CancellationToken ct)
     {
-        _controlPoint = new ControlPoint(_controlPointLocalIp);
+        _controlPoint = new ControlPoint(_controlPointLocalIp1, _controlPointLocalIp2);
 
         _controlPoint.Start(ct);
 
-        await ListenToNotify(ct);
+        ListenToNotify(ct);
 
-        await ListenToMSearchResponse(ct);
+        ListenToMSearchResponse(ct);
         
 
         await StartMSearchRequestMulticastAsync();
     }
 
-    private static async Task ListenToNotify(CancellationToken ct)
+    private static void ListenToNotify(CancellationToken ct)
     {
         var counter = 0;
 
@@ -116,7 +118,7 @@ class Program
                 });
     }
 
-    private static async Task ListenToMSearchResponse(CancellationToken ct)
+    private static void ListenToMSearchResponse(CancellationToken ct)
     {
 
         var mSearchResObs = _controlPoint.MSearchResponseObservable();
@@ -222,7 +224,7 @@ class Program
             }
         };
 
-        await _controlPoint.SendMSearchAsync(mSearchMessage, _controlPointLocalIp);
+        await _controlPoint.SendMSearchAsync(mSearchMessage, _controlPointLocalIp1);
 
         //await Task.Delay(TimeSpan.FromSeconds(1));
 

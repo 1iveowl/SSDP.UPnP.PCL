@@ -25,7 +25,7 @@ namespace SSDP.UPnP.PCL.Service
     public class ControlPoint : CommonBase, IControlPoint
     {
 
-        private readonly IEnumerable<IControlPointEndpointClient> _controlPointEndpointClients;
+        private readonly IEnumerable<IControlPointInterface> _controlPointInterfaces;
 
         private bool _isStarted;
 
@@ -33,19 +33,24 @@ namespace SSDP.UPnP.PCL.Service
 
         private IObservable<IHttpRequestResponse> _tcpMulticastHttpListener;
 
-        //private UdpClient _udpClient;
+        private readonly bool _isClientsProvided;
 
-        public bool IsMultihomed => _controlPointEndpointClients.Count() > 1;
+        public bool IsMultihomed => _controlPointInterfaces.Count() > 1;
 
 
         public ControlPoint(params IPAddress[] ipAddressParam)
         {
-            var cpEndpointClient = new List<ControlPointEndpointClient>();
+            if (!ipAddressParam?.Any() ?? false)
+            {
+                throw new SSDPException("At least one IP Address must be specified");
+            }
+
+            var controlPointInterfaceList = new List<ControlPointInterface>();
 
             foreach (var ipAddress in ipAddressParam)
             {
 
-                var controlPointEndpointClient = new ControlPointEndpointClient
+                var cpInterface = new ControlPointInterface
                 {
                     IpAddress = ipAddress,
                 };
@@ -62,27 +67,39 @@ namespace SSDP.UPnP.PCL.Service
 
                 udpClient.Client.Bind(new IPEndPoint(ipAddress, UdpSSDPMulticastPort));
 
-                controlPointEndpointClient.UdpClient = udpClient;
+                cpInterface.UdpClient = udpClient;
 
-                controlPointEndpointClient.TcpListener = new TcpListener(new IPEndPoint(ipAddress, TcpResponseListenerPort))
+                cpInterface.TcpListener = new TcpListener(new IPEndPoint(ipAddress, TcpResponseListenerPort))
                 {
                     ExclusiveAddressUse = false
                 };
 
-                cpEndpointClient.Add(controlPointEndpointClient);
+                controlPointInterfaceList.Add(cpInterface);
             }
 
-            _controlPointEndpointClients = cpEndpointClient;
+            _controlPointInterfaces = controlPointInterfaceList;
         }
 
-        public ControlPoint(params IControlPointEndpointClient[] controlPointEndpointClientParams)
+        public ControlPoint(params IControlPointInterface[] controlPointInterfaceParams)
         {
-            _controlPointEndpointClients = controlPointEndpointClientParams;
+            if (!controlPointInterfaceParams?.Any() ?? false)
+            {
+                throw new SSDPException("At least one Control Point Interface must be specified.");
+            }
+
+            _controlPointInterfaces = controlPointInterfaceParams;
+
+            _isClientsProvided = true;
         }
 
         public void Start(CancellationToken ct)
         {
-            foreach (var client in _controlPointEndpointClients)
+            if (!_controlPointInterfaces?.Any() ?? false)
+            {
+                throw new SSDPException("No Control Point interface specified.");
+            }
+
+            foreach (var client in _controlPointInterfaces)
             {
                 if (_udpMulticastHttpListener == null)
                 {
@@ -114,7 +131,7 @@ namespace SSDP.UPnP.PCL.Service
         {
             if (!_isStarted)
             {
-                throw new Exception("No Control Point started...");
+                throw new Exception("Control Point not started.");
             }
 
             return _tcpMulticastHttpListener
@@ -129,7 +146,7 @@ namespace SSDP.UPnP.PCL.Service
         {
             if (!_isStarted)
             {
-                throw new Exception("No Control Point started...");
+                throw new Exception("Control Point not started.");
             }
 
             return _udpMulticastHttpListener
@@ -143,11 +160,16 @@ namespace SSDP.UPnP.PCL.Service
         
         public async Task SendMSearchAsync(IMSearchRequest mSearch, IPAddress ipAddress)
         {
-            var cp = _controlPointEndpointClients?.FirstOrDefault(c => Equals(c?.IpAddress, ipAddress));
+            if (!_isStarted)
+            {
+                throw new Exception("Control Point not started.");
+            }
+
+            var cp = _controlPointInterfaces?.FirstOrDefault(c => Equals(c?.IpAddress, ipAddress));
 
             if (cp?.UdpClient == null)
             {
-                throw new SSDPException("IP Address provided is not associated with any ControlPoint EndPoint.");
+                throw new SSDPException("IP Address provided is not associated with any ControlPoint EndPoint or no Control Points specified.");
             }
 
             var dataGram = ComposeMSearchRequestDataGram(mSearch);
@@ -164,7 +186,7 @@ namespace SSDP.UPnP.PCL.Service
                     await SendOnTcpASync(mSearch.Name, mSearch.Port, dataGram);
                     break;
                 case CastMethod.NoCast:
-                    throw new SSDPException("M-SEARCH must be either Multicast or Unicast.");
+                    throw new SSDPException("M-SEARCH must be either multicast or unicast.");
                 case null:
                     throw new SSDPException("M-SEARCH cannot be null.");
                 default:
@@ -245,7 +267,7 @@ namespace SSDP.UPnP.PCL.Service
                 }
                 case STSearchType.ServiceTypeSearch:
                 {
-                    if (string.IsNullOrEmpty(st.ServiceType))
+                    if (string.IsNullOrEmpty(st.STTypeName))
                     {
                         throw new SSDPException("Service Type Search requires a Service Type to be specified.");
                     }
@@ -255,7 +277,7 @@ namespace SSDP.UPnP.PCL.Service
                         throw new SSDPException("Service Type Search requires a version to be specified.");
                     }
 
-                    return $"urn:schemas-upnp-org:service:{st.ServiceType}:{st.Version}";
+                    return $"urn:schemas-upnp-org:service:{st.STTypeName}:{st.Version}";
                 }
                 case STSearchType.DomainDeviceSearch:
 
@@ -283,7 +305,7 @@ namespace SSDP.UPnP.PCL.Service
                         throw new SSDPException("Service Service Type Search requires a Domain Type to be specified.");
                     }
                     
-                    if (string.IsNullOrEmpty(st.ServiceType))
+                    if (string.IsNullOrEmpty(st.STTypeName))
                     {
                         throw new SSDPException("Service Type Search requires a Service Type to be specified.");
                     }
@@ -293,7 +315,7 @@ namespace SSDP.UPnP.PCL.Service
                         throw new SSDPException("Device Type Search requires a version to be specified.");
                     }
 
-                    return $"urn:{st.Domain}:service:{st.ServiceType}:{st.Version}";
+                    return $"urn:{st.Domain}:service:{st.STTypeName}:{st.Version}";
 
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -302,10 +324,18 @@ namespace SSDP.UPnP.PCL.Service
 
         public void Dispose()
         {
-            foreach (var client in _controlPointEndpointClients)
+
+            if (_isClientsProvided)
             {
-                client?.UdpClient?.Client?.Dispose();
-                client?.TcpListener?.Stop();
+                return;
+            }
+            else
+            {
+                foreach (var client in _controlPointInterfaces)
+                {
+                    client?.UdpClient?.Client?.Dispose();
+                    client?.TcpListener?.Stop();
+                }
             }
         }
     }

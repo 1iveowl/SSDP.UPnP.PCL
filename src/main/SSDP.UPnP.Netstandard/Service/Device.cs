@@ -27,11 +27,9 @@ namespace SSDP.UPnP.PCL.Service
 {
     public class Device : CommonBase, IDevice
     {
-        private readonly ILogger _logger;
-
-        private readonly IPEndPoint _ipUdpEndPoint;
-        private readonly IPEndPoint _localMulticastEndpoint;
-        private readonly IPEndPoint _localUnicastEndpoint;
+        private readonly IPEndPoint _multicastEndPoint;
+        private readonly IPEndPoint _deviceMulticastEndpoint;
+        private readonly IPEndPoint _deviceUnicastEndpoint;
 
         private UdpClient _multicastClient;
         private UdpClient _unicastClient;
@@ -42,25 +40,32 @@ namespace SSDP.UPnP.PCL.Service
 
         //private IObservable<IHttpRequestResponse> _tcpMulticastHttpListener;
 
+        public ILogger Logger { get; set; }
+
         public Uri Location { get; set; }
         public IServer Server { get; set; }
         public IEnumerable<IUSN> USNs { get; set; }
         public IST ST { get; set; }
         public int SEARCHPORT { get; private set; }
 
+
         public bool IsStarted { get; private set; }
 
-        public Device(IPAddress ipAddress, int searchPort, ILogger logger = null)
+        public Device(params IPEndPoint[] ipEndPoints)
         {
-            _logger = logger;
 
-            SEARCHPORT = searchPort;
+            SEARCHPORT = ipEndPoint.Port;
 
-            _localMulticastEndpoint = new IPEndPoint(ipAddress, UdpSSDPMulticastPort);
+            _deviceMulticastEndpoint = new IPEndPoint(ipEndPoint.Address, UdpSSDPMulticastPort);
 
-            _localUnicastEndpoint = new IPEndPoint(ipAddress, SEARCHPORT);
+            _deviceUnicastEndpoint = new IPEndPoint(ipEndPoint.Address, SEARCHPORT);
 
-            _ipUdpEndPoint = new IPEndPoint(IPAddress.Parse(UdpSSDPMultiCastAddress), UdpSSDPMulticastPort);
+            _multicastEndPoint = new IPEndPoint(IPAddress.Parse(UdpSSDPMultiCastAddress), UdpSSDPMulticastPort);
+        }
+
+        public Device(params IDeviceInterface[] deviceInterfaces)
+        {
+
         }
 
         public void Start(CancellationToken ct)
@@ -77,7 +82,7 @@ namespace SSDP.UPnP.PCL.Service
 
             _multicastClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress));
 
-            _multicastClient.Client.Bind(_localMulticastEndpoint);
+            _multicastClient.Client.Bind(_deviceMulticastEndpoint);
 
 
             var unicastClient = new UdpClient
@@ -87,7 +92,7 @@ namespace SSDP.UPnP.PCL.Service
 
             _unicastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
-            _unicastClient.Client.Bind(_localUnicastEndpoint);
+            _unicastClient.Client.Bind(_deviceUnicastEndpoint);
 
             Start(multicastClient, unicastClient, ct);
         }
@@ -112,7 +117,7 @@ namespace SSDP.UPnP.PCL.Service
         {
             if (!_multicastClient?.Client?.IsBound ?? false)
             {
-                _multicastClient.Client.Bind(_ipUdpEndPoint);
+                _multicastClient.Client.Bind(_multicastEndPoint);
             }
 
             return _udpMulticastHttpListener
@@ -162,7 +167,7 @@ namespace SSDP.UPnP.PCL.Service
             if (mSearchResponse.ResponseCastMethod != CastMethod.Unicast)
             {
                 var datagram = ComposeMSearchResponseDatagram(mSearchResponse);
-                await _multicastClient.SendAsync(datagram, datagram.Length, _ipUdpEndPoint);
+                await _multicastClient.SendAsync(datagram, datagram.Length, _multicastEndPoint);
             }
 
             await SendOnTcpASync(mSearchResponse.RemoteHost.Name, mSearchResponse.RemoteHost.Port,
@@ -190,7 +195,7 @@ namespace SSDP.UPnP.PCL.Service
             for (var i = 0; i < 3; i++)
             {
                 var datagram = ComposeNotifyDatagram(notifySsdp);
-                await _multicastClient.SendAsync(datagram, datagram.Length, _ipUdpEndPoint);
+                await _multicastClient.SendAsync(datagram, datagram.Length, _multicastEndPoint);
                 // Random delay between resends of 200 - 400 milliseconds. 
                 await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(200, 400)));
             }
@@ -293,24 +298,24 @@ namespace SSDP.UPnP.PCL.Service
 
         private void LogRequest(IMSearchRequest req)
         {
-            _logger?.Info("---### Device Received a M-SEARCH REQUEST ###---");
-            _logger?.Info($"USER-AGENT: " +
-                          $"{req.UserAgent?.OperatingSystem}/{req.UserAgent?.OperatingSystemVersion} " +
-                          $"UPNP/" +
-                          $"{req.UserAgent?.UpnpMajorVersion}.{req.UserAgent?.UpnpMinorVersion}" +
-                          $" " +
-                          $"{req.UserAgent?.ProductName}/{req.UserAgent?.ProductVersion}" +
-                          $" - ({req.UserAgent?.FullString})");
-            _logger?.Info($"CPFN: {req.CPFN}");
-            _logger?.Info($"CPUUID: {req.CPUUID}");
-            _logger?.Info($"TCPPORT: {req.TCPPORT}");
+            Logger?.Info("---### Device Received a M-SEARCH REQUEST ###---");
+            Logger?.Info($"USER-AGENT: " +
+                        $"{req.UserAgent?.OperatingSystem}/{req.UserAgent?.OperatingSystemVersion} " +
+                        $"UPNP/" +
+                        $"{req.UserAgent?.UpnpMajorVersion}.{req.UserAgent?.UpnpMinorVersion}" +
+                        $" " +
+                        $"{req.UserAgent?.ProductName}/{req.UserAgent?.ProductVersion}" +
+                        $" - ({req.UserAgent?.FullString})");
+            Logger?.Info($"CPFN: {req.CPFN}");
+            Logger?.Info($"CPUUID: {req.CPUUID}");
+            Logger?.Info($"TCPPORT: {req.TCPPORT}");
 
             if (req.Headers.Any())
             {
-                _logger?.Info($"Additional Headers: {req.Headers.Count}");
+                Logger?.Info($"Additional Headers: {req.Headers.Count}");
                 foreach (var header in req.Headers)
                 {
-                    _logger?.Info($"{header.Key}: {header.Value}; ");
+                    Logger?.Info($"{header.Key}: {header.Value}; ");
                 }
             }
         }

@@ -5,9 +5,9 @@ using System.Net.Sockets;
 using System.Text;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 
-namespace SSDP.UPnP.PCL.Model
+namespace Console.NETCore.Test.Model
 {
-    internal class ControlPointEndpointClient : IControlPointEndpointClient
+    public class ControlPointInterface : IControlPointInterface
     {
         public IPAddress IpAddress { get; internal set; }
         public UdpClient UdpClient { get; internal set; }

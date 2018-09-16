@@ -8,10 +8,10 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
 {
     public interface IDevice
     {
-        Uri Location { get; set; }
-        IServer Server { get; set; }
-        IEnumerable<IUSN> USNs { get; set; }
-        int SEARCHPORT { get; }
+        //Uri Location { get; set; }
+        //IServer Server { get; set; }
+        //IEnumerable<IUSN> USNs { get; set; }
+        //int SEARCHPORT { get; }
 
         //IObservable<IMSearchRequest> MSearchRequestObservable();
 

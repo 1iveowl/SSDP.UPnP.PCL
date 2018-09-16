@@ -74,7 +74,7 @@ namespace SSDP.UPnP.PCL.Model
                         else if(sta[2].ToLower() == "service")
                         {
                             StSearchType = STSearchType.ServiceTypeSearch;
-                            ServiceType = sta[3];
+                            STTypeName = sta[3];
                             
                         }
                         else
@@ -97,7 +97,7 @@ namespace SSDP.UPnP.PCL.Model
                         else if (sta[2].ToLower() == "service")
                         {
                             StSearchType = STSearchType.DomainServiceSearch;
-                            ServiceType = sta[3];
+                            STTypeName = sta[3];
                         }
                         else
                         {

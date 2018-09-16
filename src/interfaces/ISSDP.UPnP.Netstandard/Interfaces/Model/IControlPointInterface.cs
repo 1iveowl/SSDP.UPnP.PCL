@@ -6,7 +6,7 @@ using System.Text;
 
 namespace ISSDP.UPnP.PCL.Interfaces.Model
 {
-    public interface IControlPointEndpointClient
+    public interface IControlPointInterface
     {
         IPAddress IpAddress { get; }
         UdpClient UdpClient { get; }
