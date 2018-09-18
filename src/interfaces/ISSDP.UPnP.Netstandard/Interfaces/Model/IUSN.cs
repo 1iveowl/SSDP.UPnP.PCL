@@ -5,12 +5,8 @@ using ISSDP.UPnP.PCL.Enum;
 
 namespace ISSDP.UPnP.PCL.Interfaces.Model
 {
-    public interface IUSN
+    public interface IUSN : IST
     {
-        string DeviceUUID { get; }
-        string DeviceType { get; }
-        string STTypeName { get; }
-        string Version { get; }
-        string Domain { get; }
+        string USNString { get; }
     }
 }

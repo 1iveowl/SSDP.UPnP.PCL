@@ -11,8 +11,8 @@ namespace SSDP.UPnP.PCL.Model
 
         internal Host(IHttpResponse request)
         {
-            Name = request.RemoteAddress;
-            Port = request.RemotePort;
+            Name = request.LocalIpEndPoint.Address.ToString();
+            Port = request.LocalIpEndPoint.Port;
         }
     }
 }

@@ -13,7 +13,7 @@ namespace SSDP.UPnP.PCL.Model
     {
         public string Name { get; }
         public int Port { get;  }
-        public CastMethod NotifyCastMethod { get; } = CastMethod.NoCast;
+        public TransportType NotifyTransportType { get; } = TransportType.NoCast;
         public TimeSpan CacheControl { get; }
         public Uri Location { get; }
         public string NT { get; }
@@ -34,7 +34,7 @@ namespace SSDP.UPnP.PCL.Model
         {
             try
             {
-                NotifyCastMethod = GetCastMetod(request);
+                NotifyTransportType = GetCastMetod(request);
                 Name = request.RemoteAddress;
                 Port = request.RemotePort;
                 CacheControl = TimeSpan.FromSeconds(GetMaxAge(request.Headers));

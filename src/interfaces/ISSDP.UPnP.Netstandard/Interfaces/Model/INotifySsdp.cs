@@ -6,7 +6,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
 {
     public interface INotifySsdp : IHost, IHeaders, IParserError
     {
-        CastMethod NotifyCastMethod { get; }
+        TransportType NotifyTransportType { get; }
         TimeSpan CacheControl { get;}
         Uri Location { get; }
         string NT { get;}

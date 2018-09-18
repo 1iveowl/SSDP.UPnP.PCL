@@ -192,13 +192,13 @@ namespace SSDP.UPnP.PCL.Helper
             }
         }
 
-        internal static CastMethod GetCastMetod(IHttpCommon request)
+        internal static TransportType GetCastMetod(IHttpCommon request)
         {
             switch (request.RequestType)
             {
-                case RequestType.TCP: return CastMethod.Unicast;
-                case RequestType.UDP: return CastMethod.Multicast;
-                default: return CastMethod.NoCast;
+                case RequestType.TCP: return TransportType.Unicast;
+                case RequestType.UDP: return TransportType.Multicast;
+                default: return TransportType.NoCast;
             }
         }
 

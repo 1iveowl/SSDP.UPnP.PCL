@@ -3,15 +3,27 @@ using ISSDP.UPnP.PCL.Interfaces.Model;
 
 namespace SSDP.UPnP.PCL.Model
 {
-    public class ST : USN, IST
+    public class ST :  IST
     {
         public STSearchType StSearchType { get; set; }
-        public string STString { get; }
-        
+        public string STString { get; private set; }
+        public string DeviceUUID { get; internal set; }
+        public string DeviceType { get; internal set; }
+        public string ServiceType { get; internal set; }
+        public int Version { get; internal set; }
+        public string Domain { get; internal set; }
+
         public ST()
-        { }
+        {
+
+        }
 
         public ST(string searchTarget, bool ignoreError = false)
+        {
+            PopulateST(searchTarget, ignoreError);
+        }
+
+        protected void PopulateST(string searchTarget, bool ignoreError = false)
         {
             STString = searchTarget;
 
@@ -24,7 +36,7 @@ namespace SSDP.UPnP.PCL.Model
 
             switch (sta[0].ToLower())
             {
-                case "ssdp" :
+                case "ssdp":
                     if (sta[1].ToLower() == "all" && sta.Length == 2)
                     {
                         StSearchType = STSearchType.All;
@@ -35,10 +47,10 @@ namespace SSDP.UPnP.PCL.Model
                         {
                             throw new SSDPException($"Search Target (ST) value must be 'ssdp.all'. The value '{searchTarget}' is invalid. ");
                         }
-                        
+
                     }
-                break;
-                case "upnp" :
+                    break;
+                case "upnp":
                     if (sta[1].ToLower() == "rootdevice" && sta.Length == 2)
                     {
                         StSearchType = STSearchType.RootDeviceSearch;
@@ -71,11 +83,11 @@ namespace SSDP.UPnP.PCL.Model
                             StSearchType = STSearchType.DeviceTypeSearch;
                             DeviceType = sta[3];
                         }
-                        else if(sta[2].ToLower() == "service")
+                        else if (sta[2].ToLower() == "service")
                         {
                             StSearchType = STSearchType.ServiceTypeSearch;
-                            STTypeName = sta[3];
-                            
+                            ServiceType = sta[3];
+
                         }
                         else
                         {
@@ -85,8 +97,8 @@ namespace SSDP.UPnP.PCL.Model
                             }
                         }
 
-                        Version = sta[4];
-                        }
+                        Version = GetVersion(sta[4]);
+                    }
                     else
                     {
                         if (sta[2].ToLower() == "device")
@@ -97,7 +109,7 @@ namespace SSDP.UPnP.PCL.Model
                         else if (sta[2].ToLower() == "service")
                         {
                             StSearchType = STSearchType.DomainServiceSearch;
-                            STTypeName = sta[3];
+                            ServiceType = sta[3];
                         }
                         else
                         {
@@ -107,12 +119,27 @@ namespace SSDP.UPnP.PCL.Model
                             }
                         }
                         Domain = sta[1];
-                        Version = sta[4];
+
+                        Version = GetVersion(sta[4]);
+
+
                     }
                     break;
 
                 default:
                     throw new SSDPException($"Search Target (ST) '{searchTarget}' is invalid. Please see the UPnP 2.0 specification page 37: http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v2.0.pdf");
+
+                    int GetVersion(string version)
+                    {
+                        if (int.TryParse(version, out var ver))
+                        {
+                            return ver;
+                        }
+                        else
+                        {
+                            return -1;
+                        }
+                    }
             }
         }
     }

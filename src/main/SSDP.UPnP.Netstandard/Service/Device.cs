@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Reactive;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,6 +18,7 @@ using ISSDP.UPnP.PCL.Interfaces.Service;
 using NLog;
 using SimpleHttpListener.Rx.Extension;
 using SimpleHttpListener.Rx.Model;
+using SSDP.UPnP.PCL.Handler;
 using SSDP.UPnP.PCL.Helper;
 using SSDP.UPnP.PCL.Model;
 using SSDP.UPnP.PCL.Service.Base;
@@ -26,6 +29,9 @@ namespace SSDP.UPnP.PCL.Service
 {
     public class Device : CommonBase, IDevice
     {
+        private IObserver<DeviceActivity> _observerDeviceActivity;
+
+        private IDisposable _disposableDeviceActivity;
         //private readonly IPEndPoint _multicastEndPoint;
         //private readonly IPEndPoint _deviceMulticastEndpoint;
         //private readonly IPEndPoint _deviceUnicastEndpoint;
@@ -39,9 +45,12 @@ namespace SSDP.UPnP.PCL.Service
 
         private IObservable<IHttpRequestResponse> _udpUnicastHttpListener;
 
+        private readonly bool _isClientsProvided;
         //private IObservable<IHttpRequestResponse> _tcpMulticastHttpListener;
 
         public ILogger Logger { get; set; }
+
+        public IObservable<DeviceActivity> DeviceActivityObservable { get; }
 
         //public Uri Location { get; set; }
         //public IServer Server { get; set; }
@@ -54,7 +63,15 @@ namespace SSDP.UPnP.PCL.Service
 
         public bool IsMultiHomed => _rootDeviceInterfaces.Count() > 1;
 
-        public Device(IRootDevice rootDevice)
+        private Device()
+        {
+            var deviceActivitySubject = new BehaviorSubject<DeviceActivity>(DeviceActivity.Initialized);
+
+            _observerDeviceActivity = deviceActivitySubject.AsObserver();
+            DeviceActivityObservable = deviceActivitySubject.AsObservable();
+        }
+
+        public Device(IRootDevice rootDevice) : this()
         {
             if (rootDevice?.IpEndPoint == null)
             {
@@ -89,7 +106,7 @@ namespace SSDP.UPnP.PCL.Service
 
         }
 
-        public Device(params IRootDeviceInterface[] rootDeviceInterfaces)
+        public Device(params IRootDeviceInterface[] rootDeviceInterfaces) : this()
         {
             _rootDeviceInterfaces = rootDeviceInterfaces;
 
@@ -100,6 +117,8 @@ namespace SSDP.UPnP.PCL.Service
             //_deviceUnicastEndpoint = new IPEndPoint(ipEndPoint.Address, SEARCHPORT);
 
             //_multicastEndPoint = new IPEndPoint(IPAddress.Parse(UdpSSDPMultiCastAddress), UdpSSDPMulticastPort);
+
+            _isClientsProvided = true;
         }
 
 
@@ -138,6 +157,28 @@ namespace SSDP.UPnP.PCL.Service
                         .Publish().RefCount();
                 }
             }
+
+            var mSearchDeviceRequestHandler = new MSearchDeviceRequestHandler(
+                _rootDeviceInterfaces, 
+                _observerDeviceActivity, 
+                Logger);
+
+            _disposableDeviceActivity = mSearchDeviceRequestHandler.
+                MSearchRequestObservable(_udpMulticastHttpListener.Merge(_udpUnicastHttpListener))
+                .Finally(mSearchDeviceRequestHandler.Dispose)
+                .Subscribe(
+                    _ =>
+                    {
+
+                    },
+                    ex =>
+                    {
+
+                    },
+                    () =>
+                    {
+
+                    });
 
             IsStarted = true;
 
@@ -191,51 +232,69 @@ namespace SSDP.UPnP.PCL.Service
         // This could come in handy if combining this SSDP library with UPnP Eventing and sharing the UDP clients between the UPnP layers.
 
 
-        private IObservable<IMSearchResponse> MSearchRequestObservable()
-        {
-            //if (!_multicastClient?.Client?.IsBound ?? false)
-            //{
-            //    _multicastClient.Client.Bind(_multicastEndPoint);
-            //}
+        //private IObservable<IMSearchResponse> MSearchRequestObservable(IObservable<IHttpRequestResponse> httpObservable) => 
+        //    httpObservable
+        //    .Where(x => x.MessageType == MessageType.Request)
+        //    .Select(x => x as IHttpRequest)
+        //    .Where(req => req != null)
+        //    .Where(req => req?.Method == "M-SEARCH")
+        //    .Select(req => new MSearchRequest(req, Logger))
+        //    .Do(LogRequest)
+        //    .SelectMany(mSearchReq =>
+        //    {
+        //        var rootDeviceInterface = _rootDeviceInterfaces
+        //            .FirstOrDefault(i => Equals(i?.RootDevice?.IpEndPoint, mSearchReq?.IpEndPoint));
 
-            return _udpMulticastHttpListener
-                .Where(x => x.MessageType == MessageType.Request)
-                .Select(x => x as IHttpRequest)
-                .Where(req => req != null)
-                .Where(req => req?.Method == "M-SEARCH")
-                .Select(req => new MSearchRequest(req))
-                .Do(LogRequest)
-                .SelectMany(mSearchReq =>
-                {
-                    var responseList = new List<IMSearchResponse>();
+        //        if (rootDeviceInterface == null)
+        //        {
+        //            return null;
+        //        }
 
-                    switch (mSearchReq.ST.StSearchType)
-                    {
-                        case STSearchType.All:
-                            responseList.Add(new MSearchResponse());
-                            break;
-                        case STSearchType.RootDeviceSearch:
-                            break;
-                        case STSearchType.UIIDSearch:
+        //        var responseList = new List<IMSearchResponse>();
 
-                            break;
-                        case STSearchType.DeviceTypeSearch:
-                            break;
-                        case STSearchType.ServiceTypeSearch:
-                            break;
-                        case STSearchType.DomainDeviceSearch:
-                            break;
-                        case STSearchType.DomainServiceSearch:
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException();
-                    }
+        //        if (mSearchReq.ST.StSearchType == STSearchType.ServiceTypeSearch)
+        //        {
+        //            var allServices =
+        //                rootDeviceInterface.RootDevice.Services.Concat(
+        //                    rootDeviceInterface.RootDevice.EmbeddedDevices
+        //                        .SelectMany(embeddedDevice => embeddedDevice.Services));
 
-                    return responseList;
-                })
-                .Where(res => res != null)
-                .Select(res => res);
-        }
+        //            foreach (var service in allServices)
+        //            {
+        //                if (mSearchReq.ST.STTypeName == service.TypeName && mSearchReq.ST.Version <= service.Version)
+        //                {
+
+        //                }
+        //            }
+        //        }
+                
+        //        switch (mSearchReq.ST.StSearchType)
+        //        {
+        //            case STSearchType.All:
+        //                responseList.Add(new MSearchResponse());
+        //                break;
+        //            case STSearchType.RootDeviceSearch:
+        //                break;
+        //            case STSearchType.UIIDSearch:
+
+        //                break;
+        //            case STSearchType.DeviceTypeSearch:
+        //                break;
+        //            case STSearchType.ServiceTypeSearch:
+        //                break;
+        //            case STSearchType.DomainDeviceSearch:
+        //                break;
+        //            case STSearchType.DomainServiceSearch:
+        //                break;
+        //            default:
+        //                throw new ArgumentOutOfRangeException();
+        //        }
+
+        //        return responseList;
+        //    })
+        //    .Where(res => res != null)
+        //    .Select(res => res);
+        
 
         //public async Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse, IPAddress ipAddress)
         //{
@@ -324,7 +383,7 @@ namespace SSDP.UPnP.PCL.Service
 
             stringBuilder.Append("NOTIFY * HTTP/1.1\r\n");
 
-            stringBuilder.Append(notifySsdp.NotifyCastMethod == CastMethod.Multicast
+            stringBuilder.Append(notifySsdp.NotifyTransportType == TransportType.Multicast
                 ? "HOST: 239.255.255.250:1900\r\n"
                 : $"HOST: {notifySsdp.Name}:{notifySsdp.Port}\r\n");
 
@@ -375,33 +434,24 @@ namespace SSDP.UPnP.PCL.Service
             return Encoding.UTF8.GetBytes(stringBuilder.ToString());
         }
 
-        private void LogRequest(IMSearchRequest req)
-        {
-            Logger?.Info("---### Device Received a M-SEARCH REQUEST ###---");
-            Logger?.Info($"USER-AGENT: " +
-                        $"{req.UserAgent?.OperatingSystem}/{req.UserAgent?.OperatingSystemVersion} " +
-                        $"UPNP/" +
-                        $"{req.UserAgent?.UpnpMajorVersion}.{req.UserAgent?.UpnpMinorVersion}" +
-                        $" " +
-                        $"{req.UserAgent?.ProductName}/{req.UserAgent?.ProductVersion}" +
-                        $" - ({req.UserAgent?.FullString})");
-            Logger?.Info($"CPFN: {req.CPFN}");
-            Logger?.Info($"CPUUID: {req.CPUUID}");
-            Logger?.Info($"TCPPORT: {req.TCPPORT}");
 
-            if (req.Headers.Any())
-            {
-                Logger?.Info($"Additional Headers: {req.Headers.Count}");
-                foreach (var header in req.Headers)
-                {
-                    Logger?.Info($"{header.Key}: {header.Value}; ");
-                }
-            }
-        }
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            _disposableDeviceActivity?.Dispose();
+
+            if (_isClientsProvided)
+            {
+                return;
+            }
+            else
+            {
+                foreach (var client in _rootDeviceInterfaces)
+                {
+                    client?.UdpMulticastClient?.Client?.Dispose();
+                    client?.UdpUnicastClient?.Client.Dispose();
+                }
+            }
         }
     }
 }

@@ -10,5 +10,6 @@ namespace SSDP.UPnP.PCL.Model
         public string TypeName { get; set; }
         public int Version { get; set; }
         public string Domain { get; set; }
+        public string DeviceUUID { get; set; }
     }
 }

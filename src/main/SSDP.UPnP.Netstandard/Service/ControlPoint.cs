@@ -174,18 +174,18 @@ namespace SSDP.UPnP.PCL.Service
 
             var dataGram = ComposeMSearchRequestDataGram(mSearch);
 
-            switch (mSearch?.SearchCastMethod)
+            switch (mSearch?.TransportType)
             {
-                case CastMethod.Multicast:
+                case TransportType.Multicast:
                     await cp.UdpClient.SendAsync(
                         dataGram, 
                         dataGram.Length, 
                         new IPEndPoint(IPAddress.Parse(UdpSSDPMultiCastAddress), UdpSSDPMulticastPort));
                     break;
-                case CastMethod.Unicast:
+                case TransportType.Unicast:
                     await SendOnTcpASync(mSearch.Name, mSearch.Port, dataGram);
                     break;
-                case CastMethod.NoCast:
+                case TransportType.NoCast:
                     throw new SSDPException("M-SEARCH must be either multicast or unicast.");
                 case null:
                     throw new SSDPException("M-SEARCH cannot be null.");
@@ -200,13 +200,13 @@ namespace SSDP.UPnP.PCL.Service
 
             stringBuilder.Append("M-SEARCH * HTTP/1.1\r\n");
 
-            stringBuilder.Append(request.SearchCastMethod == CastMethod.Multicast
+            stringBuilder.Append(request.TransportType == TransportType.Multicast
                 ? "HOST: 239.255.255.250:1900\r\n"
                 : $"HOST: {request.Name}:{request.Port}\r\n");
 
             stringBuilder.Append("MAN: \"ssdp:discover\"\r\n");
 
-            if (request.SearchCastMethod == CastMethod.Multicast)
+            if (request.TransportType == TransportType.Multicast)
             {
                 stringBuilder.Append($"MX: {request.MX.TotalSeconds}\r\n");
             }
@@ -218,7 +218,7 @@ namespace SSDP.UPnP.PCL.Service
                                  $" " +
                                  $"{request.UserAgent.ProductName}/{request.UserAgent.ProductVersion}\r\n");
 
-            if (request.SearchCastMethod == CastMethod.Multicast)
+            if (request.TransportType == TransportType.Multicast)
             {
                 stringBuilder.Append($"CPFN.UPNP.ORG: {request.CPFN}\r\n");
 
@@ -257,7 +257,7 @@ namespace SSDP.UPnP.PCL.Service
                         throw new SSDPException("Device Type Search requires a Device Type to be specified.");
                     }
 
-                    if (string.IsNullOrEmpty(st.Version))
+                    if (st.Version > 0)
                     {
                         throw new SSDPException("Device Type Search requires a version to be specified.");
                     }
@@ -267,17 +267,17 @@ namespace SSDP.UPnP.PCL.Service
                 }
                 case STSearchType.ServiceTypeSearch:
                 {
-                    if (string.IsNullOrEmpty(st.STTypeName))
+                    if (string.IsNullOrEmpty(st.ServiceType))
                     {
                         throw new SSDPException("Service Type Search requires a Service Type to be specified.");
                     }
 
-                    if (string.IsNullOrEmpty(st.Version))
+                    if (st.Version > 0)
                     {
                         throw new SSDPException("Service Type Search requires a version to be specified.");
                     }
 
-                    return $"urn:schemas-upnp-org:service:{st.STTypeName}:{st.Version}";
+                    return $"urn:schemas-upnp-org:service:{st.ServiceType}:{st.Version}";
                 }
                 case STSearchType.DomainDeviceSearch:
 
@@ -291,7 +291,7 @@ namespace SSDP.UPnP.PCL.Service
                         throw new SSDPException("Device Type Search requires a Device Type to be specified.");
                     }
 
-                    if (string.IsNullOrEmpty(st.Version))
+                    if (st.Version > 0)
                     {
                         throw new SSDPException("Device Type Search requires a version to be specified.");
                     }
@@ -305,17 +305,17 @@ namespace SSDP.UPnP.PCL.Service
                         throw new SSDPException("Service Service Type Search requires a Domain Type to be specified.");
                     }
                     
-                    if (string.IsNullOrEmpty(st.STTypeName))
+                    if (string.IsNullOrEmpty(st.ServiceType))
                     {
                         throw new SSDPException("Service Type Search requires a Service Type to be specified.");
                     }
 
-                    if (string.IsNullOrEmpty(st.Version))
+                    if (st.Version > 0)
                     {
                         throw new SSDPException("Device Type Search requires a version to be specified.");
                     }
 
-                    return $"urn:{st.Domain}:service:{st.STTypeName}:{st.Version}";
+                    return $"urn:{st.Domain}:service:{st.ServiceType}:{st.Version}";
 
                 default:
                     throw new ArgumentOutOfRangeException();

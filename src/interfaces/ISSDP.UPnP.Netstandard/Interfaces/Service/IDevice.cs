@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 
 namespace ISSDP.UPnP.PCL.Interfaces.Service
@@ -14,6 +15,8 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
         //int SEARCHPORT { get; }
 
         //IObservable<IMSearchRequest> MSearchRequestObservable();
+
+        IObservable<DeviceActivity> DeviceActivityObservable { get; }
 
         void Start(CancellationToken ct);
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using ISimpleHttpListener.Rx.Model;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
@@ -13,7 +14,7 @@ namespace SSDP.UPnP.PCL.Model
     {
         public string Name { get; internal set; }
         public int Port { get; internal set; }
-        public CastMethod ResponseCastMethod { get; internal set; } = CastMethod.NoCast;
+        public TransportType TransportType { get; internal set; } = TransportType.NoCast;
         public int StatusCode { get; internal set; }
         public string ResponseReason { get; internal set; }
         public TimeSpan CacheControl { get; internal set; }
@@ -22,13 +23,14 @@ namespace SSDP.UPnP.PCL.Model
         public bool Ext { get; internal set; }
         public IServer Server { get; internal set; }
         public IST ST { get; internal set; }
-        public string USN { get; internal set; }
+        public IUSN USN { get; internal set; }
         public string BOOTID { get; internal set; }
         public string CONFIGID { get; internal set; }
         public string SEARCHPORT { get; internal set; }
         public string SECURELOCATION { get; internal set; }
-        public IHost RemoteHost { get; internal set; }
         public TimeSpan MX { get; internal set; }
+        public IPEndPoint IpEndPoint { get; internal set; }
+        public IPEndPoint RemoteIpEndPoint { get; internal set; }
 
         public IDictionary<string, string> Headers { get; }
 
@@ -41,11 +43,10 @@ namespace SSDP.UPnP.PCL.Model
         {
             try
             {
+                IpEndPoint = response.LocalIpEndPoint;
+                RemoteIpEndPoint = response.RemoteIpEndPoint;
                 HasParsingError = response.HasParsingErrors;
-
-                ResponseCastMethod = Convert.GetCastMetod(response);
-                Name = response.RemoteAddress;
-                Port = response.RemotePort;
+                TransportType = Convert.GetCastMetod(response);
                 StatusCode = response.StatusCode;
                 ResponseReason = response.ResponseReason;
                 CacheControl = TimeSpan.FromSeconds(Convert.GetMaxAge(response.Headers));
@@ -54,7 +55,7 @@ namespace SSDP.UPnP.PCL.Model
                 Ext = response.Headers.ContainsKey("EXT");
                 Server = Convert.ConvertToServer(Convert.GetHeaderValue(response.Headers, "SERVER"));
                 ST = new ST(Convert.GetHeaderValue(response.Headers, "ST"), ignoreError:true);
-                USN = Convert.GetHeaderValue(response.Headers, "USN");
+                USN = new USN(Convert.GetHeaderValue(response.Headers, "USN"));Convert.GetHeaderValue(response.Headers, "USN");
                 BOOTID = Convert.GetHeaderValue(response.Headers, "BOOTID.UPNP.ORG");
                 CONFIGID = Convert.GetHeaderValue(response.Headers, "CONFIGID.UPNP.ORG");
                 SEARCHPORT = Convert.GetHeaderValue(response.Headers, "SEARCHPORT.UPNP.ORG");
@@ -65,7 +66,7 @@ namespace SSDP.UPnP.PCL.Model
                     "HOST", "CACHE-CONTROL", "LOCATION", "DATE", "EXT", "SERVER", "ST", "USN",
                     "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG", "SEARCHPORT.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
                 }, response.Headers);
-                RemoteHost = new Host(response);
+                RemoteIpEndPoint = response.RemoteIpEndPoint;
                 
             }
             catch (Exception)

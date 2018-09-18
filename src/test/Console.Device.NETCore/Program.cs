@@ -59,7 +59,7 @@ class Program
                 Name = _remoteControlPointHost.ToString(),
                 Port = 1900,
                 Location = new Uri($"http://{_deviceLocalIpAddress}:1900/Test"),
-                NotifyCastMethod = CastMethod.Multicast,
+                NotifyTransportType = TransportType.Multicast,
                 NT = "upnp:rootdevice",
                 NTS = NTS.Alive,
                 USN = "uuid:device-UUID::upnp:rootdevice",
@@ -81,30 +81,35 @@ class Program
 
     private static void StartDeviceListening()
     {
-        _device = new Device(_deviceLocalIpAddress, searchPort:1901)
+        var rootDevice = new RootDevice
         {
-            Location = new Uri($"http://{_remoteControlPointHost}/test"),
-            USNs = new List<IUSN>
-            {
-                new USN
-                {
-                    
-                },
-                new USN
-                {
+            
+        };
 
-                },
-            },
-            Server = new Server
-            {
-                OperatingSystem = "Windows",
-                OperatingSystemVersion = "10.0",
-                IsUpnp2 = true,
-                ProductName = "Tester",
-                ProductVersion = "0.1",
-                UpnpMajorVersion = "2",
-                UpnpMinorVersion = "0"
-            },
+        _device = new Device(rootDevice)
+        {
+            //Location = new Uri($"http://{_remoteControlPointHost}/test"),
+            //USNs = new List<IUSN>
+            //{
+            //    new USN
+            //    {
+
+            //    },
+            //    new USN
+            //    {
+
+            //    },
+            //},
+            //Server = new Server
+            //{
+            //    OperatingSystem = "Windows",
+            //    OperatingSystemVersion = "10.0",
+            //    IsUpnp2 = true,
+            //    ProductName = "Tester",
+            //    ProductVersion = "0.1",
+            //    UpnpMajorVersion = "2",
+            //    UpnpMinorVersion = "0"
+            //},
 
 
         };

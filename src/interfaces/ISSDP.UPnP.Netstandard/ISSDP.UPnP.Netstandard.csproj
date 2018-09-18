@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SimpleHttpListener.Rx" Version="6.0.0" />
+    <PackageReference Include="SimpleHttpListener.Rx" Version="6.0.3" />
   </ItemGroup>
 
 </Project>

@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using ISimpleHttpListener.Rx.Model;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
+using NLog;
 using SSDP.UPnP.PCL.Helper;
 using SSDP.UPnP.PCL.Model.Base;
 using Convert = SSDP.UPnP.PCL.Helper.Convert;
@@ -11,7 +13,9 @@ namespace SSDP.UPnP.PCL.Model
 {
     internal class MSearchRequest : ParserErrorBase, IMSearchRequest
     {
-        public CastMethod SearchCastMethod { get; } = CastMethod.NoCast;
+        private readonly ILogger _logger;
+
+        public TransportType TransportType { get; } = TransportType.NoCast;
         public string Name { get; }
         public int Port { get; }
         public string MAN { get; }
@@ -21,17 +25,21 @@ namespace SSDP.UPnP.PCL.Model
         public string CPFN { get; }
         public string CPUUID { get; }
         public string TCPPORT { get; }
+        public IPEndPoint IpEndPoint { get; internal set; }
+        public IPEndPoint RemoteIpEndPoint { get; internal set; }
         public string SECURELOCATION { get; }
         public IDictionary<string, string> Headers { get; }
 
-        public MSearchRequest(IHttpRequest request)
+        public MSearchRequest(IHttpRequest request, ILogger logger = null)
         {
+            _logger = logger;
+
             try
             {
-                SearchCastMethod = Convert.GetCastMetod(request);
+                IpEndPoint = request.LocalIpEndPoint;
+                RemoteIpEndPoint = request.RemoteIpEndPoint;
+                TransportType = Convert.GetCastMetod(request);
                 MAN = Convert.GetHeaderValue(request.Headers, "MAN");
-                Name = request.RemoteAddress;
-                Port = request.RemotePort;
                 MX = TimeSpan.FromSeconds(Convert.ConvertStringToInt(Convert.GetHeaderValue(request.Headers, "MX")));
                 ST = new ST(Convert.GetHeaderValue(request.Headers, "ST"), ignoreError:true);
                 UserAgent = Convert.ConvertToUserAgent(Convert.GetHeaderValue(request.Headers, "USER-AGENT"));
@@ -48,12 +56,11 @@ namespace SSDP.UPnP.PCL.Model
 
                 HasParsingError = request.HasParsingErrors;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger?.Error(ex);
                 InvalidRequest = true;
             }
         }
-
-        
     }
 }

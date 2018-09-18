@@ -12,7 +12,7 @@ namespace Console.Device.NETCore.Model
         public string Name { get; internal set; }
         public int Port { get; internal set; }
         public IDictionary<string, string> Headers { get; internal set; }
-        public CastMethod SearchCastMethod { get; internal set; }
+        public TransportType TransportType { get; internal set; }
         public string MAN { get; internal set; }
         public TimeSpan MX { get; internal set; }
         public IST ST { get; internal set; }

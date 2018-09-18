@@ -78,7 +78,7 @@ class Program
                     System.Console.ForegroundColor = ConsoleColor.White;
                     System.Console.WriteLine($"---### Control Point Received a NOTIFY - #{counter} ###---");
                     System.Console.ResetColor();
-                    System.Console.WriteLine($"{n.NotifyCastMethod.ToString()}");
+                    System.Console.WriteLine($"{n.NotifyTransportType.ToString()}");
                     System.Console.WriteLine($"From: {n.Name}:{n.Port}");
                     System.Console.WriteLine($"Location: {n?.Location?.AbsoluteUri}");
                     System.Console.WriteLine($"Cache-Control: max-age = {n.CacheControl}");
@@ -135,7 +135,7 @@ class Program
                     System.Console.ForegroundColor = ConsoleColor.White;
                     System.Console.WriteLine($"---### Control Point Received a  M-SEARCH RESPONSE #{counter} ###---");
                     System.Console.ResetColor();
-                    System.Console.WriteLine($"{res?.ResponseCastMethod.ToString()}");
+                    System.Console.WriteLine($"{res?.TransportType.ToString()}");
                     System.Console.WriteLine($"From: {res?.Name}:{res.Port}");
                     System.Console.WriteLine($"Status code: {res.StatusCode} {res.ResponseReason}");
                     System.Console.WriteLine($"Location: {res?.Location?.AbsoluteUri}");
@@ -180,7 +180,7 @@ class Program
     {
         var mSearchMessage = new MSearch
         {
-            SearchCastMethod = CastMethod.Multicast,
+            TransportType = TransportType.Multicast,
             CPFN = "TestXamarin",
             
             Name = UdpSSDPMultiCastAddress,
