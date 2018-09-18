@@ -82,7 +82,7 @@ namespace SSDP.UPnP.PCL.Handler
         private void FilterOnService(
             IRootDeviceInterface rootDeviceInterface, 
             IMSearchRequest mSearchReq, 
-            List<IMSearchResponse> responseList)
+            ICollection<IMSearchResponse> responseList)
         {
             var allServices =
                 rootDeviceInterface.RootDevice.Services.Concat(
@@ -93,7 +93,7 @@ namespace SSDP.UPnP.PCL.Handler
             {
                 if (mSearchReq.ST.ServiceType == service.TypeName && mSearchReq.ST.Version <= service.Version)
                 {
-                    responseList.Add(new MSearchResponse()
+                    responseList.Add(new MSearchResponse
                     {
                         TransportType = TransportType.Unicast,
                         StatusCode = 200,

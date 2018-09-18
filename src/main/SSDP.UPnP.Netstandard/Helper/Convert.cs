@@ -29,7 +29,7 @@ namespace SSDP.UPnP.PCL.Helper
 
         internal static int ConvertStringToInt(string str)
         {
-            if (int.TryParse(str, out int x))
+            if (int.TryParse(str, out var x))
             {
                 return x;
             }
@@ -41,55 +41,6 @@ namespace SSDP.UPnP.PCL.Helper
             headers.TryGetValue(key.ToUpper(), out var value);
             return value;
         }
-
-        //internal static IST GetSTValue(string stString)
-        //{
-        //    var stringParts = stString.Split(':');
-
-        //    var st = new ST();
-
-        //    switch (stringParts[0].ToLower())
-        //    {
-        //        case "ssdp":
-        //            return new ST
-        //            {
-        //                StSearchType = STSearchType.All
-        //            };
-        //        case "uuid":
-        //            return new ST
-        //            {
-        //                StSearchType = STSearchType.UIIDSearch
-        //            };
-        //        case "upnp":
-        //            return new ST
-        //            {
-        //                StSearchType = STSearchType.RootDeviceSearch
-        //            };
-        //        case "urn":
-        //        {
-
-        //            if (stringParts[1].ToLower() != "schemas-upnp-org")
-        //            {
-        //                st.Domain = stringParts[1];
-        //            }
-
-        //            if (stringParts[2].ToLower() == "device")
-        //            {
-        //                st.StSearchType = STSearchType.DeviceTypeSearch;
-        //            }
-
-        //            if (stringParts[2].ToLower() == "service")
-        //            {
-        //                st.StSearchType = STSearchType.ServiceTypeSearch;
-        //            }
-        //            st.DeviceType = stringParts[3];
-        //            st.Version = stringParts[4];
-        //            return st;
-        //        }
-        //    }
-
-        //    return null;
-        //}
 
         private static T ConvertToDeviceInfo<T>(string str) where T : DeviceInfo, IDeviceInfo, new()
         {
@@ -176,6 +127,7 @@ namespace SSDP.UPnP.PCL.Helper
             {
                 return DateTime.ParseExact(dateString, "r", null);
             }
+
             return default(DateTime);
         }
 
