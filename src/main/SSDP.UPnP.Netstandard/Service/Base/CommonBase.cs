@@ -6,13 +6,11 @@ namespace SSDP.UPnP.PCL.Service.Base
 {
     public abstract class CommonBase
     {
-        protected async Task SendOnTcpASync(string address, int port, byte[] data)
+        protected async Task SendOnTcpASync(IPEndPoint ipEndPoint, byte[] data)
         {
-            var ipAddress = IPAddress.Parse(address);
-
             using (var tcpClient = new TcpClient())
             {
-                await tcpClient.ConnectAsync(ipAddress, port);
+                await tcpClient.ConnectAsync(ipEndPoint.Address, ipEndPoint.Port);
 
                 var stream = tcpClient.GetStream();
 

@@ -3,9 +3,8 @@ using ISSDP.UPnP.PCL.Enum;
 
 namespace ISSDP.UPnP.PCL.Interfaces.Model
 {
-    public interface IMSearchResponse : IHost, IHeaders, IParserError, IMSearch
+    public interface IMSearchResponse : IMSearch
     {
-        
         int StatusCode { get; }
         string ResponseReason { get; }
         TimeSpan CacheControl { get; }

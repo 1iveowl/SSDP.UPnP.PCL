@@ -9,7 +9,7 @@ using static SSDP.UPnP.PCL.Helper.Convert;
 
 namespace SSDP.UPnP.PCL.Model
 {
-    internal class NotifySsdp : ParserErrorBase, INotifySsdp
+    internal class Notify : ParserErrorBase, INotify
     {
         public string Name { get; }
         public int Port { get;  }
@@ -27,16 +27,16 @@ namespace SSDP.UPnP.PCL.Model
         public string NEXTBOOTID { get; }
         public string SECURELOCATION { get; }
         public bool IsUuidUpnp2Compliant { get; }
+        public string HOST { get; }
         public IDictionary<string, string> Headers { get; }
 
 
-        internal NotifySsdp(IHttpRequest request)
+        internal Notify(IHttpRequest request)
         {
             try
             {
+                HOST = GetHeaderValue(request.Headers, "HOST");
                 NotifyTransportType = GetCastMetod(request);
-                Name = request.RemoteAddress;
-                Port = request.RemotePort;
                 CacheControl = TimeSpan.FromSeconds(GetMaxAge(request.Headers));
                 Location = UrlToUri(GetHeaderValue(request.Headers, "LOCATION"));
                 NT = GetHeaderValue(request.Headers, "NT");

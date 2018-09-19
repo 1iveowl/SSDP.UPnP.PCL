@@ -19,15 +19,17 @@ namespace SSDP.UPnP.PCL.Model
         public string Name { get; }
         public int Port { get; }
         public string MAN { get; }
+        public string HOST { get; }
         public TimeSpan MX { get; }
         public IST ST { get; }
         public IUserAgent UserAgent { get; }
         public string CPFN { get; }
         public string CPUUID { get; }
         public string TCPPORT { get; }
-        public IPEndPoint IpEndPoint { get; internal set; }
+        public IPEndPoint LocalIpEndPoint { get; internal set; }
         public IPEndPoint RemoteIpEndPoint { get; internal set; }
         public string SECURELOCATION { get; }
+        public int SEARCHPORT { get; }
         public IDictionary<string, string> Headers { get; }
 
         public MSearchRequest(IHttpRequest request, ILogger logger = null)
@@ -36,13 +38,15 @@ namespace SSDP.UPnP.PCL.Model
 
             try
             {
-                IpEndPoint = request.LocalIpEndPoint;
+                LocalIpEndPoint = request.LocalIpEndPoint;
                 RemoteIpEndPoint = request.RemoteIpEndPoint;
                 TransportType = Convert.GetCastMetod(request);
                 MAN = Convert.GetHeaderValue(request.Headers, "MAN");
                 MX = TimeSpan.FromSeconds(Convert.ConvertStringToInt(Convert.GetHeaderValue(request.Headers, "MX")));
                 ST = new ST(Convert.GetHeaderValue(request.Headers, "ST"), ignoreError:true);
                 UserAgent = Convert.ConvertToUserAgent(Convert.GetHeaderValue(request.Headers, "USER-AGENT"));
+                HOST = Convert.GetHeaderValue(request.Headers, "HOST");
+
                 CPFN = Convert.GetHeaderValue(request.Headers, "CPFN.UPNP.ORG");
                 CPUUID = Convert.GetHeaderValue(request.Headers, "CPUUID.UPNP.ORG");
                 TCPPORT = Convert.GetHeaderValue(request.Headers, "TCPPORT.UPNP.ORG");

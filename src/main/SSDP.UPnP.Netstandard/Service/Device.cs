@@ -323,7 +323,7 @@ namespace SSDP.UPnP.PCL.Service
         //    //}
         //}
 
-        public async Task SendNotifyAsync(INotifySsdp notifySsdp)
+        public async Task SendNotifyAsync(INotify notifySsdp)
         {
             // Insert random delay according to UPnP 2.0 spec. section 1.2.1 (page 27).
             var wait = new Random();
@@ -377,7 +377,7 @@ namespace SSDP.UPnP.PCL.Service
             return Encoding.UTF8.GetBytes(stringBuilder.ToString());
         }
 
-        private static byte[] ComposeNotifyDatagram(INotifySsdp notifySsdp)
+        private static byte[] ComposeNotifyDatagram(INotify notifySsdp)
         {
             var stringBuilder = new StringBuilder();
 
@@ -385,7 +385,7 @@ namespace SSDP.UPnP.PCL.Service
 
             stringBuilder.Append(notifySsdp.NotifyTransportType == TransportType.Multicast
                 ? "HOST: 239.255.255.250:1900\r\n"
-                : $"HOST: {notifySsdp.Name}:{notifySsdp.Port}\r\n");
+                : $"HOST: {notifySsdp.HOST}\r\n");
 
             if (notifySsdp.NTS == NTS.Alive)
             {

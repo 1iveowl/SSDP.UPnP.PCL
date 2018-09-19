@@ -79,7 +79,7 @@ class Program
                     System.Console.WriteLine($"---### Control Point Received a NOTIFY - #{counter} ###---");
                     System.Console.ResetColor();
                     System.Console.WriteLine($"{n.NotifyTransportType.ToString()}");
-                    System.Console.WriteLine($"From: {n.Name}:{n.Port}");
+                    System.Console.WriteLine($"From: {n.HOST}");
                     System.Console.WriteLine($"Location: {n?.Location?.AbsoluteUri}");
                     System.Console.WriteLine($"Cache-Control: max-age = {n.CacheControl}");
                     System.Console.WriteLine($"Server: " +
@@ -136,7 +136,6 @@ class Program
                     System.Console.WriteLine($"---### Control Point Received a  M-SEARCH RESPONSE #{counter} ###---");
                     System.Console.ResetColor();
                     System.Console.WriteLine($"{res?.TransportType.ToString()}");
-                    System.Console.WriteLine($"From: {res?.Name}:{res.Port}");
                     System.Console.WriteLine($"Status code: {res.StatusCode} {res.ResponseReason}");
                     System.Console.WriteLine($"Location: {res?.Location?.AbsoluteUri}");
                     System.Console.WriteLine($"Date: {res.Date.ToString(CultureInfo.CurrentCulture)}");

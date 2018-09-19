@@ -22,7 +22,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
 
         void Stop();
 
-        Task SendNotifyAsync(INotifySsdp notifySsdp);
+        Task SendNotifyAsync(INotify notifySsdp);
 
         //Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse);
 

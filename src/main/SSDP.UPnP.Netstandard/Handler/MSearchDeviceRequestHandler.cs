@@ -38,7 +38,7 @@ namespace SSDP.UPnP.PCL.Handler
             .SelectMany(mSearchReq =>
             {
                 var rootDeviceInterface = _rootDeviceInterfaces
-                    .FirstOrDefault(i => Equals(i?.RootDevice?.IpEndPoint, mSearchReq?.IpEndPoint));
+                    .FirstOrDefault(i => Equals(i?.RootDevice?.IpEndPoint, mSearchReq?.LocalIpEndPoint));
 
                 if (rootDeviceInterface == null)
                 {
@@ -135,7 +135,6 @@ namespace SSDP.UPnP.PCL.Handler
                          $" - ({req?.UserAgent?.FullString})");
             _logger?.Info($"CPFN: {req?.CPFN}");
             _logger?.Info($"CPUUID: {req?.CPUUID}");
-            _logger?.Info($"TCPPORT: {req?.TCPPORT}");
 
             if (req?.Headers.Any() ?? false)
             {

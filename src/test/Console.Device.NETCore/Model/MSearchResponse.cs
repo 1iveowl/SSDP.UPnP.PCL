@@ -30,9 +30,8 @@ namespace Console.Device.NETCore.Model
         public string CONFIGID { get; internal set; }
         public string SEARCHPORT { get; internal set; }
         public string SECURELOCATION { get; internal set; }
-        public IHost RemoteHost { get; internal set; }
         public TimeSpan MX { get; internal set; }
-        public IPEndPoint IpEndPoint { get; }
+        public IPEndPoint LocalIpEndPoint { get; }
         public IPEndPoint RemoteIpEndPoint { get; }
     }
 }

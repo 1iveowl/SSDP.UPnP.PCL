@@ -14,7 +14,6 @@ using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 using ISSDP.UPnP.PCL.Interfaces.Service;
 using SimpleHttpListener.Rx.Extension;
-using SimpleHttpListener.Rx.Model;
 using SSDP.UPnP.PCL.Helper;
 using SSDP.UPnP.PCL.Model;
 using SSDP.UPnP.PCL.Service.Base;
@@ -142,7 +141,7 @@ namespace SSDP.UPnP.PCL.Service
                 .Select(res => new MSearchResponse(res));
         }
 
-        public IObservable<INotifySsdp> NotifyObservable()
+        public IObservable<INotify> NotifyObservable()
         {
             if (!IsStarted)
             {
@@ -154,7 +153,7 @@ namespace SSDP.UPnP.PCL.Service
                 .Select(x => x as IHttpRequest)
                 .Where(req => req != null)
                 .Where(req => req.Method == "NOTIFY")
-                .Select(req => new NotifySsdp(req))
+                .Select(req => new Notify(req))
                 .Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update);
         }
         
@@ -183,7 +182,7 @@ namespace SSDP.UPnP.PCL.Service
                         new IPEndPoint(IPAddress.Parse(UdpSSDPMultiCastAddress), UdpSSDPMulticastPort));
                     break;
                 case TransportType.Unicast:
-                    await SendOnTcpASync(mSearch.Name, mSearch.Port, dataGram);
+                    await SendOnTcpASync(mSearch.RemoteIpEndPoint, dataGram);
                     break;
                 case TransportType.NoCast:
                     throw new SSDPException("M-SEARCH must be either multicast or unicast.");
@@ -202,7 +201,7 @@ namespace SSDP.UPnP.PCL.Service
 
             stringBuilder.Append(request.TransportType == TransportType.Multicast
                 ? "HOST: 239.255.255.250:1900\r\n"
-                : $"HOST: {request.Name}:{request.Port}\r\n");
+                : $"HOST: {request.HOST}\r\n");
 
             stringBuilder.Append("MAN: \"ssdp:discover\"\r\n");
 

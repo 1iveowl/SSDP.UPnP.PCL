@@ -15,13 +15,15 @@ namespace Console.NETCore.Test.Model
         public IDictionary<string, string> Headers { get; internal set; }
         public TransportType TransportType { get; internal set; }
         public string MAN { get; internal set; }
+        public string HOST { get; internal set; }
         public TimeSpan MX { get; internal set; }
         public IST ST { get; internal set; }
         public IUserAgent UserAgent { get; internal set; }
         public string CPFN { get; internal set; }
         public string CPUUID { get; internal set; }
+        public int SEARCHPORT { get; internal set; }
         public string TCPPORT { get; internal set; }
-        public IPEndPoint IpEndPoint { get; internal set; }
+        public IPEndPoint LocalIpEndPoint { get; internal set; }
         public IPEndPoint RemoteIpEndPoint { get; internal set; }
     }
 }

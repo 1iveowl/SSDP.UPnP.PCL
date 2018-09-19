@@ -6,7 +6,7 @@ using ISSDP.UPnP.PCL.Interfaces.Model;
 
 namespace Console.Device.NETCore.Model
 {
-    internal class Notify : INotifySsdp
+    internal class Notify : INotify
     {
         public string Name { get; internal set; }
         public int Port { get; internal set; }

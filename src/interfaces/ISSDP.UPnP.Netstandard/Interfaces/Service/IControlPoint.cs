@@ -11,7 +11,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
     {
         void Start(CancellationToken ct);
 
-        IObservable<INotifySsdp> NotifyObservable();
+        IObservable<INotify> NotifyObservable();
 
         IObservable<IMSearchResponse> MSearchResponseObservable();
 
