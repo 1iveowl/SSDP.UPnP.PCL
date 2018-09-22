@@ -25,9 +25,9 @@ namespace SSDP.UPnP.PCL.Model
         public IServer Server { get; internal set; }
         public IST ST { get; internal set; }
         public IUSN USN { get; internal set; }
-        public string BOOTID { get; internal set; }
-        public string CONFIGID { get; internal set; }
-        public string SEARCHPORT { get; internal set; }
+        public int BOOTID { get; internal set; }
+        public int CONFIGID { get; internal set; }
+        public int SEARCHPORT { get; internal set; }
         public string SECURELOCATION { get; internal set; }
         public TimeSpan MX { get; internal set; }
         public IPEndPoint LocalIpEndPoint { get; internal set; }
@@ -57,9 +57,9 @@ namespace SSDP.UPnP.PCL.Model
                 Server = Convert.ConvertToServer(Convert.GetHeaderValue(response.Headers, "SERVER"));
                 ST = new ST(Convert.GetHeaderValue(response.Headers, "ST"), ignoreError:true);
                 USN = new USN(Convert.GetHeaderValue(response.Headers, "USN"));Convert.GetHeaderValue(response.Headers, "USN");
-                BOOTID = Convert.GetHeaderValue(response.Headers, "BOOTID.UPNP.ORG");
-                CONFIGID = Convert.GetHeaderValue(response.Headers, "CONFIGID.UPNP.ORG");
-                SEARCHPORT = Convert.GetHeaderValue(response.Headers, "SEARCHPORT.UPNP.ORG");
+                BOOTID = int.TryParse(Convert.GetHeaderValue(response.Headers, "BOOTID.UPNP.ORG"), out var b) ? b : 0;
+                CONFIGID = int.TryParse(Convert.GetHeaderValue(response.Headers, "CONFIGID.UPNP.ORG"), out var c) ? c : 0;
+                SEARCHPORT = int.TryParse(Convert.GetHeaderValue(response.Headers, "SEARCHPORT.UPNP.ORG"), out var s) ? s : 0;
                 SECURELOCATION = Convert.GetHeaderValue(response.Headers, "SECURELOCATION.UPNP.ORG");
 
                 Headers = HeaderHelper.SingleOutAdditionalHeaders(new List<string>

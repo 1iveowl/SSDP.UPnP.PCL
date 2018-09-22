@@ -13,9 +13,9 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
         bool Ext { get; }
         IServer Server { get; }
         IUSN USN { get; }
-        string BOOTID { get; }
-        string CONFIGID { get; }
-        string SEARCHPORT { get; }
+        int BOOTID { get; }
+        int CONFIGID { get; }
+        int SEARCHPORT { get; }
         string SECURELOCATION { get; }
     }
 }

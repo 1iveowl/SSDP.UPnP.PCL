@@ -40,45 +40,45 @@ class Program
     private static async Task StartAsync(CancellationToken ct)
     {
         StartDeviceListening();
-        await StartSendingRandomNotify(ct);
+        //await StartSendingRandomNotify(ct);
     }
 
-    private static async Task StartSendingRandomNotify(CancellationToken ct)
-    {
-        var wait = new Random();
-        var i = 0;
+    //private static async Task StartSendingRandomNotify(CancellationToken ct)
+    //{
+    //    var wait = new Random();
+    //    var i = 0;
 
-        while (true)
-        {
-            await Task.Delay(TimeSpan.FromSeconds(wait.Next(1,6)), ct);
-            i++;
-            var newNotify = new Notify
-            {
-                BOOTID = i.ToString(),
-                CacheControl = TimeSpan.FromSeconds(5),
-                CONFIGID = "1",
-                Name = _remoteControlPointHost.ToString(),
-                Port = 1900,
-                Location = new Uri($"http://{_deviceLocalIpAddress}:1900/Test"),
-                NotifyTransportType = TransportType.Multicast,
-                NT = "upnp:rootdevice",
-                NTS = NTS.Alive,
-                USN = "uuid:device-UUID::upnp:rootdevice",
-                Server = new Server
-                {
-                    OperatingSystem = "Windows",
-                    OperatingSystemVersion = "10.0",
-                    IsUpnp2 = true,
-                    ProductName = "Tester",
-                    ProductVersion = "0.1",
-                    UpnpMajorVersion = "2",
-                    UpnpMinorVersion = "0"
-                },
-            };
+    //    while (true)
+    //    {
+    //        await Task.Delay(TimeSpan.FromSeconds(wait.Next(1,6)), ct);
+    //        i++;
+    //        var notify = new Notify
+    //        {
+    //            BOOTID = i.ToString(),
+    //            CacheControl = TimeSpan.FromSeconds(5),
+    //            CONFIGID = "1",
+    //            Name = _remoteControlPointHost.ToString(),
+    //            Port = 1900,
+    //            Location = new Uri($"http://{_deviceLocalIpAddress}:1900/Test"),
+    //            NotifyTransportType = TransportType.Multicast,
+    //            NT = "upnp:rootdevice",
+    //            NTS = NTS.Alive,
+    //            USN = "uuid:device-UUID::upnp:rootdevice",
+    //            Server = new Server
+    //            {
+    //                OperatingSystem = "Windows",
+    //                OperatingSystemVersion = "10.0",
+    //                IsUpnp2 = true,
+    //                ProductName = "Tester",
+    //                ProductVersion = "0.1",
+    //                UpnpMajorVersion = "2",
+    //                UpnpMinorVersion = "0"
+    //            },
+    //        };
 
-            await _device.SendNotifyAsync(newNotify);
-        }
-    }
+    //        await _device.SendNotifyAsync(notify);
+    //    }
+    //}
 
     private static void StartDeviceListening()
     {

@@ -257,8 +257,8 @@ namespace SSDP.UPnP.PCL.Service
             stringBuilder.Append($"USN: {response.USN}\r\n");
             stringBuilder.Append($"BOOTID.UPNP.ORG: {response.BOOTID}\r\n");
 
-            HeaderHelper.AddOptionalHeader(stringBuilder, "CONFIGID.UPNP.ORG", response.CONFIGID);
-            HeaderHelper.AddOptionalHeader(stringBuilder, "SEARCHPORT.UPNP.ORG", response.SEARCHPORT);
+            HeaderHelper.AddOptionalHeader(stringBuilder, "CONFIGID.UPNP.ORG", response.CONFIGID.ToString());
+            HeaderHelper.AddOptionalHeader(stringBuilder, "SEARCHPORT.UPNP.ORG", response.SEARCHPORT.ToString());
             HeaderHelper.AddOptionalHeader(stringBuilder, "SECURELOCATION.UPNP.ORG", response.SECURELOCATION);
 
             // Adding additional vendor specific headers if they exist.

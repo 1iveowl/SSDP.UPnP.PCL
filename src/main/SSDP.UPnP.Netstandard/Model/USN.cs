@@ -39,12 +39,7 @@ namespace SSDP.UPnP.PCL.Model
 
             if (usna.Length > 2)
             {
-                var stStr = "";
-
-                for (var i = 2; i < usna.Length; i++)
-                {
-                    stStr = stStr + usna[i];
-                }
+                var stStr = string.Join(":", usna.ToArray(), 3, usna.Length - 3);
 
                 var stObj = new ST(stStr, ignoreError);
 

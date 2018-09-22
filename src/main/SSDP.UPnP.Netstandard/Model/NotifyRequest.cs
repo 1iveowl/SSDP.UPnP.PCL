@@ -24,7 +24,7 @@ namespace SSDP.UPnP.PCL.Model
         public int BOOTID { get; internal set; }
         public string CONFIGID { get; internal set; }
         public int SEARCHPORT { get; internal set; }
-        public string NEXTBOOTID { get; internal set; }
+        public int NEXTBOOTID { get; internal set; }
         public string SECURELOCATION { get; internal set; }
         public bool IsUuidUpnp2Compliant { get; internal set; }
         public string HOST { get; internal set; }
@@ -47,10 +47,10 @@ namespace SSDP.UPnP.PCL.Model
                 Server = ConvertToServer(GetHeaderValue(request.Headers, "SERVER"));
                 USN = GetHeaderValue(request.Headers, "USN");
 
-                BOOTID = int.Parse(GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG"));
+                BOOTID = int.TryParse(GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG"), out var b) ? b : 0;
                 CONFIGID = GetHeaderValue(request.Headers, "CONFIGID.UPNP.ORG");
-                SEARCHPORT = int.Parse(GetHeaderValue(request.Headers, "SEARCHPORT.UPNP.ORG"));
-                NEXTBOOTID = GetHeaderValue(request.Headers, "NEXTBOOTID.UPNP.ORG");
+                SEARCHPORT = int.TryParse(GetHeaderValue(request.Headers, "SEARCHPORT.UPNP.ORG"), out var s) ? s : 0;
+                NEXTBOOTID = int.TryParse(GetHeaderValue(request.Headers, "NEXTBOOTID.UPNP.ORG"), out var n) ? n : 0;
                 SECURELOCATION = GetHeaderValue(request.Headers, "SECURELOCATION.UPNP.ORG");
 
                 Headers = HeaderHelper.SingleOutAdditionalHeaders(new List<string>
