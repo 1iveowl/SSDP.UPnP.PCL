@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using ISimpleHttpListener.Rx.Model;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 
@@ -9,25 +11,16 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
 {
     public interface IDevice : IDisposable
     {
-        //Uri Location { get; set; }
-        //IServer Server { get; set; }
-        //IEnumerable<IUSN> USNs { get; set; }
-        //int SEARCHPORT { get; }
-
-        //IObservable<IMSearchRequest> MSearchRequestObservable();
-
         IObservable<DeviceActivity> DeviceActivityObservable { get; }
 
-        void Start(CancellationToken ct);
+        Task StartAsync(CancellationToken ct);
+
+        Task HotStartAsync(IObservable<IHttpRequestResponse> httpListenerObservable);
 
         void Stop();
 
-        Task SendNotifyAsync(INotify notifySsdp);
-
-        //Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse);
+        Task SendNotifyAsync(INotify notifySsdp, IPEndPoint ipEndPoint);
 
         bool IsStarted { get; }
-
-        bool IsMultiHomed { get; }
     }
 }

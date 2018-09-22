@@ -15,7 +15,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
         NTS NTS { get; }
         string USN { get; }
 
-        string BOOTID { get; }
+        int BOOTID { get; }
         string CONFIGID { get; }
         TimeSpan CacheControl { get; }
         Uri Location { get; }
@@ -24,7 +24,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
         bool IsUuidUpnp2Compliant { get; }
 
         string NEXTBOOTID { get; }
-        string SEARCHPORT { get; }
+        int SEARCHPORT { get; }
 
         string SECURELOCATION { get; }
     }

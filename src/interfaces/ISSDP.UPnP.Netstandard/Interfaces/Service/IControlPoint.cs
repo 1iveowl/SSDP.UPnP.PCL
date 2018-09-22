@@ -3,6 +3,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using ISimpleHttpListener.Rx.Enum;
+using ISimpleHttpListener.Rx.Model;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 
 namespace ISSDP.UPnP.PCL.Interfaces.Service
@@ -11,6 +12,8 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
     {
         void Start(CancellationToken ct);
 
+        void HotStart(IObservable<IHttpRequestResponse> httpListenerObservable);
+        
         IObservable<INotify> NotifyObservable();
 
         IObservable<IMSearchResponse> MSearchResponseObservable();
@@ -18,6 +21,5 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
         Task SendMSearchAsync(IMSearchRequest mSearch, IPAddress ipAddress);
 
         bool IsStarted { get; }
-        bool IsMultihomed { get; }
     }
 }

@@ -131,19 +131,6 @@ namespace SSDP.UPnP.PCL.Helper
             return default(DateTime);
         }
 
-        internal static string GetNtsString(NTS nts)
-        {
-            switch (nts)
-            {
-                case NTS.Alive: return "ssdp:alive";
-                case NTS.ByeBye: return "ssdp:byebye";
-                case NTS.Update: return "ssdp:update";
-
-                default:
-                    return "<unknown>";
-            }
-        }
-
         internal static TransportType GetCastMetod(IHttpCommon request)
         {
             switch (request.RequestType)

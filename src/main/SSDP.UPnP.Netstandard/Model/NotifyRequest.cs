@@ -11,24 +11,27 @@ namespace SSDP.UPnP.PCL.Model
 {
     internal class Notify : ParserErrorBase, INotify
     {
-        public string Name { get; }
-        public int Port { get;  }
-        public TransportType NotifyTransportType { get; } = TransportType.NoCast;
-        public TimeSpan CacheControl { get; }
-        public Uri Location { get; }
-        public string NT { get; }
-        public NTS NTS { get; }
-        public IServer Server { get;}
-        public string USN { get;}
+        public string Name { get; internal set; }
+        public int Port { get; internal set; }
+        public TransportType NotifyTransportType { get; internal set; } = TransportType.NoCast;
+        public TimeSpan CacheControl { get; internal set; }
+        public Uri Location { get; internal set; }
+        public string NT { get; internal set; }
+        public NTS NTS { get; internal set; }
+        public IServer Server { get; internal set; }
+        public string USN { get; internal set; }
 
-        public string BOOTID { get; }
-        public string CONFIGID { get; }
-        public string SEARCHPORT { get; }
-        public string NEXTBOOTID { get; }
-        public string SECURELOCATION { get; }
-        public bool IsUuidUpnp2Compliant { get; }
-        public string HOST { get; }
-        public IDictionary<string, string> Headers { get; }
+        public int BOOTID { get; internal set; }
+        public string CONFIGID { get; internal set; }
+        public int SEARCHPORT { get; internal set; }
+        public string NEXTBOOTID { get; internal set; }
+        public string SECURELOCATION { get; internal set; }
+        public bool IsUuidUpnp2Compliant { get; internal set; }
+        public string HOST { get; internal set; }
+        public IDictionary<string, string> Headers { get; internal set; }
+
+        internal Notify()
+        { }
 
 
         internal Notify(IHttpRequest request)
@@ -44,9 +47,9 @@ namespace SSDP.UPnP.PCL.Model
                 Server = ConvertToServer(GetHeaderValue(request.Headers, "SERVER"));
                 USN = GetHeaderValue(request.Headers, "USN");
 
-                BOOTID = GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG");
+                BOOTID = int.Parse(GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG"));
                 CONFIGID = GetHeaderValue(request.Headers, "CONFIGID.UPNP.ORG");
-                SEARCHPORT = GetHeaderValue(request.Headers, "SEARCHPORT.UPNP.ORG");
+                SEARCHPORT = int.Parse(GetHeaderValue(request.Headers, "SEARCHPORT.UPNP.ORG"));
                 NEXTBOOTID = GetHeaderValue(request.Headers, "NEXTBOOTID.UPNP.ORG");
                 SECURELOCATION = GetHeaderValue(request.Headers, "SECURELOCATION.UPNP.ORG");
 

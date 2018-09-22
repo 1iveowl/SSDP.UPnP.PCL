@@ -6,26 +6,21 @@ namespace SSDP.UPnP.PCL.ExtensionMethod
 {
     public static class STEx
     {
-        public static string ToString(this IST st)
+        public static string ToUri(this IST st)
         {
-            switch (st.StSearchType)
+            return EntityEx.ToUri(st);
+        }
+
+        public static string ToUri(this NTS nts)
+        {
+            switch (nts)
             {
-                case STType.All:
-                    return "ssdp.all";
-                case STType.RootDeviceSearch:
-                    return "upnp:rootdevice";
-                case STType.UIIDSearch:
-                    return $"uuid:{st.DeviceUUID}";
-                case STType.DeviceTypeSearch:
-                    return $"urn:schemas-upnp-org:device:{st.TypeName}:{st.Version}";
-                case STType.ServiceTypeSearch:
-                    return $"urn:schemas-upnp-org:service:{st.TypeName}:{st.Version}";
-                case STType.DomainDeviceSearch:
-                    return $"urn:{st.Domain}:device:{st.TypeName}:{st.Version}";
-                case STType.DomainServiceSearch:
-                    return $"urn:{st.Domain}:service:{st.TypeName}:{st.Version}";
+                case NTS.Alive: return "ssdp:alive";
+                case NTS.ByeBye: return "ssdp:byebye";
+                case NTS.Update: return "ssdp:update";
+
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    return "<unknown>";
             }
         }
     }

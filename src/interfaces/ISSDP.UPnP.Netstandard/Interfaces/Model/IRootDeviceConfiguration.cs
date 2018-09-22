@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ISSDP.UPnP.PCL.Interfaces.Model
@@ -12,6 +13,8 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
         Uri Location { get; }
         Uri SecureLocation { get; }
         string CONFIGID { get; }
+        TimeSpan CacheControl { get; }
+        int BOOTID { get; }
 
         IEnumerable<IDeviceConfiguration> EmbeddedDevices { get; }
     }

@@ -8,10 +8,11 @@ using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 using NLog;
 using SSDP.UPnP.PCL.Model;
+using SSDP.UPnP.PCL.Service.Base;
 
 namespace SSDP.UPnP.PCL.Handler
 {
-    internal class MSearchDeviceRequestHandler : IDisposable
+    internal class MSearchDeviceRequestHandler : EntityBase, IDisposable
     {
         private readonly  ILogger _logger;
         private readonly IEnumerable<IRootDeviceInterface> _rootDeviceInterfaces;
@@ -45,97 +46,12 @@ namespace SSDP.UPnP.PCL.Handler
                     return null;
                 }
 
-                return CreateResponses(rootDeviceInterface, mSearchReq);
+                return GetEntities(rootDeviceInterface, mSearchReq)
+                    .Select(entity => CreateMSeachResponse(rootDeviceInterface.RootDeviceConfiguration, entity, mSearchReq))
+                    .Where(res => !(res is null));
 
             })
-            .Where(res => res != null);
-
-        private IEnumerable<IMSearchResponse> CreateResponses(
-            IRootDeviceInterface rootDeviceInterface, 
-            IMSearch mSearchReq)
-        {
-            IEnumerable<IEntity> entities;
-           
-            switch (mSearchReq.ST.StSearchType)
-            {
-                case STType.All:
-                    entities = GetDevicesEntities(rootDeviceInterface, mSearchReq)?
-                        .Concat(GetServiceEntities(rootDeviceInterface, mSearchReq));
-                    break;
-                case STType.RootDeviceSearch:
-                        entities = new List<IEntity>
-                        {
-                            rootDeviceInterface.RootDeviceConfiguration
-                        };
-                    break;
-                case STType.UIIDSearch:
-                    entities = GetDevicesEntities(rootDeviceInterface, mSearchReq)?
-                        .Where(d => d.DeviceUUID == mSearchReq.ST.DeviceUUID);
-                    break;
-                case STType.ServiceTypeSearch:
-                case STType.DomainServiceSearch:
-                    entities = GetServiceEntities(rootDeviceInterface, mSearchReq);
-                    break;
-                case STType.DeviceTypeSearch:
-                case STType.DomainDeviceSearch:
-                    entities = GetDevicesEntities(rootDeviceInterface, mSearchReq);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-            
-            if (entities?.Any() ?? false)
-            {
-                return null;
-            }
-
-
-            return entities.Select(entity => CreateMSeachResponse(rootDeviceInterface.RootDeviceConfiguration, entity, mSearchReq))
-                .Where(res => !(res is null));
-        }
-
-        private IEnumerable<IEntity> GetServiceEntities(IRootDeviceInterface rootDeviceInterface, IMSearch mSearchReq) => 
-            rootDeviceInterface.RootDeviceConfiguration.Services
-                .Concat(rootDeviceInterface.RootDeviceConfiguration.EmbeddedDevices
-                    .SelectMany(embeddedDevice => embeddedDevice.Services))
-                .Where(s =>
-                {
-                    if (mSearchReq.ST.StSearchType == STType.ServiceTypeSearch
-                        || mSearchReq.ST.StSearchType == STType.All)
-                    {
-                        return true;
-                    }
-
-                    if (mSearchReq.ST.StSearchType == STType.DomainServiceSearch)
-                    {
-                        return s.Domain == mSearchReq.ST.Domain;
-                    }
-
-                    return false;
-                })
-                .Where(s => s.Version <= mSearchReq.ST.Version);
-
-        private IEnumerable<IEntity>
-            GetDevicesEntities(IRootDeviceInterface rootDeviceInterface, IMSearch mSearchReq) =>
-            rootDeviceInterface.RootDeviceConfiguration.EmbeddedDevices
-                .Where(s =>
-                {
-                    if (mSearchReq.ST.StSearchType == STType.DeviceTypeSearch
-                        || mSearchReq.ST.StSearchType == STType.All)
-                    {
-                        return true;
-                    }
-
-                    if (mSearchReq.ST.StSearchType == STType.DomainServiceSearch)
-                    {
-                        return s.Domain == mSearchReq.ST.Domain;
-                    }
-
-                    return false;
-                })
-                .Where(s => s.Version <= mSearchReq.ST.Version)
-                .Append(rootDeviceInterface.RootDeviceConfiguration);
-                
+            .Where(res => res != null);             
 
         private MSearchResponse CreateMSeachResponse(
             IRootDeviceConfiguration rootDeviceConfiguration, 

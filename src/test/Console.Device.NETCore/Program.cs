@@ -17,11 +17,16 @@ class Program
     private static IPAddress _deviceLocalIpAddress;
     private static IPAddress _remoteControlPointHost;
 
+    private static IPEndPoint _localUnicastIpEndPoint;
+    private static IPEndPoint _localMulticastIpEndPoint;
+
     // For this test to work you most likely need to stop the SSDP Discovery service on Windows
     // If you don't stop the SSDP Windows Service, the service will intercept the UPnP multicasts and consequently nothing will show up in the console. 
 
     static async Task Main(string[] args)
     {
+        _localUnicastIpEndPoint = new IPEndPoint(IPAddress.Parse("192.168.0.59"), 8000);
+
         _deviceLocalIpAddress = IPAddress.Parse("192.168.0.59");
         _remoteControlPointHost = IPAddress.Parse("192.168.0.48");
 
@@ -113,7 +118,7 @@ class Program
 
         var cts = new CancellationTokenSource();
 
-        _device.Start(cts.Token);
+        _device.StartAsync(cts.Token);
 
         //var disposableMSearch= _device.MSearchRequestObservable()
         //    //.Where(req => req.Name == _remoteControlPointHost.ToString())

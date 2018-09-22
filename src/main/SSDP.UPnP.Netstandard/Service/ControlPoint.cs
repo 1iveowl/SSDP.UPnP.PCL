@@ -16,26 +16,20 @@ using ISSDP.UPnP.PCL.Interfaces.Service;
 using SimpleHttpListener.Rx.Extension;
 using SSDP.UPnP.PCL.Helper;
 using SSDP.UPnP.PCL.Model;
-using SSDP.UPnP.PCL.Service.Base;
 using static SSDP.UPnP.PCL.Helper.Constants;
 
 namespace SSDP.UPnP.PCL.Service
 {
-    public class ControlPoint : CommonBase, IControlPoint
+    public class ControlPoint : IControlPoint
     {
 
         private readonly IEnumerable<IControlPointInterface> _controlPointInterfaces;
 
-        private IObservable<IHttpRequestResponse> _udpMulticastHttpListener;
-
-        private IObservable<IHttpRequestResponse> _tcpMulticastHttpListener;
+        private IObservable<IHttpRequestResponse> _httpListenerObservable;
 
         private readonly bool _isClientsProvided;
 
         public bool IsStarted { get; private set; }
-
-        public bool IsMultihomed => _controlPointInterfaces.Count() > 1;
-
 
         public ControlPoint(params IPAddress[] ipAddressParam)
         {
@@ -91,6 +85,7 @@ namespace SSDP.UPnP.PCL.Service
             _isClientsProvided = true;
         }
 
+
         public void Start(CancellationToken ct)
         {
             if (!_controlPointInterfaces?.Any() ?? false)
@@ -100,29 +95,41 @@ namespace SSDP.UPnP.PCL.Service
 
             foreach (var client in _controlPointInterfaces)
             {
-                if (_udpMulticastHttpListener == null)
+                if (_httpListenerObservable == null)
                 {
-                    _udpMulticastHttpListener =
+                    _httpListenerObservable =
                         client.UdpClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError).Publish().RefCount();
                 }
                 else
                 {
-                    _udpMulticastHttpListener.Merge(
+                    _httpListenerObservable.Merge(
                         client.UdpClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError)).Publish().RefCount();
                 }
 
-                if (_tcpMulticastHttpListener == null)
+                if (_httpListenerObservable == null)
                 {
-                    _tcpMulticastHttpListener =
+                    _httpListenerObservable =
                         client.TcpListener.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError).Publish().RefCount();
                 }
                 else
                 {
-                    _tcpMulticastHttpListener.Merge(
+                    _httpListenerObservable.Merge(
                         client.TcpListener.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError)).Publish().RefCount();
                 }
             }
 
+            Start();
+        }
+
+        public void HotStart(IObservable<IHttpRequestResponse> httpListenerObservable)
+        {
+            _httpListenerObservable = httpListenerObservable;
+
+            
+        }
+
+        private void Start()
+        {
             IsStarted = true;
         }
 
@@ -133,8 +140,7 @@ namespace SSDP.UPnP.PCL.Service
                 throw new Exception("Control Point not started.");
             }
 
-            return _tcpMulticastHttpListener
-                .Merge(_udpMulticastHttpListener)
+            return _httpListenerObservable
                 .Where(x => x.MessageType == MessageType.Response)
                 .Select(x => x as IHttpResponse)
                 .Where(res => res != null)
@@ -148,7 +154,7 @@ namespace SSDP.UPnP.PCL.Service
                 throw new Exception("Control Point not started.");
             }
 
-            return _udpMulticastHttpListener
+            return _httpListenerObservable
                 .Where(x => x.MessageType == MessageType.Request)
                 .Select(x => x as IHttpRequest)
                 .Where(req => req != null)
@@ -318,6 +324,20 @@ namespace SSDP.UPnP.PCL.Service
 
                 default:
                     throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        private async Task SendOnTcpASync(IPEndPoint ipEndPoint, byte[] data)
+        {
+            using (var tcpClient = new TcpClient())
+            {
+                await tcpClient.ConnectAsync(ipEndPoint.Address, ipEndPoint.Port);
+
+                var stream = tcpClient.GetStream();
+
+                await stream.WriteAsync(data, 0, data.Length);
+                await stream.FlushAsync();
+                tcpClient.Close();
             }
         }
 
