@@ -6,9 +6,10 @@ namespace ISSDP.UPnP.PCL.Enum
 {
     public enum EntityType
     {
-        Undefined,
         Device,
-        Service,
+        RootDevice,
+        DeviceType,
+        ServiceType,
         DomainDevice,
         DomainService
     }

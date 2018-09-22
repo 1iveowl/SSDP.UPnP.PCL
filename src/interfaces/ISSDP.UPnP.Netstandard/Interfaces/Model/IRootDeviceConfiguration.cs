@@ -5,7 +5,7 @@ using System.Text;
 
 namespace ISSDP.UPnP.PCL.Interfaces.Model
 {
-    public interface IRootDevice : IDeviceConfiguration
+    public interface IRootDeviceConfiguration : IDeviceConfiguration
     {
         IPEndPoint IpEndPoint { get; }
         IServer Server { get; }

@@ -77,7 +77,7 @@ class Program
 
     private static void StartDeviceListening()
     {
-        var rootDevice = new RootDevice
+        var rootDevice = new RootDeviceConfiguration
         {
             
         };

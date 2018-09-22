@@ -12,6 +12,6 @@ namespace SSDP.UPnP.PCL.Model
         public UdpClient UdpMulticastClient { get; set; }
         public UdpClient UdpUnicastClient { get; set; }
 
-        public IRootDevice RootDevice { get; set; }
+        public IRootDeviceConfiguration RootDeviceConfiguration { get; set; }
     }
 }

@@ -6,8 +6,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
 {
     public interface IDeviceService : IEntity
     {
-        bool IsRoot { get; }
-        string DeviceUUID { get; }
+        
         //string DeviceType { get; }
         //string ServiceType { get; }
         //int Version { get; }

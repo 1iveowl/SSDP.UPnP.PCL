@@ -12,7 +12,5 @@ namespace SSDP.UPnP.PCL.Model.Base
         public int Version { get; internal set; }
         public string Domain { get; internal set; }
         public EntityType EntityType { get; internal set; }
-
-        public bool IsRoot { get; internal set; }
     }
 }

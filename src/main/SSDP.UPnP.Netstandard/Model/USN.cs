@@ -8,16 +8,14 @@ namespace SSDP.UPnP.PCL.Model
 {
     public class USN : DeviceServiceBase, IUSN
     {
-        public USNType USNType { get; internal set; }
 
-        public string USNString { get; private set; }
+        public string USNString {get; private set; }
 
         internal USN() { }
 
 
         internal USN(string usn, bool ignoreError = false)
         {
-
             USNString = usn;
 
             var usna = usn?.Split(':');
@@ -53,46 +51,8 @@ namespace SSDP.UPnP.PCL.Model
                 TypeName = stObj.TypeName;
                 Version = stObj.Version;
                 Domain = stObj.Domain;
+                EntityType = stObj.EntityType;
 
-                switch (stObj.EntityType)
-                {
-                    //case STType.All:
-                    //    break;
-                    //case STType.RootDeviceSearch:
-                    //    USNType = USNType.RootDevice;
-                    //    break;
-                    //case STType.UIIDSearch:
-                    //    USNType = USNType.Device;
-                    //    break;
-                    //case STType.DeviceTypeSearch:
-                    //    USNType = USNType.DeviceType;
-                    //    break;
-                    //case STType.ServiceTypeSearch:
-                    //    USNType = USNType.ServiceType;
-                    //    break;
-                    //case STType.DomainDeviceSearch:
-                    //    USNType = USNType.DomainDeviceType;
-                    //    break;
-                    //case STType.DomainServiceSearch:
-                    //    USNType = USNType.DomainServiceType;
-                    //    break;
-                    //default:
-                    //    throw new ArgumentOutOfRangeException();
-                    case EntityType.Device:
-                        break;
-                    case EntityType.Service:
-                        break;
-                    case EntityType.DomainDevice:
-                        break;
-                    case EntityType.DomainService:
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
-            }
-            else
-            {
-                USNType = USNType.Device;
             }
         }
     }

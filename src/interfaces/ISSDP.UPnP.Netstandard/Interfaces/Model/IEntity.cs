@@ -11,5 +11,6 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
         string TypeName { get; }
         int Version { get; }
         string Domain { get; }
+        string DeviceUUID { get; }
     }
 }

@@ -71,15 +71,15 @@ namespace SSDP.UPnP.PCL.Service
             DeviceActivityObservable = deviceActivitySubject.AsObservable();
         }
 
-        public Device(IRootDevice rootDevice) : this()
+        public Device(IRootDeviceConfiguration rootDeviceConfiguration) : this()
         {
-            if (rootDevice?.IpEndPoint == null)
+            if (rootDeviceConfiguration?.IpEndPoint == null)
             {
                 throw new SSDPException("At least one Root Device must be fully specified.");
             }
             var rootDeviceInterface = new RootDeviceInterface
             {
-                RootDevice = rootDevice,
+                RootDeviceConfiguration = rootDeviceConfiguration,
                 UdpMulticastClient = new UdpClient
                 {
                     ExclusiveAddressUse = false,
@@ -95,12 +95,12 @@ namespace SSDP.UPnP.PCL.Service
 
             rootDeviceInterface.UdpMulticastClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress));
 
-            rootDeviceInterface.UdpMulticastClient.Client.Bind(new IPEndPoint(rootDevice.IpEndPoint?.Address, UdpSSDPMulticastPort));
+            rootDeviceInterface.UdpMulticastClient.Client.Bind(new IPEndPoint(rootDeviceConfiguration.IpEndPoint?.Address, UdpSSDPMulticastPort));
 
 
             rootDeviceInterface.UdpUnicastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
-            rootDeviceInterface.UdpUnicastClient.Client.Bind(new IPEndPoint(rootDevice.IpEndPoint.Address, rootDevice.IpEndPoint.Port));
+            rootDeviceInterface.UdpUnicastClient.Client.Bind(new IPEndPoint(rootDeviceConfiguration.IpEndPoint.Address, rootDeviceConfiguration.IpEndPoint.Port));
 
             _rootDeviceInterfaces = new List<IRootDeviceInterface> {rootDeviceInterface};
 

@@ -6,7 +6,7 @@ using ISSDP.UPnP.PCL.Interfaces.Model;
 
 namespace SSDP.UPnP.PCL.Model
 {
-    public class RootDevice : DeviceConfiguration, IRootDevice
+    public class RootDeviceConfiguration : DeviceConfiguration, IRootDeviceConfiguration
     {
         public IPEndPoint IpEndPoint { get; }
         public IServer Server { get; set; }

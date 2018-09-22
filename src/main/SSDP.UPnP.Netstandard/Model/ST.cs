@@ -9,9 +9,6 @@ namespace SSDP.UPnP.PCL.Model
         public STType StSearchType { get; set; }
         public string STString { get; private set; }
 
-
-
-
         public ST()
         {
 
@@ -53,8 +50,7 @@ namespace SSDP.UPnP.PCL.Model
                     if (sta[1].ToLower() == "rootdevice" && sta.Length == 2)
                     {
                         StSearchType = STType.RootDeviceSearch;
-                        EntityType = EntityType.Device;
-                        IsRoot = true;
+                        EntityType = EntityType.RootDevice;
                     }
                     else
                     {
@@ -84,13 +80,13 @@ namespace SSDP.UPnP.PCL.Model
                         {
                             StSearchType = STType.DeviceTypeSearch;
                             TypeName = sta[3];
-                            EntityType = EntityType.Device;
+                            EntityType = EntityType.DeviceType;
                         }
                         else if (sta[2].ToLower() == "service")
                         {
                             StSearchType = STType.ServiceTypeSearch;
                             TypeName = sta[3];
-                            EntityType = EntityType.Service;
+                            EntityType = EntityType.ServiceType;
                         }
                         else
                         {

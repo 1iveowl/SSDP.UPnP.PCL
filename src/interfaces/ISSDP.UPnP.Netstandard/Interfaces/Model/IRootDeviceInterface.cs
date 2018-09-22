@@ -11,6 +11,6 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
         UdpClient UdpMulticastClient { get; }
         UdpClient UdpUnicastClient { get; }
 
-        IRootDevice RootDevice { get; }
+        IRootDeviceConfiguration RootDeviceConfiguration { get; }
     }
 }
