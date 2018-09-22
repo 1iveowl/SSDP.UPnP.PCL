@@ -1,17 +1,16 @@
 ﻿using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
+using SSDP.UPnP.PCL.Model.Base;
 
 namespace SSDP.UPnP.PCL.Model
 {
-    public class ST :  IST
+    public class ST : DeviceServiceBase, IST
     {
-        public STSearchType StSearchType { get; set; }
+        public STType StSearchType { get; set; }
         public string STString { get; private set; }
-        public string DeviceUUID { get; internal set; }
-        public string DeviceType { get; internal set; }
-        public string ServiceType { get; internal set; }
-        public int Version { get; internal set; }
-        public string Domain { get; internal set; }
+
+
+
 
         public ST()
         {
@@ -23,7 +22,7 @@ namespace SSDP.UPnP.PCL.Model
             PopulateST(searchTarget, ignoreError);
         }
 
-        protected void PopulateST(string searchTarget, bool ignoreError = false)
+        private void PopulateST(string searchTarget, bool ignoreError = false)
         {
             STString = searchTarget;
 
@@ -39,7 +38,7 @@ namespace SSDP.UPnP.PCL.Model
                 case "ssdp":
                     if (sta[1].ToLower() == "all" && sta.Length == 2)
                     {
-                        StSearchType = STSearchType.All;
+                        StSearchType = STType.All;
                     }
                     else
                     {
@@ -53,19 +52,22 @@ namespace SSDP.UPnP.PCL.Model
                 case "upnp":
                     if (sta[1].ToLower() == "rootdevice" && sta.Length == 2)
                     {
-                        StSearchType = STSearchType.RootDeviceSearch;
+                        StSearchType = STType.RootDeviceSearch;
+                        EntityType = EntityType.Device;
+                        IsRoot = true;
                     }
                     else
                     {
                         if (!ignoreError)
                         {
-                            throw new SSDPException($"Search Target (ST) value must be 'upnp:rootdevice '. The value '{searchTarget}' is invalid. ");
+                            throw new SSDPException($"Search Target (ST) value must be 'upnp:rootdevice'. The value '{searchTarget}' is invalid. ");
                         }
                     }
                     break;
                 case "uuid":
-                    StSearchType = STSearchType.UIIDSearch;
+                    StSearchType = STType.UIIDSearch;
                     DeviceUUID = searchTarget.Remove(5);
+                    EntityType = EntityType.Device;
                     break;
                 case "urn":
                     if (sta[3] == null || sta[4] == null || sta.Length != 5)
@@ -80,14 +82,15 @@ namespace SSDP.UPnP.PCL.Model
                     {
                         if (sta[2].ToLower() == "device")
                         {
-                            StSearchType = STSearchType.DeviceTypeSearch;
-                            DeviceType = sta[3];
+                            StSearchType = STType.DeviceTypeSearch;
+                            TypeName = sta[3];
+                            EntityType = EntityType.Device;
                         }
                         else if (sta[2].ToLower() == "service")
                         {
-                            StSearchType = STSearchType.ServiceTypeSearch;
-                            ServiceType = sta[3];
-
+                            StSearchType = STType.ServiceTypeSearch;
+                            TypeName = sta[3];
+                            EntityType = EntityType.Service;
                         }
                         else
                         {
@@ -103,13 +106,15 @@ namespace SSDP.UPnP.PCL.Model
                     {
                         if (sta[2].ToLower() == "device")
                         {
-                            StSearchType = STSearchType.DomainDeviceSearch;
-                            DeviceType = sta[3];
+                            StSearchType = STType.DomainDeviceSearch;
+                            base.TypeName = sta[3];
+                            EntityType = EntityType.DomainDevice;
                         }
                         else if (sta[2].ToLower() == "service")
                         {
-                            StSearchType = STSearchType.DomainServiceSearch;
-                            ServiceType = sta[3];
+                            StSearchType = STType.DomainServiceSearch;
+                            TypeName = sta[3];
+                            EntityType = EntityType.DomainService;
                         }
                         else
                         {
@@ -143,6 +148,4 @@ namespace SSDP.UPnP.PCL.Model
             }
         }
     }
-
-
 }

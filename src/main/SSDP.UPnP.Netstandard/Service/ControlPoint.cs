@@ -243,15 +243,15 @@ namespace SSDP.UPnP.PCL.Service
         {
             switch (st.StSearchType)
             {
-                case STSearchType.All: return "ssdp:all";
-                case STSearchType.RootDeviceSearch: return "upnp:rootdevice";
-                case STSearchType.UIIDSearch:
+                case STType.All: return "ssdp:all";
+                case STType.RootDeviceSearch: return "upnp:rootdevice";
+                case STType.UIIDSearch:
                 {
                     return $"uuid:{st.DeviceUUID}";
                 }
-                case STSearchType.DeviceTypeSearch:
+                case STType.DeviceTypeSearch:
                 {
-                    if (string.IsNullOrEmpty(st.DeviceType))
+                    if (string.IsNullOrEmpty(st.TypeName))
                     {
                         throw new SSDPException("Device Type Search requires a Device Type to be specified.");
                     }
@@ -261,12 +261,12 @@ namespace SSDP.UPnP.PCL.Service
                         throw new SSDPException("Device Type Search requires a version to be specified.");
                     }
 
-                    return $"urn:schemas-upnp-org:device:{st.DeviceType}:{st.Version}";
+                    return $"urn:schemas-upnp-org:device:{st.TypeName}:{st.Version}";
                     
                 }
-                case STSearchType.ServiceTypeSearch:
+                case STType.ServiceTypeSearch:
                 {
-                    if (string.IsNullOrEmpty(st.ServiceType))
+                    if (string.IsNullOrEmpty(st.TypeName))
                     {
                         throw new SSDPException("Service Type Search requires a Service Type to be specified.");
                     }
@@ -276,16 +276,16 @@ namespace SSDP.UPnP.PCL.Service
                         throw new SSDPException("Service Type Search requires a version to be specified.");
                     }
 
-                    return $"urn:schemas-upnp-org:service:{st.ServiceType}:{st.Version}";
+                    return $"urn:schemas-upnp-org:service:{st.TypeName}:{st.Version}";
                 }
-                case STSearchType.DomainDeviceSearch:
+                case STType.DomainDeviceSearch:
 
                     if (string.IsNullOrEmpty(st.Domain))
                     {
                         throw new SSDPException("Domain Device Type Search requires a Domain Type to be specified.");
                     }
 
-                    if (string.IsNullOrEmpty(st.DeviceType))
+                    if (string.IsNullOrEmpty(st.TypeName))
                     {
                         throw new SSDPException("Device Type Search requires a Device Type to be specified.");
                     }
@@ -295,16 +295,16 @@ namespace SSDP.UPnP.PCL.Service
                         throw new SSDPException("Device Type Search requires a version to be specified.");
                     }
 
-                    return $"urn:{st.Domain}:device:{st.DeviceType}:{st.Version}";
+                    return $"urn:{st.Domain}:device:{st.TypeName}:{st.Version}";
 
-                case STSearchType.DomainServiceSearch:
+                case STType.DomainServiceSearch:
 
                     if (string.IsNullOrEmpty(st.Domain))
                     {
                         throw new SSDPException("Service Service Type Search requires a Domain Type to be specified.");
                     }
                     
-                    if (string.IsNullOrEmpty(st.ServiceType))
+                    if (string.IsNullOrEmpty(st.TypeName))
                     {
                         throw new SSDPException("Service Type Search requires a Service Type to be specified.");
                     }
@@ -314,7 +314,7 @@ namespace SSDP.UPnP.PCL.Service
                         throw new SSDPException("Device Type Search requires a version to be specified.");
                     }
 
-                    return $"urn:{st.Domain}:service:{st.ServiceType}:{st.Version}";
+                    return $"urn:{st.Domain}:service:{st.TypeName}:{st.Version}";
 
                 default:
                     throw new ArgumentOutOfRangeException();

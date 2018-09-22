@@ -4,7 +4,7 @@ using System.Text;
 
 namespace ISSDP.UPnP.PCL.Enum
 {
-    public enum STSearchType
+    public enum STType
     {
         All,
         RootDeviceSearch,

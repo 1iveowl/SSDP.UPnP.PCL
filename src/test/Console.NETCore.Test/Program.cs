@@ -189,7 +189,7 @@ class Program
             //ST = new ST("urn:myharmony-com:device:harmony:1"),
             ST = new ST
             {
-                StSearchType = STSearchType.All
+                StSearchType = STType.All
             },
             //ST = new ST
             //{

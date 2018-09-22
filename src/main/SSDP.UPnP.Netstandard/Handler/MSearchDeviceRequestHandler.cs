@@ -47,28 +47,25 @@ namespace SSDP.UPnP.PCL.Handler
 
                 var responseList = new List<IMSearchResponse>();
 
-                if (mSearchReq.ST.StSearchType == STSearchType.ServiceTypeSearch)
+                if (mSearchReq.ST.StSearchType == STType.ServiceTypeSearch)
                 {
-                    FilterOnService(rootDeviceInterface, mSearchReq, responseList);
+                    Filter(rootDeviceInterface, mSearchReq, responseList);
                 }
 
                 switch (mSearchReq.ST.StSearchType)
                 {
-                    case STSearchType.All:
-                        responseList.Add(new MSearchResponse());
+                    case STType.All:
+                        //responseList.Add(new MSearchResponse());
                         break;
-                    case STSearchType.RootDeviceSearch:
+                    case STType.RootDeviceSearch:
                         break;
-                    case STSearchType.UIIDSearch:
+                    case STType.UIIDSearch:
 
                         break;
-                    case STSearchType.DeviceTypeSearch:
-                        break;
-                    case STSearchType.ServiceTypeSearch:
-                        break;
-                    case STSearchType.DomainDeviceSearch:
-                        break;
-                    case STSearchType.DomainServiceSearch:
+                    case STType.DeviceTypeSearch:
+                    case STType.ServiceTypeSearch:
+                    case STType.DomainDeviceSearch:
+                    case STType.DomainServiceSearch:
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -79,47 +76,155 @@ namespace SSDP.UPnP.PCL.Handler
             .Where(res => res != null)
             .Select(res => res);
 
-        private void FilterOnService(
+        private void Filter(
             IRootDeviceInterface rootDeviceInterface, 
-            IMSearchRequest mSearchReq, 
+            IMSearch mSearchReq, 
             ICollection<IMSearchResponse> responseList)
         {
-            var allServices =
-                rootDeviceInterface.RootDevice.Services.Concat(
-                    rootDeviceInterface.RootDevice.EmbeddedDevices
-                        .SelectMany(embeddedDevice => embeddedDevice.Services));
-
-            foreach (var service in allServices)
+            IEnumerable<IEntity> entities = null;
+           
+            switch (mSearchReq.ST.StSearchType)
             {
-                if (mSearchReq.ST.ServiceType == service.TypeName && mSearchReq.ST.Version <= service.Version)
-                {
-                    responseList.Add(new MSearchResponse
+                case STType.All:
+                    break;
+                case STType.RootDeviceSearch:
+                    if (string.Equals(mSearchReq.ST.DeviceUUID, rootDeviceInterface.RootDevice.DeviceUUID,
+                        StringComparison.CurrentCultureIgnoreCase))
                     {
-                        TransportType = TransportType.Unicast,
-                        StatusCode = 200,
-                        ResponseReason = "OK",
-                        CacheControl = TimeSpan.FromSeconds(30),
-                        Date = DateTime.Now,
-                        Ext = true,
-                        Location = rootDeviceInterface.RootDevice.Location,
-                        Server = rootDeviceInterface.RootDevice.Server,
-                        ST = new ST
+                        entities = new List<IEntity>
                         {
-                            StSearchType = STSearchType.ServiceTypeSearch,
-                            ServiceType = service.TypeName,
-                            Version = service.Version
-                        },
-                        USN = new USN
-                        {
-                            StSearchType = STSearchType.ServiceTypeSearch,
-                            ServiceType = service.TypeName,
-                            Version = service.Version
-                        },
-                        MX = mSearchReq.MX,
-                        RemoteIpEndPoint = mSearchReq.RemoteIpEndPoint
-                    });
+                            rootDeviceInterface.RootDevice
+                        };
+                        
+                    }
+                    break;
+                case STType.UIIDSearch:
+                    break;
+                    
+                case STType.ServiceTypeSearch:
+                case STType.DomainServiceSearch:
+                    entities = GetServiceEntities(rootDeviceInterface, mSearchReq);
+                    break;
+                case STType.DeviceTypeSearch:
+                case STType.DomainDeviceSearch:
+                    entities = GetDevicesEntities(rootDeviceInterface, mSearchReq);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+
+            if (entities?.Any() ?? false)
+            {
+                return;
+            }
+
+            foreach (var entity in entities)
+            {
+                if (mSearchReq.ST.TypeName == entity.TypeName && mSearchReq.ST.Version <= entity.Version)
+                {
+                    responseList.Add(CreateMSeachResponse(rootDeviceInterface.RootDevice, entity, mSearchReq));
                 }
             }
+
+            //if (mSearchReq.ST.StSearchType != STSearchType.ServiceTypeSearch
+            //    && mSearchReq.ST.StSearchType != STSearchType.DomainDeviceSearch
+            //    && mSearchReq.ST.StSearchType != STSearchType.DeviceTypeSearch
+            //    && mSearchReq.ST.StSearchType != STSearchType.DomainDeviceSearch)
+            //{
+            //    throw new SSDPException($"Internal error. Wrong Search Type for FilterService: {mSearchReq.ST.StSearchType}");
+            //}
+
+        }
+
+        private IEnumerable<IEntity> GetServiceEntities(IRootDeviceInterface rootDeviceInterface, IMSearch mSearchReq) => 
+            rootDeviceInterface.RootDevice.Services
+                .Concat(rootDeviceInterface.RootDevice.EmbeddedDevices
+                    .SelectMany(embeddedDevice => embeddedDevice.Services))
+                .Select(ent => ent as Entity)
+                .Where(ent => ent != null)
+                .Select(ent =>
+                {
+                    if (mSearchReq.ST.StSearchType == STType.ServiceTypeSearch)
+                    {
+                        ent.EntityType = EntityType.Service;
+                        return ent;
+                    }
+
+                    if (mSearchReq.ST.StSearchType == STType.DomainDeviceSearch)
+                    {
+                        ent.EntityType = EntityType.DomainService;
+                        return ent;
+                    }
+
+                    return null;
+                })
+                .Where(s =>
+                {
+                    if (mSearchReq.ST.StSearchType == STType.ServiceTypeSearch)
+                    {
+                        return true;
+                    }
+
+                    if (mSearchReq.ST.StSearchType == STType.DomainDeviceSearch)
+                    {
+                        return s.Domain == mSearchReq.ST.Domain;
+                    }
+
+                    return false;
+                });
+
+        private IEnumerable<IEntity> GetDevicesEntities(IRootDeviceInterface rootDeviceInterface, IMSearch mSearchReq) => 
+            rootDeviceInterface.RootDevice.EmbeddedDevices
+                .Where(s =>
+                {
+                    if (mSearchReq.ST.StSearchType == STType.DeviceTypeSearch)
+                    {
+                        return true;
+                    }
+
+                    if (mSearchReq.ST.StSearchType == STType.DomainServiceSearch)
+                    {
+                        return s.Domain == mSearchReq.ST.Domain;
+                    }
+
+                    return false;
+
+                })
+                .Append(rootDeviceInterface.RootDevice);
+
+        private MSearchResponse CreateMSeachResponse(
+            IRootDevice rootDevice, 
+            IEntity entity, 
+            IMSearch mSearchReq, 
+            EntityType entityType, 
+            bool isRoot)
+        {
+            return new MSearchResponse
+            {
+                TransportType = TransportType.Unicast,
+                StatusCode = 200,
+                ResponseReason = "OK",
+                CacheControl = TimeSpan.FromSeconds(30),
+                Date = DateTime.Now,
+                Ext = true,
+                Location = rootDevice.Location,
+                Server = rootDevice.Server,
+                ST = new ST
+                {
+                    StSearchType = mSearchReq.ST.StSearchType,
+                    TypeName = entity.TypeName,
+                    Version = entity.Version
+                },
+                USN = new USN
+                {
+                    EntityType = entityType,
+                    TypeName = entity.TypeName,
+                    Version = entity.Version
+                },
+                MX = mSearchReq.MX,
+                RemoteIpEndPoint = mSearchReq.RemoteIpEndPoint
+            };
         }
 
         private void LogRequest(IMSearchRequest req)

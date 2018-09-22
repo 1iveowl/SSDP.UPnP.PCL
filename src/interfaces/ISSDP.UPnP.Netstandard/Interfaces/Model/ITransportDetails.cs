@@ -6,10 +6,10 @@ using ISSDP.UPnP.PCL.Enum;
 
 namespace ISSDP.UPnP.PCL.Interfaces.Model
 {
-    public interface IMSearch : IHeaders, IParserError, ITransportDetails
+    public interface ITransportDetails
     {
-        IST ST { get; }
-        TimeSpan MX { get; }
-
+        TransportType TransportType { get; }
+        IPEndPoint LocalIpEndPoint { get; }
+        IPEndPoint RemoteIpEndPoint { get; }
     }
 }

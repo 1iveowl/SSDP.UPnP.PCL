@@ -1,17 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Console.Device.NETCore.Model;
 using ISSDP.UPnP.PCL.Enum;
-using ISSDP.UPnP.PCL.Interfaces.Model;
 using ISSDP.UPnP.PCL.Interfaces.Service;
 using SSDP.UPnP.PCL.Model;
 using SSDP.UPnP.PCL.Service;
-using Host = Console.Device.NETCore.Model.Host;
+
 
 class Program
 {

@@ -4,6 +4,7 @@ using System.Net;
 using ISimpleHttpListener.Rx.Model;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
+using NLog;
 using SSDP.UPnP.PCL.Helper;
 using SSDP.UPnP.PCL.Model.Base;
 using Convert = SSDP.UPnP.PCL.Helper.Convert;
@@ -39,7 +40,7 @@ namespace SSDP.UPnP.PCL.Model
 
         }
 
-        internal MSearchResponse(IHttpResponse response)
+        internal MSearchResponse(IHttpResponse response, ILogger logger = null)
         {
             try
             {
@@ -66,12 +67,13 @@ namespace SSDP.UPnP.PCL.Model
                     "HOST", "CACHE-CONTROL", "LOCATION", "DATE", "EXT", "SERVER", "ST", "USN",
                     "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG", "SEARCHPORT.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
                 }, response.Headers);
+
                 RemoteIpEndPoint = response.RemoteIpEndPoint;
                 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
+                logger?.Error(ex);
                 InvalidRequest = true;
             }
         }

@@ -5,8 +5,9 @@ using ISSDP.UPnP.PCL.Enum;
 
 namespace ISSDP.UPnP.PCL.Interfaces.Model
 {
-    public interface IUSN : IST
+    public interface IUSN : IDeviceService
     {
+        //USNType USNType { get; }
         string USNString { get; }
     }
 }

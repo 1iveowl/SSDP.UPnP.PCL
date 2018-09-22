@@ -13,8 +13,6 @@ namespace SSDP.UPnP.PCL.Model
 {
     internal class MSearchRequest : ParserErrorBase, IMSearchRequest
     {
-        private readonly ILogger _logger;
-
         public TransportType TransportType { get; } = TransportType.NoCast;
         public string Name { get; }
         public int Port { get; }
@@ -34,8 +32,6 @@ namespace SSDP.UPnP.PCL.Model
 
         public MSearchRequest(IHttpRequest request, ILogger logger = null)
         {
-            _logger = logger;
-
             try
             {
                 LocalIpEndPoint = request.LocalIpEndPoint;
@@ -62,7 +58,7 @@ namespace SSDP.UPnP.PCL.Model
             }
             catch (Exception ex)
             {
-                _logger?.Error(ex);
+                logger?.Error(ex);
                 InvalidRequest = true;
             }
         }
