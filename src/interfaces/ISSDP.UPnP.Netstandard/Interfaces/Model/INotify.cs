@@ -13,7 +13,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
 
         string NT { get; }
         NTS NTS { get; }
-        string USN { get; }
+        IUSN USN { get; }
 
         int BOOTID { get; }
         string CONFIGID { get; }
@@ -23,8 +23,8 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
     
         bool IsUuidUpnp2Compliant { get; }
 
-        int NEXTBOOTID { get; }
-        int SEARCHPORT { get; }
+        uint NEXTBOOTID { get; }
+        uint SEARCHPORT { get; }
 
         string SECURELOCATION { get; }
     }

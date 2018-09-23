@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -93,28 +94,28 @@ namespace SSDP.UPnP.PCL.Service
                 throw new SSDPException("No Control Point interface specified.");
             }
 
-            foreach (var client in _controlPointInterfaces)
+            foreach (var node in _controlPointInterfaces)
             {
                 if (_httpListenerObservable == null)
                 {
                     _httpListenerObservable =
-                        client.UdpClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError).Publish().RefCount();
+                        node.UdpClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError);
                 }
                 else
                 {
                     _httpListenerObservable.Merge(
-                        client.UdpClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError)).Publish().RefCount();
+                        node.UdpClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError));
                 }
 
                 if (_httpListenerObservable == null)
                 {
                     _httpListenerObservable =
-                        client.TcpListener.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError).Publish().RefCount();
+                        node.TcpListener.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError);
                 }
                 else
                 {
                     _httpListenerObservable.Merge(
-                        client.TcpListener.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError)).Publish().RefCount();
+                        node.TcpListener.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError));
                 }
             }
 
@@ -124,8 +125,6 @@ namespace SSDP.UPnP.PCL.Service
         public void HotStart(IObservable<IHttpRequestResponse> httpListenerObservable)
         {
             _httpListenerObservable = httpListenerObservable;
-
-            
         }
 
         private void Start()

@@ -2,12 +2,14 @@
 using System.Globalization;
 using System.Linq;
 using System.Net;
+using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Console.NETCore.Test.Model;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Service;
+using SSDP.UPnP.PCL.ExtensionMethod;
 using SSDP.UPnP.PCL.Model;
 using SSDP.UPnP.PCL.Service;
 using static SSDP.UPnP.PCL.Helper.Constants;
@@ -39,7 +41,6 @@ class Program
 
         System.Console.WriteLine("Press any key to end (2)");
         System.Console.ReadKey();
-
     }
 
     private static async Task StartAsync(CancellationToken ct)
@@ -51,14 +52,14 @@ class Program
 
     private static async Task StartControlPointListeningAsync(CancellationToken ct)
     {
-        _controlPoint = new ControlPoint(_controlPointLocalIp1, _controlPointLocalIp2);
+        _controlPoint = new ControlPoint(_controlPointLocalIp1);
 
         _controlPoint.Start(ct);
 
         ListenToNotify(ct);
 
         ListenToMSearchResponse(ct);
-        
+
 
         await StartMSearchRequestMulticastAsync();
     }
@@ -70,6 +71,7 @@ class Program
         var observerNotify = _controlPoint.NotifyObservable();
 
         var disposableNotify = observerNotify
+            .ObserveOn(Scheduler.Default)
             .Subscribe(
                 n =>
                 {
@@ -91,9 +93,15 @@ class Program
                                              $" - ({n.Server.FullString})");
                     System.Console.WriteLine($"NT: {n.NT}");
                     System.Console.WriteLine($"NTS: {n.NTS}");
-                    System.Console.WriteLine($"USN: {n.USN}");
-                    System.Console.WriteLine($"BOOTID: {n.BOOTID}");
+                    System.Console.WriteLine($"USN: {n.USN.ToUri()}");
+
+                    if (n.BOOTID > 0)
+                    {
+                        System.Console.WriteLine($"BOOTID: {n.BOOTID}");
+                    }
+                
                     System.Console.WriteLine($"CONFIGID: {n.CONFIGID}");
+                    
                     System.Console.WriteLine($"NEXTBOOTID: {n.NEXTBOOTID}");
                     System.Console.WriteLine($"SEARCHPORT: {n.SEARCHPORT}");
                     System.Console.WriteLine($"SECURELOCATION: {n.SECURELOCATION}");
@@ -106,6 +114,7 @@ class Program
                         {
                             System.Console.WriteLine($"{header.Key}: {header.Value}; ");
                         }
+
                         System.Console.ResetColor();
                     }
 
@@ -120,12 +129,12 @@ class Program
 
     private static void ListenToMSearchResponse(CancellationToken ct)
     {
-
         var mSearchResObs = _controlPoint.MSearchResponseObservable();
 
         var counter = 0;
 
         var disposableMSearchresponse = mSearchResObs
+            .ObserveOn(Scheduler.Default)
             //.Where(res => res.RemoteHost.Name == "192.168.0.59")
             .Subscribe(
                 res =>
@@ -162,6 +171,7 @@ class Program
                         {
                             System.Console.WriteLine($"{header.Key}: {header.Value}; ");
                         }
+
                         System.Console.ResetColor();
                     }
 
@@ -174,14 +184,14 @@ class Program
                 });
     }
 
-    
+
     private static async Task StartMSearchRequestMulticastAsync()
     {
         var mSearchMessage = new MSearch
         {
             TransportType = TransportType.Multicast,
             CPFN = "TestXamarin",
-            
+
             Name = UdpSSDPMultiCastAddress,
             Port = UdpSSDPMulticastPort,
             MX = TimeSpan.FromSeconds(5),

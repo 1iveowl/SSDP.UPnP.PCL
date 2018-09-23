@@ -193,10 +193,10 @@ namespace SSDP.UPnP.PCL.Service
                             NT = rootConfiguration.ToUri(),
                             NTS = NTS.Alive,
                             Server = rootConfiguration.Server,
-                            USN = (rootConfiguration as IUSN).ToUri(),
+                            USN = rootConfiguration as IUSN,
                             BOOTID = DateTime.Now.FromUnixTime(),
                             CONFIGID = rootConfiguration.CONFIGID,
-                            SEARCHPORT = searchPort,
+                            SEARCHPORT = (uint)searchPort,
                             SECURELOCATION = rootConfiguration.SecureLocation.AbsoluteUri,
                         };
                     });

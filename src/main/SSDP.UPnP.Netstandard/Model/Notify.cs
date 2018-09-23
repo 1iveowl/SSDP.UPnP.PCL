@@ -19,12 +19,12 @@ namespace SSDP.UPnP.PCL.Model
         public string NT { get; internal set; }
         public NTS NTS { get; internal set; }
         public IServer Server { get; internal set; }
-        public string USN { get; internal set; }
+        public IUSN USN { get; internal set; }
 
         public int BOOTID { get; internal set; }
         public string CONFIGID { get; internal set; }
-        public int SEARCHPORT { get; internal set; }
-        public int NEXTBOOTID { get; internal set; }
+        public uint SEARCHPORT { get; internal set; }
+        public uint NEXTBOOTID { get; internal set; }
         public string SECURELOCATION { get; internal set; }
         public bool IsUuidUpnp2Compliant { get; internal set; }
         public string HOST { get; internal set; }
@@ -45,12 +45,12 @@ namespace SSDP.UPnP.PCL.Model
                 NT = GetHeaderValue(request.Headers, "NT");
                 NTS = ConvertToNotificationSubTypeEnum(GetHeaderValue(request.Headers, "NTS"));
                 Server = ConvertToServer(GetHeaderValue(request.Headers, "SERVER"));
-                USN = GetHeaderValue(request.Headers, "USN");
+                USN = new USN(GetHeaderValue(request.Headers, "USN"));
 
                 BOOTID = int.TryParse(GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG"), out var b) ? b : 0;
                 CONFIGID = GetHeaderValue(request.Headers, "CONFIGID.UPNP.ORG");
-                SEARCHPORT = int.TryParse(GetHeaderValue(request.Headers, "SEARCHPORT.UPNP.ORG"), out var s) ? s : 0;
-                NEXTBOOTID = int.TryParse(GetHeaderValue(request.Headers, "NEXTBOOTID.UPNP.ORG"), out var n) ? n : 0;
+                SEARCHPORT = uint.TryParse(GetHeaderValue(request.Headers, "SEARCHPORT.UPNP.ORG"), out var s) ? s : 0;
+                NEXTBOOTID = uint.TryParse(GetHeaderValue(request.Headers, "NEXTBOOTID.UPNP.ORG"), out var n) ? n : 0;
                 SECURELOCATION = GetHeaderValue(request.Headers, "SECURELOCATION.UPNP.ORG");
 
                 Headers = HeaderHelper.SingleOutAdditionalHeaders(new List<string>
@@ -65,7 +65,7 @@ namespace SSDP.UPnP.PCL.Model
                 InvalidRequest = true;
             }
 
-            IsUuidUpnp2Compliant = Guid.TryParse(USN, out Guid guid);
+            IsUuidUpnp2Compliant = Guid.TryParse(USN.DeviceUUID, out var guid);
         }
     }
 }
