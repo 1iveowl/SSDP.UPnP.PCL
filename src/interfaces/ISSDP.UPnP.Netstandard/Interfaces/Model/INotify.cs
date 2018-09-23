@@ -15,17 +15,17 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
         NTS NTS { get; }
         IUSN USN { get; }
 
-        int BOOTID { get; }
+        uint BOOTID { get; }
         string CONFIGID { get; }
         TimeSpan CacheControl { get; }
         Uri Location { get; }
         IServer Server { get; }
     
-        bool IsUuidUpnp2Compliant { get; }
-
         uint NEXTBOOTID { get; }
         uint SEARCHPORT { get; }
 
         string SECURELOCATION { get; }
+
+        bool IsUuidUpnp2Compliant { get; }
     }
 }

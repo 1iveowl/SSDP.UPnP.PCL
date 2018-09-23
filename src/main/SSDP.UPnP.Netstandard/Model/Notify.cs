@@ -21,7 +21,7 @@ namespace SSDP.UPnP.PCL.Model
         public IServer Server { get; internal set; }
         public IUSN USN { get; internal set; }
 
-        public int BOOTID { get; internal set; }
+        public uint BOOTID { get; internal set; }
         public string CONFIGID { get; internal set; }
         public uint SEARCHPORT { get; internal set; }
         public uint NEXTBOOTID { get; internal set; }
@@ -47,7 +47,7 @@ namespace SSDP.UPnP.PCL.Model
                 Server = ConvertToServer(GetHeaderValue(request.Headers, "SERVER"));
                 USN = new USN(GetHeaderValue(request.Headers, "USN"));
 
-                BOOTID = int.TryParse(GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG"), out var b) ? b : 0;
+                BOOTID = uint.TryParse(GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG"), out var b) ? b : 0;
                 CONFIGID = GetHeaderValue(request.Headers, "CONFIGID.UPNP.ORG");
                 SEARCHPORT = uint.TryParse(GetHeaderValue(request.Headers, "SEARCHPORT.UPNP.ORG"), out var s) ? s : 0;
                 NEXTBOOTID = uint.TryParse(GetHeaderValue(request.Headers, "NEXTBOOTID.UPNP.ORG"), out var n) ? n : 0;

@@ -26,7 +26,7 @@ class Program
 
     static async Task Main(string[] args)
     {
-        _controlPointLocalIp1 = IPAddress.Parse("192.168.0.59");
+        _controlPointLocalIp1 = IPAddress.Parse("192.168.0.48");
         _controlPointLocalIp2 = IPAddress.Parse("169.254.38.70");
 
         var cts = new CancellationTokenSource();
