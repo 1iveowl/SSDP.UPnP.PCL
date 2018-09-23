@@ -14,8 +14,6 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
         Uri SecureLocation { get; }
         string CONFIGID { get; }
         TimeSpan CacheControl { get; }
-        int BOOTID { get; }
-
         IEnumerable<IDeviceConfiguration> EmbeddedDevices { get; }
     }
 }

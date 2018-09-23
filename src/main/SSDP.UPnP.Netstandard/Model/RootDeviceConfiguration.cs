@@ -14,7 +14,6 @@ namespace SSDP.UPnP.PCL.Model
         public Uri SecureLocation { get; set; }
         public string CONFIGID { get; set; }
         public TimeSpan CacheControl { get; set; }
-        public int BOOTID { get; set; }
         public int SEARCHPORT { get; set; }
         public IEnumerable<IDeviceConfiguration> EmbeddedDevices { get; set; }
     }

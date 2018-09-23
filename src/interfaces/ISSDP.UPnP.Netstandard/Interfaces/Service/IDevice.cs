@@ -17,7 +17,9 @@ namespace ISSDP.UPnP.PCL.Interfaces.Service
 
         Task HotStartAsync(IObservable<IHttpRequestResponse> httpListenerObservable);
 
-        void Stop();
+        Task UpdateAsync();
+
+        Task ByeByeAsync();
 
         Task SendNotifyAsync(INotify notifySsdp, IPEndPoint ipEndPoint);
 

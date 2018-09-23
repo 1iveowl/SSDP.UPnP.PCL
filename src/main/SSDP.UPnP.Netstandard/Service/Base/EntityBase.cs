@@ -25,7 +25,7 @@ namespace SSDP.UPnP.PCL.Service.Base
             }
             else
             {
-                return devices.Concat(services);
+                return devices.Concat(services.Select(s => s as IEntity));
             }
         }
 
@@ -110,7 +110,7 @@ namespace SSDP.UPnP.PCL.Service.Base
                 })
                 .Where(s => s.Version <= mSearchReq.ST.Version);
 
-        private IEnumerable<IEntity> GetAllServices(IRootDeviceInterface rootDeviceInterface)
+        protected IEnumerable<IServiceConfiguration> GetAllServices(IRootDeviceInterface rootDeviceInterface)
         {
             if (rootDeviceInterface is null)
             {
@@ -129,7 +129,7 @@ namespace SSDP.UPnP.PCL.Service.Base
             }
         }
 
-        private IEnumerable<IEntity> GetAllDevices(IRootDeviceInterface rootDeviceInterface)
+        protected IEnumerable<IDeviceConfiguration> GetAllDevices(IRootDeviceInterface rootDeviceInterface)
         {
             if (rootDeviceInterface is null)
             {
@@ -138,7 +138,7 @@ namespace SSDP.UPnP.PCL.Service.Base
 
             if (!rootDeviceInterface.RootDeviceConfiguration?.EmbeddedDevices?.Any() ?? true)
             {
-                var deviceList = new List<IEntity>
+                var deviceList = new List<IDeviceConfiguration>
                 {
                     rootDeviceInterface.RootDeviceConfiguration
                 };

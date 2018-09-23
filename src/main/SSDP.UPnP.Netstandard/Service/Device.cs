@@ -20,6 +20,7 @@ using SSDP.UPnP.PCL.ExtensionMethod;
 using SSDP.UPnP.PCL.Handler;
 using SSDP.UPnP.PCL.Helper;
 using SSDP.UPnP.PCL.Model;
+using SSDP.UPnP.PCL.Rx;
 using SSDP.UPnP.PCL.Service.Base;
 using static SSDP.UPnP.PCL.Helper.Constants;
 
@@ -148,6 +149,7 @@ namespace SSDP.UPnP.PCL.Service
 
             _disposableDeviceActivity = mSearchDeviceRequestHandler.
                 MSearchRequestObservable(_httpListenerObservable)
+                .FinallyAsync(async () => { await SendByeByeAsync(); })
                 .Finally(mSearchDeviceRequestHandler.Dispose)
                 .Subscribe(
                     _ =>
@@ -168,36 +170,156 @@ namespace SSDP.UPnP.PCL.Service
             await SendAliveAsync();
         }
 
-        public void Stop()
+        public async Task UpdateAsync()
         {
-            throw new NotImplementedException();
+            await SendUpdateAsync();
         }
 
-        private async Task SendAliveAsync()
+        public async Task ByeByeAsync()
+        {
+            await SendByeByeAsync();
+        }
+
+        private async Task SendUpdateAsync()
         {
             foreach (var rootDeviceInterface in _rootDeviceInterfaces)
             {
-                var notifications = GetAllEntities(rootDeviceInterface)
-                    .Select(ent =>
+                var notifications = GetAllDevices(rootDeviceInterface)
+                    .Where(device => !(device is null))
+                    .SelectMany(device =>
                     {
+                        var notifyList = new List<Notify>();
+
                         var rootConfiguration = rootDeviceInterface.RootDeviceConfiguration;
 
-                        var searchPort = ((IPEndPoint) rootDeviceInterface.UdpUnicastClient.Client.LocalEndPoint)?.Port ?? 1900;
+                        var searchPort = (uint) (((IPEndPoint)rootDeviceInterface.UdpUnicastClient.Client.LocalEndPoint)?.Port ?? 1900);
 
-                        return new Notify
+                        var nextBootId = (uint) DateTime.Now.FromUnixTime();
+
+                        notifyList.Add(CreateNotify(device as IUSN));
+                        
+                        if (device?.Services?.Any() ?? false)
                         {
-                            NotifyTransportType = TransportType.Multicast,
-                            HOST = $"{UdpSSDPMultiCastAddress}:{UdpSSDPMulticastPort}",
-                            CacheControl = rootConfiguration.CacheControl,
-                            Location = rootConfiguration.Location,
-                            NT = rootConfiguration.ToUri(),
-                            NTS = NTS.Alive,
-                            Server = rootConfiguration.Server,
-                            USN = rootConfiguration as IUSN,
-                            BOOTID = (uint)DateTime.Now.FromUnixTime(),
-                            CONFIGID = rootConfiguration.CONFIGID,
-                            SEARCHPORT = (uint)searchPort,
-                            SECURELOCATION = rootConfiguration.SecureLocation.AbsoluteUri,
+                            notifyList.AddRange(device.Services.Select(service => CreateNotify(service as IUSN)));
+                        }
+                        
+                        ((DeviceConfiguration)device).BOOTID = nextBootId;
+
+                        return notifyList;
+
+                        // Local function
+                        Notify CreateNotify(IUSN usn)
+                        {
+                            return new Notify
+                            {
+                                NotifyTransportType = TransportType.Multicast,
+                                HOST = $"{UdpSSDPMultiCastAddress}:{UdpSSDPMulticastPort}",
+                                Location = rootConfiguration.Location,
+                                NT = device.ToUri(),
+                                NTS = NTS.Update,
+                                USN = usn,
+                                BOOTID = device.BOOTID,
+                                CONFIGID = rootConfiguration.CONFIGID,
+                                NEXTBOOTID = nextBootId,
+                                SEARCHPORT = searchPort,
+                            };
+                        };
+                    });
+
+                foreach (var notify in notifications)
+                {
+                    await SendNotifyAsync(notify, rootDeviceInterface.RootDeviceConfiguration.IpEndPoint);
+                }
+            }
+        }
+
+        private async Task SendByeByeAsync()
+        {
+            foreach (var rootDeviceInterface in _rootDeviceInterfaces)
+            {
+                var notifications = GetAllDevices(rootDeviceInterface)
+                    .Where(device => !(device is null))
+                    .SelectMany(device =>
+                    {
+                        var notifyList = new List<Notify>();
+
+                        var rootConfiguration = rootDeviceInterface.RootDeviceConfiguration;
+
+                        notifyList.Add(CreateNotify(device as IUSN));
+
+                        if (device?.Services?.Any() ?? false)
+                        {
+                            notifyList.AddRange(device.Services.Select(service => CreateNotify(service as IUSN)));
+                        }
+
+                        return notifyList;
+
+                        // Local function
+                        Notify CreateNotify(IUSN usn)
+                        {
+                            return new Notify
+                            {
+                                NotifyTransportType = TransportType.Multicast,
+                                HOST = $"{UdpSSDPMultiCastAddress}:{UdpSSDPMulticastPort}",
+                                NT = device.ToUri(),
+                                NTS = NTS.ByeBye,
+                                USN = usn,
+                                BOOTID = device.BOOTID,
+                                CONFIGID = rootConfiguration.CONFIGID,
+                            };
+                        };
+                    });
+
+                foreach (var notify in notifications)
+                {
+                    await SendNotifyAsync(notify, rootDeviceInterface.RootDeviceConfiguration.IpEndPoint);
+                }
+
+            }
+        }
+        
+        private async Task SendAliveAsync()
+        {
+
+            foreach (var rootDeviceInterface in _rootDeviceInterfaces)
+            {
+                var notifications = GetAllDevices(rootDeviceInterface)
+                    .Where(device => !(device is null))
+                    .SelectMany(device =>
+                    {
+                        var notifyList = new List<Notify>();
+
+                        var rootConfiguration = rootDeviceInterface.RootDeviceConfiguration;
+
+                        var searchPort = (uint)(((IPEndPoint) rootDeviceInterface.UdpUnicastClient.Client.LocalEndPoint)?.Port ?? 1900);
+
+                        notifyList.Add(CreateNotify(device as IUSN));
+
+                        if (device?.Services?.Any() ?? false)
+                        {
+                            notifyList.AddRange(device.Services.Select(service => CreateNotify(service as IUSN)));
+                        }
+                        
+                        return notifyList;
+
+                        // Local function
+                        Notify CreateNotify(IUSN usn)
+                        {
+                            return new Notify
+                            {
+                                NotifyTransportType = TransportType.Multicast,
+                                HOST = $"{UdpSSDPMultiCastAddress}:{UdpSSDPMulticastPort}",
+                                CacheControl = rootConfiguration.CacheControl,
+                                Location = rootConfiguration.Location,
+                                NT = rootConfiguration.ToUri(),
+                                NTS = NTS.Alive,
+                                Server = rootConfiguration.Server,
+                                USN = usn,
+                                BOOTID = device.BOOTID,
+                                CONFIGID = rootConfiguration.CONFIGID,
+                                SEARCHPORT = searchPort,
+                                SECURELOCATION = rootConfiguration.SecureLocation.AbsoluteUri,
+                            };
                         };
                     });
 

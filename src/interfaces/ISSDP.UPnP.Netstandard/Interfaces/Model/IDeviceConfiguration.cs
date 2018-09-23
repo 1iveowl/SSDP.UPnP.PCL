@@ -6,6 +6,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
 {
     public interface IDeviceConfiguration : IEntity
     {
+        uint BOOTID { get; }
         IEnumerable<IServiceConfiguration> Services { get; }
     }
 }
