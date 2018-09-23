@@ -83,7 +83,7 @@ namespace SSDP.UPnP.PCL.Service
 
             rootDeviceInterface.UdpUnicastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
-            rootDeviceInterface.UdpUnicastClient.Client.Bind(new IPEndPoint(rootDeviceConfiguration.IpEndPoint.Address, rootDeviceConfiguration.IpEndPoint.Port));
+            rootDeviceInterface.UdpUnicastClient.Client.Bind(rootDeviceConfiguration.IpEndPoint);
 
             _rootDeviceInterfaces = new List<IRootDeviceInterface> {rootDeviceInterface};
 
@@ -92,6 +92,11 @@ namespace SSDP.UPnP.PCL.Service
         public Device(params IRootDeviceInterface[] rootDeviceInterfaces) : this()
         {
             _rootDeviceInterfaces = rootDeviceInterfaces;
+
+            foreach (var rootNode in rootDeviceInterfaces)
+            {
+                ((RootDeviceConfiguration)rootNode.RootDeviceConfiguration).IpEndPoint = rootNode.UdpUnicastClient.Client.LocalEndPoint as IPEndPoint;
+            }
 
             _isClientsProvided = true;
         }
