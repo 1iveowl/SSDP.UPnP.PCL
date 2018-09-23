@@ -156,7 +156,7 @@ class Program
                                              $"{res?.Server?.ProductName}/{res?.Server?.ProductVersion}" +
                                              $" - ({res?.Server?.FullString})");
                     System.Console.WriteLine($"ST: {res?.ST?.STString}");
-                    System.Console.WriteLine($"USN: {res.USN}");
+                    System.Console.WriteLine($"USN: {res.USN?.ToUri()}");
                     System.Console.WriteLine($"BOOTID.UPNP.ORG: {res?.BOOTID}");
                     System.Console.WriteLine($"CONFIGID.UPNP.ORG: {res?.CONFIGID}");
                     System.Console.WriteLine($"SEARCHPORT.UPNP.ORG: {res?.SEARCHPORT}");
