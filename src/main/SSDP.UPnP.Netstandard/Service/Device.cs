@@ -80,10 +80,16 @@ namespace SSDP.UPnP.PCL.Service
 
             rootDeviceInterface.UdpMulticastClient.Client.Bind(new IPEndPoint(rootDeviceConfiguration.IpEndPoint?.Address, UdpSSDPMulticastPort));
 
+            if (rootDeviceConfiguration.IpEndPoint.Port != UdpSSDPMulticastPort)
+            {
+                rootDeviceInterface.UdpUnicastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
-            rootDeviceInterface.UdpUnicastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-
-            rootDeviceInterface.UdpUnicastClient.Client.Bind(rootDeviceConfiguration.IpEndPoint);
+                rootDeviceInterface.UdpUnicastClient.Client.Bind(rootDeviceConfiguration.IpEndPoint);
+            }
+            else
+            {
+                rootDeviceInterface.UdpUnicastClient = rootDeviceInterface.UdpMulticastClient;
+            }
 
             _rootDeviceInterfaces = new List<IRootDeviceInterface> {rootDeviceInterface};
 
@@ -95,7 +101,18 @@ namespace SSDP.UPnP.PCL.Service
 
             foreach (var rootNode in rootDeviceInterfaces)
             {
-                ((RootDeviceConfiguration)rootNode.RootDeviceConfiguration).IpEndPoint = rootNode.UdpUnicastClient.Client.LocalEndPoint as IPEndPoint;
+                if (!(rootNode.UdpUnicastClient is null))
+                {
+                    ((RootDeviceConfiguration)rootNode.RootDeviceConfiguration).IpEndPoint = rootNode.UdpUnicastClient.Client.LocalEndPoint as IPEndPoint;
+                }
+                else if (!(rootNode.UdpMulticastClient is null))
+                {
+                    ((RootDeviceConfiguration)rootNode.RootDeviceConfiguration).IpEndPoint = rootNode.UdpMulticastClient.Client.LocalEndPoint as IPEndPoint;
+                }
+                else
+                {
+                    throw new SSDPException($"No UDP Client specified for interface.");
+                }
             }
 
             _isClientsProvided = true;
@@ -120,26 +137,25 @@ namespace SSDP.UPnP.PCL.Service
                 if (_httpListenerObservable == null)
                 {
                     _httpListenerObservable = rootDevice.UdpMulticastClient
-                        .ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError)
-                        .Publish().RefCount();
+                        .ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError);
                 }
                 else
                 {
                     _httpListenerObservable = _httpListenerObservable.Merge(
-                        rootDevice.UdpMulticastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError))
-                        .Publish().RefCount();
+                        rootDevice.UdpMulticastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError));
                 }
 
-                if (_httpListenerObservable == null)
+                if (rootDevice.UdpMulticastClient != rootDevice.UdpUnicastClient)
                 {
-                    _httpListenerObservable = rootDevice.UdpUnicastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError)
-                        .Publish().RefCount();
-                }
-                else
-                {
-                    _httpListenerObservable = _httpListenerObservable.Merge(
-                        rootDevice.UdpUnicastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError))
-                        .Publish().RefCount();
+                    if (_httpListenerObservable == null)
+                    {
+                        _httpListenerObservable = rootDevice.UdpUnicastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError);
+                    }
+                    else
+                    {
+                        _httpListenerObservable = _httpListenerObservable.Merge(
+                                rootDevice.UdpUnicastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError));
+                    }
                 }
 
                 await StartAsync();
