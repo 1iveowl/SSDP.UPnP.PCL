@@ -117,7 +117,7 @@ class Program
                         System.Console.ResetColor();
                     }
 
-                    System.Console.WriteLine($"Id UPnP 2.0 compliant: {n.IsUuidUpnp2Compliant}");
+                    System.Console.WriteLine($"Is UPnP 2.0 compliant: {n.IsUuidUpnp2Compliant}");
 
                     if (n.HasParsingError)
                     {

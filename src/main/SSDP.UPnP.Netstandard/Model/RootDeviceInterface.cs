@@ -9,6 +9,13 @@ namespace SSDP.UPnP.PCL.Model
 {
     public class RootDeviceInterface : IRootDeviceInterface
     {
+        internal IDictionary<UdpClient, IRootDeviceInterface> InternalInterfaces => new Dictionary<UdpClient, IRootDeviceInterface>
+            {
+                {UdpMulticastClient, this},
+                {UdpUnicastClient, this},
+
+            };
+
         public UdpClient UdpMulticastClient { get; set; }
         public UdpClient UdpUnicastClient { get; set; }
 

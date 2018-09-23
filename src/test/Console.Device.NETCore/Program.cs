@@ -84,6 +84,17 @@ class Program
     {
         var rootDevice = new RootDeviceConfiguration
         {
+            DeviceUUID = Guid.NewGuid().ToString(),
+            CacheControl = TimeSpan.FromSeconds(30),
+            Location = new Uri("http://192.168.0.59/device"),
+            Server = new Server
+            {
+                OperatingSystem = "Windows",
+                OperatingSystemVersion = "10",
+                UpnpMajorVersion = "2",
+                UpnpMinorVersion = "0",
+                IsUpnp2 = true
+            },
             
         };
 

@@ -59,6 +59,7 @@ namespace SSDP.UPnP.PCL.Service
             {
                 throw new SSDPException("At least one Root Device must be fully specified.");
             }
+
             var rootDeviceInterface = new RootDeviceInterface
             {
                 RootDeviceConfiguration = rootDeviceConfiguration,

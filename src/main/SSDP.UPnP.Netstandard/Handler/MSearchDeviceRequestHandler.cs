@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Reactive.Linq;
 using HttpMachine;
 using ISimpleHttpListener.Rx.Model;
@@ -38,8 +39,17 @@ namespace SSDP.UPnP.PCL.Handler
             .Do(LogRequest)
             .SelectMany(mSearchReq =>
             {
-                var rootDeviceInterface = _rootDeviceInterfaces
-                    .FirstOrDefault(i => Equals(i?.RootDeviceConfiguration?.IpEndPoint, mSearchReq?.LocalIpEndPoint));
+                var requestReceivedOnIpAddress = mSearchReq?.LocalIpEndPoint?.Address;
+
+                var rootDeviceInterface = _rootDeviceInterfaces?
+                    .SelectMany(i => ((RootDeviceInterface)i).InternalInterfaces)
+                    .FirstOrDefault(i =>
+                    {
+                        var interfaceIpEndPoint = i.Key.Client.LocalEndPoint as IPEndPoint;
+
+                        return Equals(interfaceIpEndPoint?.Address, requestReceivedOnIpAddress) && !(interfaceIpEndPoint is null);
+
+                    }).Value;
 
                 if (rootDeviceInterface == null)
                 {
@@ -47,13 +57,13 @@ namespace SSDP.UPnP.PCL.Handler
                 }
 
                 return GetEntities(rootDeviceInterface, mSearchReq)
-                    .Select(entity => CreateMSeachResponse(rootDeviceInterface.RootDeviceConfiguration, entity, mSearchReq))
+                    .Select(entity => CreateMSearchResponse(rootDeviceInterface.RootDeviceConfiguration, entity, mSearchReq))
                     .Where(res => !(res is null));
 
             })
             .Where(res => res != null);             
 
-        private MSearchResponse CreateMSeachResponse(
+        private MSearchResponse CreateMSearchResponse(
             IRootDeviceConfiguration rootDeviceConfiguration, 
             IEntity entity, 
             IMSearch mSearchReq)
