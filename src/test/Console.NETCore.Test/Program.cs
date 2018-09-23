@@ -71,7 +71,6 @@ class Program
         var observerNotify = _controlPoint.NotifyObservable();
 
         var disposableNotify = observerNotify
-            .ObserveOn(Scheduler.Default)
             .Subscribe(
                 n =>
                 {
@@ -80,20 +79,20 @@ class Program
                     System.Console.ForegroundColor = ConsoleColor.White;
                     System.Console.WriteLine($"---### Control Point Received a NOTIFY - #{counter} ###---");
                     System.Console.ResetColor();
-                    System.Console.WriteLine($"{n.NotifyTransportType.ToString()}");
-                    System.Console.WriteLine($"From: {n.HOST}");
+                    System.Console.WriteLine($"{n?.NotifyTransportType.ToString()}");
+                    System.Console.WriteLine($"From: {n?.HOST}");
                     System.Console.WriteLine($"Location: {n?.Location?.AbsoluteUri}");
                     System.Console.WriteLine($"Cache-Control: max-age = {n.CacheControl}");
                     System.Console.WriteLine($"Server: " +
-                                             $"{n.Server.OperatingSystem}/{n.Server.OperatingSystemVersion} " +
+                                             $"{n?.Server?.OperatingSystem}/{n?.Server?.OperatingSystemVersion} " +
                                              $"UPNP/" +
-                                             $"{n.Server.UpnpMajorVersion}.{n.Server.UpnpMinorVersion}" +
+                                             $"{n?.Server?.UpnpMajorVersion}.{n?.Server?.UpnpMinorVersion}" +
                                              $" " +
-                                             $"{n.Server.ProductName}/{n.Server.ProductVersion}" +
-                                             $" - ({n.Server.FullString})");
-                    System.Console.WriteLine($"NT: {n.NT}");
-                    System.Console.WriteLine($"NTS: {n.NTS}");
-                    System.Console.WriteLine($"USN: {n.USN.ToUri()}");
+                                             $"{n?.Server?.ProductName}/{n?.Server?.ProductVersion}" +
+                                             $" - ({n?.Server?.FullString})");
+                    System.Console.WriteLine($"NT: {n?.NT}");
+                    System.Console.WriteLine($"NTS: {n?.NTS}");
+                    System.Console.WriteLine($"USN: {n?.USN?.ToUri()}");
 
                     if (n.BOOTID > 0)
                     {
