@@ -12,5 +12,7 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
         UdpClient UdpUnicastClient { get; }
 
         IRootDeviceConfiguration RootDeviceConfiguration { get; }
+
+        bool IsMatchingInterface(IPEndPoint ipEndPoint);
     }
 }

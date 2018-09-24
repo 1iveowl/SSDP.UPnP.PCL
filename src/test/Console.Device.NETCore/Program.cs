@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Console.Device.NETCore.Model;
 using ISSDP.UPnP.PCL.Enum;
+using ISSDP.UPnP.PCL.Interfaces.Model;
 using ISSDP.UPnP.PCL.Interfaces.Service;
 using SSDP.UPnP.PCL.Model;
 using SSDP.UPnP.PCL.Service;
@@ -39,49 +41,20 @@ class Program
 
     private static async Task StartAsync(CancellationToken ct)
     {
-        StartDeviceListening();
-        //await StartSendingRandomNotify(ct);
+        await StartDeviceListening();
     }
 
-    //private static async Task StartSendingRandomNotify(CancellationToken ct)
-    //{
-    //    var wait = new Random();
-    //    var i = 0;
-
-    //    while (true)
-    //    {
-    //        await Task.Delay(TimeSpan.FromSeconds(wait.Next(1,6)), ct);
-    //        i++;
-    //        var notify = new Notify
-    //        {
-    //            BOOTID = i.ToString(),
-    //            CacheControl = TimeSpan.FromSeconds(5),
-    //            CONFIGID = "1",
-    //            Name = _remoteControlPointHost.ToString(),
-    //            Port = 1900,
-    //            Location = new Uri($"http://{_deviceLocalIpAddress}:1900/Test"),
-    //            NotifyTransportType = TransportType.Multicast,
-    //            NT = "upnp:rootdevice",
-    //            NTS = NTS.Alive,
-    //            USN = "uuid:device-UUID::upnp:rootdevice",
-    //            Server = new Server
-    //            {
-    //                OperatingSystem = "Windows",
-    //                OperatingSystemVersion = "10.0",
-    //                IsUpnp2 = true,
-    //                ProductName = "Tester",
-    //                ProductVersion = "0.1",
-    //                UpnpMajorVersion = "2",
-    //                UpnpMinorVersion = "0"
-    //            },
-    //        };
-
-    //        await _device.SendNotifyAsync(notify);
-    //    }
-    //}
-
-    private static void StartDeviceListening()
+    private static async Task StartDeviceListening()
     {
+        var g = new Server
+        {
+            OperatingSystem = "Windows",
+            OperatingSystemVersion = "10",
+            UpnpMajorVersion = "2",
+            UpnpMinorVersion = "0",
+            IsUpnp2 = true
+        };
+
         var rootDevice = new RootDeviceConfiguration
         {
             DeviceUUID = Guid.NewGuid().ToString(),
@@ -95,42 +68,92 @@ class Program
                 UpnpMinorVersion = "0",
                 IsUpnp2 = true
             },
-            
+            IpEndPoint = new IPEndPoint(IPAddress.Parse("192.168.0.59"), 1901),
+            TypeName = "Root-Device",
+            Version = 1,
+            EntityType = EntityType.RootDevice,
+            CONFIGID = "100",
+            Services = new List<IServiceConfiguration>
+            {
+                new ServiceConfiguration
+                {
+                    TypeName = "Root-Service-1",
+                    Version = 1,
+                    EntityType = EntityType.ServiceType
+                },
+                new ServiceConfiguration
+                {
+                    TypeName = "Root-Service-2",
+                    Domain = "Root-Service-Domain-1",
+                    Version = 2,
+                    EntityType = EntityType.DomainService
+                },
+            },
+            EmbeddedDevices = new List<IDeviceConfiguration>
+            {
+                new DeviceConfiguration
+                {
+                    TypeName = "Embed-Device-1",
+                    Version = 1,
+                    EntityType = EntityType.Device,
+                    DeviceUUID = Guid.NewGuid().ToString(),
+                    Services = new List<IServiceConfiguration>
+                    {
+                        new ServiceConfiguration
+                        {
+                            TypeName = "Embed-Device-1-Service-1",
+                            Version = 1,
+                            EntityType = EntityType.ServiceType
+                        },
+                        new ServiceConfiguration
+                        {
+                            TypeName = "Embed-Device-1-Service-2",
+                            Domain = "Embed-1-Service-2-Domain-2",
+                            Version = 2,
+                            EntityType = EntityType.DomainService
+                        },
+                    }
+                },
+                new DeviceConfiguration
+                {
+                    TypeName = "Embed-Device-2",
+                    Version = 1,
+                    EntityType = EntityType.DomainDevice,
+                    Domain = "Embed-Device-2-Domain-2",
+                    DeviceUUID = Guid.NewGuid().ToString(),
+                    Services = new List<IServiceConfiguration>
+                    {
+                        new ServiceConfiguration
+                        {
+                            TypeName = "Embed-Device-2-Service-1",
+                            Version = 1,
+                            EntityType = EntityType.ServiceType,
+                            },
+                        new ServiceConfiguration
+                        {
+                            TypeName = "Embed-Device-2-Service-2",
+                            Domain = "Embed-Service-Domain-2",
+                            Version = 2,
+                            EntityType = EntityType.DomainService
+                        },
+                    }
+                }
+            }
+
         };
 
-        _device = new Device(rootDevice)
-        {
-            //Location = new Uri($"http://{_remoteControlPointHost}/test"),
-            //USNs = new List<IUSN>
-            //{
-            //    new USN
-            //    {
-
-            //    },
-            //    new USN
-            //    {
-
-            //    },
-            //},
-            //Server = new Server
-            //{
-            //    OperatingSystem = "Windows",
-            //    OperatingSystemVersion = "10.0",
-            //    IsUpnp2 = true,
-            //    ProductName = "Tester",
-            //    ProductVersion = "0.1",
-            //    UpnpMajorVersion = "2",
-            //    UpnpMinorVersion = "0"
-            //},
-
-
-        };
-
-
+        _device = new Device(rootDevice);
+        
         var cts = new CancellationTokenSource();
 
-        _device.StartAsync(cts.Token);
+        await _device.StartAsync(cts.Token);
 
+        System.Console.WriteLine("Press any key to bye bye...");
+        System.Console.ReadLine();
+
+        await _device.ByeByeAsync();
+
+        _device.Dispose();
         //var disposableMSearch= _device.MSearchRequestObservable()
         //    //.Where(req => req.Name == _remoteControlPointHost.ToString())
         //    .Do(req =>

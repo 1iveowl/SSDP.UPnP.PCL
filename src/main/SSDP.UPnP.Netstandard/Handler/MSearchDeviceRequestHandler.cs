@@ -39,26 +39,19 @@ namespace SSDP.UPnP.PCL.Handler
             .Do(LogRequest)
             .SelectMany(mSearchReq =>
             {
-                var requestReceivedOnIpAddress = mSearchReq?.LocalIpEndPoint?.Address;
-
                 var rootDeviceInterface = _rootDeviceInterfaces?
-                    .SelectMany(i => ((RootDeviceInterface)i).InternalInterfaces)
-                    .FirstOrDefault(i =>
-                    {
-                        var interfaceIpEndPoint = i.Key.Client.LocalEndPoint as IPEndPoint;
-
-                        return Equals(interfaceIpEndPoint?.Address, requestReceivedOnIpAddress) && !(interfaceIpEndPoint is null);
-
-                    }).Value;
+                    .FirstOrDefault(i => i.IsMatchingInterface(mSearchReq.LocalIpEndPoint));
 
                 if (rootDeviceInterface == null)
                 {
                     return null;
                 }
 
-                return GetEntities(rootDeviceInterface, mSearchReq)
+                var result = GetEntities(rootDeviceInterface, mSearchReq)
                     .Select(entity => CreateMSearchResponse(rootDeviceInterface.RootDeviceConfiguration, entity, mSearchReq))
                     .Where(res => !(res is null));
+
+                return result;
 
             })
             .Where(res => res != null);             

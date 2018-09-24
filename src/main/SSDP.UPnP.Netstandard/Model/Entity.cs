@@ -8,10 +8,10 @@ namespace SSDP.UPnP.PCL.Model
 {
     public class Entity : IEntity
     {
-        public EntityType EntityType { get; internal set; }
+        public EntityType EntityType { get;  set; }
         public string TypeName { get; set;}
         public int Version { get; set;}
         public string Domain { get; set; }
-        public string DeviceUUID { get; internal set; }
+        public string DeviceUUID { get; set; }
     }
 }

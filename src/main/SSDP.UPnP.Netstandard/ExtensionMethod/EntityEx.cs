@@ -20,9 +20,9 @@ namespace SSDP.UPnP.PCL.ExtensionMethod
                 case EntityType.ServiceType:
                     return $"urn:schemas-upnp-org:service:{entity.TypeName}:{entity.Version}";
                 case EntityType.DomainDevice:
-                    return $"urn:{entity.DeviceUUID}::{entity.Domain}:device:{entity.TypeName}:{entity.Version}";
+                    return $"urn:{entity.Domain}:device:{entity.TypeName}:{entity.Version}";
                 case EntityType.DomainService:
-                    return $"urn:{entity.DeviceUUID}::{entity.Domain}:service:{entity.TypeName}:{entity.Version}";
+                    return $"urn:{entity.Domain}:service:{entity.TypeName}:{entity.Version}";
 
                 default:
                     throw new ArgumentOutOfRangeException();

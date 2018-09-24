@@ -8,7 +8,6 @@ namespace SSDP.UPnP.PCL.Model
 {
     public class DeviceConfiguration : Entity, IDeviceConfiguration
     {
-        public string DeviceUUID { get; set; }
         public uint BOOTID { get; internal set; }
         public IEnumerable<IServiceConfiguration> Services { get; set; }
 

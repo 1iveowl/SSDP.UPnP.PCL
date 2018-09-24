@@ -8,15 +8,21 @@ namespace SSDP.UPnP.PCL.ExtensionMethod
     {
         public static string ToUri(this IUSN usn)
         {
-            if (usn.EntityType == EntityType.Device)
+            switch (usn.EntityType)
             {
-                return $"uuid:{usn.DeviceUUID}";
+                case EntityType.Device:
+                    return $"uuid:{usn.DeviceUUID}";
+                case EntityType.RootDevice:
+                    return $"uuid:{usn.DeviceUUID}::upnp:rootdevice";
+                case EntityType.DeviceType:
+                case EntityType.ServiceType:
+                case EntityType.DomainDevice:
+                case EntityType.DomainService:
+                    return $"uuid:{usn.DeviceUUID}::{EntityEx.ToUri(usn)}";
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
-            else
-            {
-                return $"uuid:{usn.DeviceUUID}::{EntityEx.ToUri(usn)}";
-            }
-            
+           
         }
     }
 }

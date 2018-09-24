@@ -8,7 +8,7 @@ namespace SSDP.UPnP.PCL.Model
 {
     public class RootDeviceConfiguration : DeviceConfiguration, IRootDeviceConfiguration
     {
-        public IPEndPoint IpEndPoint { get; internal set; }
+        public IPEndPoint IpEndPoint { get; set; }
         public IServer Server { get; set; }
         public Uri Location { get; set; }
         public Uri SecureLocation { get; set; }

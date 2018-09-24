@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -218,11 +219,11 @@ namespace SSDP.UPnP.PCL.Service
 
                         var nextBootId = (uint) DateTime.Now.FromUnixTime();
 
-                        notifyList.Add(CreateNotify(device as IUSN));
+                        notifyList.Add(CreateNotify(device));
                         
                         if (device?.Services?.Any() ?? false)
                         {
-                            notifyList.AddRange(device.Services.Select(service => CreateNotify(service as IUSN)));
+                            notifyList.AddRange(device.Services.Select(CreateNotify));
                         }
                         
                         ((DeviceConfiguration)device).BOOTID = nextBootId;
@@ -230,8 +231,17 @@ namespace SSDP.UPnP.PCL.Service
                         return notifyList;
 
                         // Local function
-                        Notify CreateNotify(IUSN usn)
+                        Notify CreateNotify(IEntity entity)
                         {
+                            var usn = new USN
+                            {
+                                TypeName = entity.TypeName,
+                                EntityType = entity.EntityType,
+                                Domain = entity.Domain,
+                                Version = entity.Version,
+                                DeviceUUID = device.DeviceUUID
+                            };
+
                             return new Notify
                             {
                                 NotifyTransportType = TransportType.Multicast,
@@ -267,18 +277,27 @@ namespace SSDP.UPnP.PCL.Service
 
                         var rootConfiguration = rootDeviceInterface.RootDeviceConfiguration;
 
-                        notifyList.Add(CreateNotify(device as IUSN));
+                        notifyList.Add(CreateNotify(device));
 
                         if (device?.Services?.Any() ?? false)
                         {
-                            notifyList.AddRange(device.Services.Select(service => CreateNotify(service as IUSN)));
+                            notifyList.AddRange(device.Services.Select(CreateNotify));
                         }
 
                         return notifyList;
 
                         // Local function
-                        Notify CreateNotify(IUSN usn)
+                        Notify CreateNotify(IEntity entity)
                         {
+                            var usn = new USN
+                            {
+                                TypeName = entity.TypeName,
+                                EntityType = entity.EntityType,
+                                Domain = entity.Domain,
+                                Version = entity.Version,
+                                DeviceUUID = device.DeviceUUID
+                            };
+
                             return new Notify
                             {
                                 NotifyTransportType = TransportType.Multicast,
@@ -302,7 +321,6 @@ namespace SSDP.UPnP.PCL.Service
         
         private async Task SendAliveAsync()
         {
-
             foreach (var rootDeviceInterface in _rootDeviceInterfaces)
             {
                 var notifications = GetAllDevices(rootDeviceInterface)
@@ -314,19 +332,28 @@ namespace SSDP.UPnP.PCL.Service
                         var rootConfiguration = rootDeviceInterface.RootDeviceConfiguration;
 
                         var searchPort = (uint)(((IPEndPoint) rootDeviceInterface.UdpUnicastClient.Client.LocalEndPoint)?.Port ?? 1900);
-
-                        notifyList.Add(CreateNotify(device as IUSN));
+                        
+                        notifyList.Add(CreateNotify(device));
 
                         if (device?.Services?.Any() ?? false)
                         {
-                            notifyList.AddRange(device.Services.Select(service => CreateNotify(service as IUSN)));
+                            notifyList.AddRange(device.Services.Select(CreateNotify));
                         }
                         
                         return notifyList;
 
                         // Local function
-                        Notify CreateNotify(IUSN usn)
+                        Notify CreateNotify(IEntity entity)
                         {
+                            var usn = new USN
+                            {
+                                TypeName = entity.TypeName,
+                                EntityType = entity.EntityType,
+                                Domain = entity.Domain,
+                                Version = entity.Version,
+                                DeviceUUID = device.DeviceUUID
+                            };
+
                             return new Notify
                             {
                                 NotifyTransportType = TransportType.Multicast,
@@ -340,7 +367,7 @@ namespace SSDP.UPnP.PCL.Service
                                 BOOTID = device.BOOTID,
                                 CONFIGID = rootConfiguration.CONFIGID,
                                 SEARCHPORT = searchPort,
-                                SECURELOCATION = rootConfiguration.SecureLocation.AbsoluteUri,
+                                SECURELOCATION = rootConfiguration.SecureLocation?.AbsoluteUri,
                             };
                         };
                     });
@@ -355,8 +382,7 @@ namespace SSDP.UPnP.PCL.Service
 
         public async Task SendNotifyAsync(INotify notifySsdp, IPEndPoint ipEndPoint)
         {
-            var rootDeviceInterface =
-                _rootDeviceInterfaces.FirstOrDefault(d => Equals(d.UdpMulticastClient.Client.LocalEndPoint, ipEndPoint));
+            var rootDeviceInterface = _rootDeviceInterfaces?.FirstOrDefault(i => i.IsMatchingInterface(ipEndPoint));
 
             if (rootDeviceInterface == null)
             {
@@ -376,7 +402,8 @@ namespace SSDP.UPnP.PCL.Service
             for (var i = 0; i < 3; i++)
             {
                 var datagram = ComposeNotifyDatagram(notify);
-                await rootDeviceInterface.UdpMulticastClient.SendAsync(datagram, datagram.Length, rootDeviceInterface.RootDeviceConfiguration.IpEndPoint);
+                await rootDeviceInterface.UdpMulticastClient
+                    .SendAsync(datagram, datagram.Length, UdpSSDPMultiCastAddress, UdpSSDPMulticastPort);
                 // Random delay between resends of 200 - 400 milliseconds. 
                 await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(200, 400)));
             }
@@ -453,7 +480,9 @@ namespace SSDP.UPnP.PCL.Service
                                      $"{notify.Server.ProductName}/{notify.Server.ProductVersion}\r\n");
             }
 
-            stringBuilder.Append($"USN: {notify.USN}\r\n");
+            stringBuilder.Append($"USN: {notify?.USN.ToUri()}\r\n");
+            Debug.WriteLine(notify?.USN.ToUri());
+                
             stringBuilder.Append($"BOOTID.UPNP.ORG: {notify.BOOTID}\r\n");
             stringBuilder.Append($"CONFIGID.UPNP.ORG: {notify.CONFIGID}\r\n");
 
@@ -483,11 +512,7 @@ namespace SSDP.UPnP.PCL.Service
         {
             _disposableDeviceActivity?.Dispose();
 
-            if (_isClientsProvided)
-            {
-                return;
-            }
-            else
+            if (!_isClientsProvided)
             {
                 foreach (var client in _rootDeviceInterfaces)
                 {
