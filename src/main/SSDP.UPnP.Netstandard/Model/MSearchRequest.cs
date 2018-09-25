@@ -14,8 +14,6 @@ namespace SSDP.UPnP.PCL.Model
     internal class MSearchRequest : ParserErrorBase, IMSearchRequest
     {
         public TransportType TransportType { get; } = TransportType.NoCast;
-        public string Name { get; }
-        public int Port { get; }
         public string MAN { get; }
         public string HOST { get; }
         public TimeSpan MX { get; }

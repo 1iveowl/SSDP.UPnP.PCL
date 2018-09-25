@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using ISimpleHttpListener.Rx.Model;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
@@ -30,6 +31,9 @@ namespace SSDP.UPnP.PCL.Model
         public string HOST { get; internal set; }
         public IDictionary<string, string> Headers { get; internal set; }
 
+        public IPEndPoint LocalIpEndPoint { get; internal set; }
+        public IPEndPoint RemoteIpEndPoint { get; internal set; }
+
         internal Notify()
         { }
 
@@ -38,6 +42,8 @@ namespace SSDP.UPnP.PCL.Model
         {
             try
             {
+                LocalIpEndPoint = request.LocalIpEndPoint;
+                RemoteIpEndPoint = request.RemoteIpEndPoint;
                 HOST = GetHeaderValue(request.Headers, "HOST");
                 NotifyTransportType = GetCastMetod(request);
                 CacheControl = TimeSpan.FromSeconds(GetMaxAge(request.Headers));

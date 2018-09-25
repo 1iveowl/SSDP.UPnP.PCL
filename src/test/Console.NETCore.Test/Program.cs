@@ -20,6 +20,8 @@ class Program
     private static IPAddress _controlPointLocalIp1;
     private static IPAddress _controlPointLocalIp2;
 
+    private static IPAddress _deviceRemoteIp1;
+
 
     // For this test to work you most likely need to stop the SSDP Discovery service on Windows
     // If you don't stop the SSDP Windows Service, the service will intercept the UPnP multicasts and consequently nothing will show up in the console. 
@@ -28,6 +30,8 @@ class Program
     {
         _controlPointLocalIp1 = IPAddress.Parse("192.168.0.48");
         _controlPointLocalIp2 = IPAddress.Parse("169.254.38.70");
+
+        _deviceRemoteIp1 = IPAddress.Parse("192.168.0.59");
 
         var cts = new CancellationTokenSource();
 
@@ -71,6 +75,7 @@ class Program
         var observerNotify = _controlPoint.NotifyObservable();
 
         var disposableNotify = observerNotify
+            .Where(n => Equals(n.RemoteIpEndPoint.Address, _deviceRemoteIp1))
             .Subscribe(
                 n =>
                 {

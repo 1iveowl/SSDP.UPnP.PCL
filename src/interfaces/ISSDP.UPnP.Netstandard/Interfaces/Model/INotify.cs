@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Text;
 using ISSDP.UPnP.PCL.Enum;
 
@@ -27,5 +28,8 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
         string SECURELOCATION { get; }
 
         bool IsUuidUpnp2Compliant { get; }
+
+        IPEndPoint LocalIpEndPoint { get;  }
+        IPEndPoint RemoteIpEndPoint { get; }
     }
 }
