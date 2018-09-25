@@ -62,7 +62,7 @@ namespace SSDP.UPnP.PCL.Service.Base
                     throw new ArgumentOutOfRangeException();
             }
 
-            if (entities?.Any() ?? false)
+            if (!entities?.Any() ?? false)
             {
                 return null;
             }

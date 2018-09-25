@@ -75,7 +75,7 @@ class Program
         var observerNotify = _controlPoint.NotifyObservable();
 
         var disposableNotify = observerNotify
-            .Where(n => Equals(n.RemoteIpEndPoint.Address, _deviceRemoteIp1))
+            .Where(n => n.CONFIGID == 100.ToString())
             .Subscribe(
                 n =>
                 {

@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,7 +26,7 @@ using SSDP.UPnP.PCL.Rx;
 using SSDP.UPnP.PCL.Service.Base;
 using static SSDP.UPnP.PCL.Helper.Constants;
 
-
+[assembly: InternalsVisibleTo("SSDP.Device.xUnit")]
 namespace SSDP.UPnP.PCL.Service
 {
     public class Device : EntityBase, IDevice
@@ -39,6 +40,10 @@ namespace SSDP.UPnP.PCL.Service
         private IObservable<IHttpRequestResponse> _httpListenerObservable;
 
         private readonly bool _isClientsProvided;
+
+#if DEBUG
+        private bool _skipAlive;
+#endif
 
         public ILogger Logger { get; set; }
 
@@ -119,6 +124,15 @@ namespace SSDP.UPnP.PCL.Service
             _isClientsProvided = true;
         }
 
+#if DEBUG
+        internal async Task HotStartAsync(IObservable<IHttpRequestResponse> httpListenerObservable, bool skipAlive)
+        {
+            _skipAlive = skipAlive;
+
+            await HotStartAsync(httpListenerObservable);
+        }
+#endif
+
         public async Task HotStartAsync(IObservable<IHttpRequestResponse> httpListenerObservable)
         {
             _httpListenerObservable = httpListenerObservable;
@@ -189,6 +203,13 @@ namespace SSDP.UPnP.PCL.Service
                     });
 
             IsStarted = true;
+
+#if DEBUG
+            if (_skipAlive)
+            {
+                return;
+            }
+#endif
 
             await SendAliveAsync();
         }
