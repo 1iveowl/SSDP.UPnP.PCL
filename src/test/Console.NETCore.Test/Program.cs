@@ -140,8 +140,7 @@ class Program
         var counter = 0;
 
         var disposableMSearchresponse = mSearchResObs
-            .ObserveOn(Scheduler.Default)
-            //.Where(res => res.RemoteHost.Name == "192.168.0.59")
+            .Where(n => Equals(n.RemoteIpEndPoint.Address, _deviceRemoteIp1))
             .Subscribe(
                 res =>
                 {
