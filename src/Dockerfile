@@ -33,4 +33,4 @@ WORKDIR /app
 COPY --from=publish /app/test/Console.NETCore.Test/out/ ./
 
 ENTRYPOINT ["dotnet", "Console.NETCore.Test.dll"]  
-CMD ["127.0.0.1"]
+CMD [""]

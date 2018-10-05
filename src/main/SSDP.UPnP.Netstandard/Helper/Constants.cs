@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace SSDP.UPnP.PCL.Helper
@@ -17,6 +18,8 @@ namespace SSDP.UPnP.PCL.Helper
         public const int UdpResponsePort = 1900;
         public const int UdpRequestPort = 1900;
 
+
+        //https://stackoverflow.com/a/9100336/4140832
         public static IPAddress GetBestGuessLocalIPAddress()
         {
             var addresses = new List<IPAddress>();
@@ -61,8 +64,15 @@ namespace SSDP.UPnP.PCL.Helper
                         // Ignore loopback addresses (e.g., 127.0.0.1)    
                         if (IPAddress.IsLoopback(address.Address)) continue;
 
-                        if (!address.IsDnsEligible) continue;
-                        if (address.IsTransient) continue;
+                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                        {
+                            if (!address.IsDnsEligible) continue;
+
+                            if (address.IsTransient) continue;
+                        }
+                        
+
+                        
 
                         addresses.Add(address.Address);
                     }
