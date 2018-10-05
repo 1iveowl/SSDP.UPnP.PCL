@@ -77,10 +77,10 @@ class Program
 
         _controlPoint.Start(ct);
 
+        ListenToMSearchResponse(ct);
+
         ListenToNotify();
 
-        ListenToMSearchResponse(ct);
-        
         await StartMSearchRequestMulticastAsync();
     }
 

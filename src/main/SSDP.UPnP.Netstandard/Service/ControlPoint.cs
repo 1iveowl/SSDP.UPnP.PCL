@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reactive.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -48,17 +51,33 @@ namespace SSDP.UPnP.PCL.Service
                     IpAddress = ipAddress,
                 };
 
-                var udpClient = new UdpClient
+                var udpClient = new UdpClient();
+
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
-                    ExclusiveAddressUse = false,
-                    MulticastLoopback = true,
-                };
+                    udpClient.ExclusiveAddressUse = false;
+                    udpClient.MulticastLoopback = true;
+
+                }
+
+                var networkInterface = NetworkInterface.GetAllNetworkInterfaces()
+                    .FirstOrDefault(nic =>
+                        !(nic.GetIPProperties().UnicastAddresses.FirstOrDefault(addr => Equals(addr.Address, ipAddress)) is null));
+
+                if (networkInterface is null)
+                {
+                    throw new SSDPException("Unable to tie IPAddress to network interface.");
+                }
+
+                var optionValue = IPAddress.NetworkToHostOrder(networkInterface.GetIPProperties().GetIPv4Properties().Index);
+
+                udpClient.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastInterface, optionValue);
 
                 udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
-                udpClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress));
-
                 udpClient.Client.Bind(new IPEndPoint(ipAddress, UdpSSDPMulticastPort));
+
+                udpClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress), ipAddress);
 
                 cpInterface.UdpClient = udpClient;
 
@@ -95,26 +114,26 @@ namespace SSDP.UPnP.PCL.Service
 
             foreach (var node in _controlPointInterfaces)
             {
-                if (_httpListenerObservable == null)
-                {
-                    _httpListenerObservable =
-                        node.UdpClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError);
-                }
-                else
-                {
-                    _httpListenerObservable.Merge(
-                        node.UdpClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError));
-                }
 
-                if (_httpListenerObservable == null)
+                if (!(node.UdpClient is null) && !(node.TcpListener is null))
                 {
-                    _httpListenerObservable =
-                        node.TcpListener.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError);
+                    _httpListenerObservable = node.UdpClient
+                        .ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError)
+                        .Merge(node.TcpListener.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError));
+                }
+                else if (!(node.UdpClient is null) && node.TcpListener is null)
+                {
+                    _httpListenerObservable = node.UdpClient
+                        .ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError);
+                }
+                else if (node.UdpClient is null && !(node.TcpListener is null))
+                {
+                    _httpListenerObservable = node.TcpListener
+                        .ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError);
                 }
                 else
                 {
-                    _httpListenerObservable.Merge(
-                        node.TcpListener.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError));
+                    throw new SSDPException("No network UDP Client or TCP Listener defined for Control Point Interface");
                 }
             }
 
@@ -153,6 +172,7 @@ namespace SSDP.UPnP.PCL.Service
             }
 
             return _httpListenerObservable
+                .Do(x => Debug.WriteLine($"Method {x.Method}"))
                 .Where(x => x.MessageType == MessageType.Request)
                 .Select(x => x as IHttpRequest)
                 .Where(req => req != null)
