@@ -2,7 +2,7 @@
 
 namespace SSDP.UPnP.PCL.Model
 {
-    internal class Server : DeviceInfo, IServer
+    public class Server : DeviceInfo, IServer
     {
     }
 }

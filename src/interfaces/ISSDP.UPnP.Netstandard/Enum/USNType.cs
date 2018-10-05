@@ -4,12 +4,13 @@ using System.Text;
 
 namespace ISSDP.UPnP.PCL.Enum
 {
-    public enum STtype
+    public enum USNType
     {
-        All,
+        Device,
         RootDevice,
-        UIID,
         DeviceType,
         ServiceType,
+        DomainDeviceType,
+        DomainServiceType
     }
 }

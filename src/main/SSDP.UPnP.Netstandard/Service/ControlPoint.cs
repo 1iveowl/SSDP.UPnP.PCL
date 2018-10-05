@@ -1,83 +1,215 @@
 ﻿using System;
-using System.Reactive.Concurrency;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Reactive.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using ISimpleHttpServer.Service;
+using HttpMachine;
+using ISimpleHttpListener.Rx.Enum;
+using ISimpleHttpListener.Rx.Model;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 using ISSDP.UPnP.PCL.Interfaces.Service;
-using SSDP.UPnP.Netstandard.Helper;
+using SimpleHttpListener.Rx.Extension;
 using SSDP.UPnP.PCL.Helper;
 using SSDP.UPnP.PCL.Model;
-using SSDP.UPnP.PCL.Service.Base;
+using static SSDP.UPnP.PCL.Helper.Constants;
 
 namespace SSDP.UPnP.PCL.Service
 {
-    public class ControlPoint : CommonBase, IControlPoint
+    public class ControlPoint : IControlPoint
     {
-        private readonly IHttpListener _httpListener;
 
-        public async Task<IObservable<IMSearchResponse>> CreateMSearchResponseObservable(int tcpReponsePort)
+        private readonly IEnumerable<IControlPointInterface> _controlPointInterfaces;
+
+        private IObservable<IHttpRequestResponse> _httpListenerObservable;
+
+        private readonly bool _isClientsProvided;
+
+        public bool IsStarted { get; private set; }
+
+        public ControlPoint(params IPAddress[] ipAddressParam)
         {
-            var multicastResObs = await _httpListener.UdpMulticastHttpResponseObservable(
-                Initializer.UdpSSDPMultiCastAddress,
-                Initializer.UdpSSDPMulticastPort, 
-                false);
+            if (!ipAddressParam?.Any() ?? false)
+            {
+                throw new SSDPException("At least one IP Address must be specified");
+            }
 
-            var tcpResObs = await _httpListener.TcpHttpResponseObservable(tcpReponsePort, false);
+            var controlPointInterfaceList = new List<ControlPointInterface>();
 
-            return multicastResObs
-                .Merge(tcpResObs)
-                .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
+            foreach (var ipAddress in ipAddressParam)
+            {
+
+                var cpInterface = new ControlPointInterface
+                {
+                    IpAddress = ipAddress,
+                };
+
+                var udpClient = new UdpClient
+                {
+                    ExclusiveAddressUse = false,
+                    MulticastLoopback = true,
+                };
+
+                udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+
+                udpClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress));
+
+                udpClient.Client.Bind(new IPEndPoint(ipAddress, UdpSSDPMulticastPort));
+
+                cpInterface.UdpClient = udpClient;
+
+                cpInterface.TcpListener = new TcpListener(new IPEndPoint(ipAddress, TcpResponseListenerPort))
+                {
+                    ExclusiveAddressUse = false
+                };
+
+                controlPointInterfaceList.Add(cpInterface);
+            }
+
+            _controlPointInterfaces = controlPointInterfaceList;
+        }
+
+        public ControlPoint(params IControlPointInterface[] controlPointInterfaceParams)
+        {
+            if (!controlPointInterfaceParams?.Any() ?? false)
+            {
+                throw new SSDPException("At least one Control Point Interface must be specified.");
+            }
+
+            _controlPointInterfaces = controlPointInterfaceParams;
+
+            _isClientsProvided = true;
+        }
+
+
+        public void Start(CancellationToken ct)
+        {
+            if (!_controlPointInterfaces?.Any() ?? false)
+            {
+                throw new SSDPException("No Control Point interface specified.");
+            }
+
+            foreach (var node in _controlPointInterfaces)
+            {
+                if (_httpListenerObservable == null)
+                {
+                    _httpListenerObservable =
+                        node.UdpClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError);
+                }
+                else
+                {
+                    _httpListenerObservable.Merge(
+                        node.UdpClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError));
+                }
+
+                if (_httpListenerObservable == null)
+                {
+                    _httpListenerObservable =
+                        node.TcpListener.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError);
+                }
+                else
+                {
+                    _httpListenerObservable.Merge(
+                        node.TcpListener.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError));
+                }
+            }
+
+            Start();
+        }
+
+        public void HotStart(IObservable<IHttpRequestResponse> httpListenerObservable)
+        {
+            _httpListenerObservable = httpListenerObservable;
+        }
+
+        private void Start()
+        {
+            IsStarted = true;
+        }
+
+        public IObservable<IMSearchResponse> MSearchResponseObservable()
+        {
+            if (!IsStarted)
+            {
+                throw new Exception("Control Point not started.");
+            }
+
+            return _httpListenerObservable
+                .Where(x => x.MessageType == MessageType.Response)
+                .Select(x => x as IHttpResponse)
+                .Where(res => res != null)
                 .Select(res => new MSearchResponse(res));
         }
 
-        public async Task<IObservable<INotifySsdp>> CreateNotifyObservable(bool allowMultipleBindingToPort = false)
+        public IObservable<INotify> NotifyObservable()
         {
-            var multicastReqObs = await _httpListener.UdpMulticastHttpRequestObservable(
-                    Initializer.UdpSSDPMultiCastAddress,
-                    Initializer.UdpSSDPMulticastPort, 
-                    allowMultipleBindingToPort);
+            if (!IsStarted)
+            {
+                throw new Exception("Control Point not started.");
+            }
 
-            return multicastReqObs
-                .Where(x => !x.IsUnableToParseHttp && !x.IsRequestTimedOut)
+            return _httpListenerObservable
+                .Where(x => x.MessageType == MessageType.Request)
+                .Select(x => x as IHttpRequest)
+                .Where(req => req != null)
                 .Where(req => req.Method == "NOTIFY")
-                .Select(req => new NotifySsdp(req))
+                .Select(req => new Notify(req))
                 .Where(n => n.NTS == NTS.Alive || n.NTS == NTS.ByeBye || n.NTS == NTS.Update);
         }
         
-        public ControlPoint(IHttpListener httpListener)
+        public async Task SendMSearchAsync(IMSearchRequest mSearch, IPAddress ipAddress)
         {
-            _httpListener = httpListener;
-        }
-
-        public async Task SendMSearchAsync(IMSearchRequest mSearch)
-        {
-            if (mSearch.SearchCastMethod == CastMethod.Multicast)
+            if (!IsStarted)
             {
-                await _httpListener.SendOnMulticast(ComposeMSearchDatagram(mSearch));
+                throw new Exception("Control Point not started.");
             }
 
-            if (mSearch.SearchCastMethod == CastMethod.Unicast)
+            var cp = _controlPointInterfaces?.FirstOrDefault(c => Equals(c?.IpAddress, ipAddress));
+
+            if (cp?.UdpClient == null)
             {
-                await SendOnTcp(mSearch.Name, mSearch.Port, ComposeMSearchDatagram(mSearch));
+                throw new SSDPException("IP Address provided is not associated with any ControlPoint EndPoint or no Control Points specified.");
+            }
+
+            var dataGram = ComposeMSearchRequestDataGram(mSearch);
+
+            switch (mSearch?.TransportType)
+            {
+                case TransportType.Multicast:
+                    await cp.UdpClient.SendAsync(
+                        dataGram, 
+                        dataGram.Length, 
+                        new IPEndPoint(IPAddress.Parse(UdpSSDPMultiCastAddress), UdpSSDPMulticastPort));
+                    break;
+                case TransportType.Unicast:
+                    await SendOnTcpASync(mSearch.RemoteIpEndPoint, dataGram);
+                    break;
+                case TransportType.NoCast:
+                    throw new SSDPException("M-SEARCH must be either multicast or unicast.");
+                case null:
+                    throw new SSDPException("M-SEARCH cannot be null.");
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(mSearch));
             }
         }
 
-        private byte[] ComposeMSearchDatagram(IMSearchRequest request)
+        private byte[] ComposeMSearchRequestDataGram(IMSearchRequest request)
         {
             var stringBuilder = new StringBuilder();
 
             stringBuilder.Append("M-SEARCH * HTTP/1.1\r\n");
 
-            stringBuilder.Append(request.SearchCastMethod == CastMethod.Multicast
+            stringBuilder.Append(request.TransportType == TransportType.Multicast
                 ? "HOST: 239.255.255.250:1900\r\n"
-                : $"HOST: {request.Name}:{request.Port}\r\n");
+                : $"HOST: {request.HOST}\r\n");
 
             stringBuilder.Append("MAN: \"ssdp:discover\"\r\n");
 
-            if (request.SearchCastMethod == CastMethod.Multicast)
+            if (request.TransportType == TransportType.Multicast)
             {
                 stringBuilder.Append($"MX: {request.MX.TotalSeconds}\r\n");
             }
@@ -89,11 +221,13 @@ namespace SSDP.UPnP.PCL.Service
                                  $" " +
                                  $"{request.UserAgent.ProductName}/{request.UserAgent.ProductVersion}\r\n");
 
-            if (request.SearchCastMethod == CastMethod.Multicast)
+            if (request.TransportType == TransportType.Multicast)
             {
                 stringBuilder.Append($"CPFN.UPNP.ORG: {request.CPFN}\r\n");
 
-                HeaderHelper.AddOptionalHeader(stringBuilder, "TCPPORT.UPNP.ORG", request.TCPPORT);
+                //stringBuilder.Append($"TCPPORT.UPNP.ORG: {UdpSSDPMulticastPort}\r\n");
+
+                //HeaderHelper.AddOptionalHeader(stringBuilder, "TCPPORT.UPNP.ORG", request.TCPPORT);
                 HeaderHelper.AddOptionalHeader(stringBuilder, "CPUUID.UPNP.ORG", request.CPUUID);
 
                 if (request.Headers != null)
@@ -111,40 +245,115 @@ namespace SSDP.UPnP.PCL.Service
 
         private string GetSTSting(IST st)
         {
-            switch (st.STtype)
+            switch (st.StSearchType)
             {
-                case STtype.All: return "ssdp:all";
-                case STtype.RootDevice: return "upnp:rootdevice";
-                case STtype.UIID:
+                case STType.All: return "ssdp:all";
+                case STType.RootDeviceSearch: return "upnp:rootdevice";
+                case STType.UIIDSearch:
                 {
                     return $"uuid:{st.DeviceUUID}";
                 }
-                case STtype.DeviceType:
+                case STType.DeviceTypeSearch:
                 {
-                    if (st.HasDomain)
+                    if (string.IsNullOrEmpty(st.TypeName))
                     {
-                        return $"urn:{st.DomainName}:device:{st.Type}:{st.Version}";
-                        }
-                    else
+                        throw new SSDPException("Device Type Search requires a Device Type to be specified.");
+                    }
+
+                    if (st.Version > 0)
                     {
-                        return $"urn:schemas-upnp-org:device:{st.Type}:{st.Version}";
-                        }
+                        throw new SSDPException("Device Type Search requires a version to be specified.");
+                    }
+
+                    return $"urn:schemas-upnp-org:device:{st.TypeName}:{st.Version}";
                     
                 }
-                case STtype.ServiceType:
+                case STType.ServiceTypeSearch:
                 {
-                    if (st.HasDomain)
+                    if (string.IsNullOrEmpty(st.TypeName))
                     {
-                        return $"urn:{st.DomainName}:service:{st.Type}:{st.Version}";
+                        throw new SSDPException("Service Type Search requires a Service Type to be specified.");
                     }
-                    else
+
+                    if (st.Version > 0)
                     {
-                        return $"urn:schemas-upnp-org:service:{st.Type}:{st.Version}";
+                        throw new SSDPException("Service Type Search requires a version to be specified.");
                     }
+
+                    return $"urn:schemas-upnp-org:service:{st.TypeName}:{st.Version}";
+                }
+                case STType.DomainDeviceSearch:
+
+                    if (string.IsNullOrEmpty(st.Domain))
+                    {
+                        throw new SSDPException("Domain Device Type Search requires a Domain Type to be specified.");
+                    }
+
+                    if (string.IsNullOrEmpty(st.TypeName))
+                    {
+                        throw new SSDPException("Device Type Search requires a Device Type to be specified.");
+                    }
+
+                    if (st.Version > 0)
+                    {
+                        throw new SSDPException("Device Type Search requires a version to be specified.");
+                    }
+
+                    return $"urn:{st.Domain}:device:{st.TypeName}:{st.Version}";
+
+                case STType.DomainServiceSearch:
+
+                    if (string.IsNullOrEmpty(st.Domain))
+                    {
+                        throw new SSDPException("Service Service Type Search requires a Domain Type to be specified.");
+                    }
+                    
+                    if (string.IsNullOrEmpty(st.TypeName))
+                    {
+                        throw new SSDPException("Service Type Search requires a Service Type to be specified.");
+                    }
+
+                    if (st.Version > 0)
+                    {
+                        throw new SSDPException("Device Type Search requires a version to be specified.");
+                    }
+
+                    return $"urn:{st.Domain}:service:{st.TypeName}:{st.Version}";
+
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        private async Task SendOnTcpASync(IPEndPoint ipEndPoint, byte[] data)
+        {
+            using (var tcpClient = new TcpClient())
+            {
+                await tcpClient.ConnectAsync(ipEndPoint.Address, ipEndPoint.Port);
+
+                var stream = tcpClient.GetStream();
+
+                await stream.WriteAsync(data, 0, data.Length);
+                await stream.FlushAsync();
+                tcpClient.Close();
+            }
+        }
+
+        public void Dispose()
+        {
+
+            if (_isClientsProvided)
+            {
+                return;
+            }
+            else
+            {
+                foreach (var client in _controlPointInterfaces)
+                {
+                    client?.UdpClient?.Client?.Dispose();
+                    client?.TcpListener?.Stop();
                 }
             }
-
-            return null;
         }
     }
 }

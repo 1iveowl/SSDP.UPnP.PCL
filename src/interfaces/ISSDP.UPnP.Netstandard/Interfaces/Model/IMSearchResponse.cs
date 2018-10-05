@@ -3,9 +3,8 @@ using ISSDP.UPnP.PCL.Enum;
 
 namespace ISSDP.UPnP.PCL.Interfaces.Model
 {
-    public interface IMSearchResponse : IHost, IHeaders, IParserError
+    public interface IMSearchResponse : IMSearch
     {
-        CastMethod ResponseCastMethod { get; }
         int StatusCode { get; }
         string ResponseReason { get; }
         TimeSpan CacheControl { get; }
@@ -13,11 +12,10 @@ namespace ISSDP.UPnP.PCL.Interfaces.Model
         Uri Location { get; }
         bool Ext { get; }
         IServer Server { get; }
-        IST ST { get; }
-        string USN { get; }
-        string BOOTID { get; }
-        string CONFIGID { get; }
-        string SEARCHPORT { get; }
+        IUSN USN { get; }
+        int BOOTID { get; }
+        int CONFIGID { get; }
+        int SEARCHPORT { get; }
         string SECURELOCATION { get; }
     }
 }

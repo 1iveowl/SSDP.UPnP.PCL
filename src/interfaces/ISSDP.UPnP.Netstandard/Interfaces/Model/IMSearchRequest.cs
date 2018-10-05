@@ -1,17 +1,17 @@
 ﻿using System;
+using System.Net;
 using ISSDP.UPnP.PCL.Enum;
 
 namespace ISSDP.UPnP.PCL.Interfaces.Model
 {
-    public interface IMSearchRequest : IHost, IHeaders, IParserError
+    public interface IMSearchRequest : IMSearch 
     {
-        CastMethod SearchCastMethod { get; }
         string MAN { get; }
-        TimeSpan MX { get; }
-        IST ST { get; }
+        string HOST { get; }
         IUserAgent UserAgent { get; }
         string CPFN { get; }
         string CPUUID { get; }
-        string TCPPORT { get; }
-}
+        int SEARCHPORT { get; }
+
+    }
 }

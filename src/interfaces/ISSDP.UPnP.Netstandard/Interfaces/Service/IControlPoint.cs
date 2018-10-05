@@ -1,16 +1,25 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
+using ISimpleHttpListener.Rx.Enum;
+using ISimpleHttpListener.Rx.Model;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 
 namespace ISSDP.UPnP.PCL.Interfaces.Service
 {
-    public interface IControlPoint
+    public interface IControlPoint : IDisposable
     {
-        Task<IObservable<INotifySsdp>> CreateNotifyObservable(bool allowMultipleBindingToPort = false);
+        void Start(CancellationToken ct);
 
-        Task<IObservable<IMSearchResponse>> CreateMSearchResponseObservable(int tcpReponsePort);
+        void HotStart(IObservable<IHttpRequestResponse> httpListenerObservable);
+        
+        IObservable<INotify> NotifyObservable();
 
-        Task SendMSearchAsync(IMSearchRequest mSearch);
+        IObservable<IMSearchResponse> MSearchResponseObservable();
+
+        Task SendMSearchAsync(IMSearchRequest mSearch, IPAddress ipAddress);
+
+        bool IsStarted { get; }
     }
 }

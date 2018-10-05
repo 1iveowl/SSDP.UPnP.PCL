@@ -3,5 +3,7 @@
     public interface IParserError
     {
         bool InvalidRequest { get; }
+
+        bool HasParsingError { get; }
     }
 }

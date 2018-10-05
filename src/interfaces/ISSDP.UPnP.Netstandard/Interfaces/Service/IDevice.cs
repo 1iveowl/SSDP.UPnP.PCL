@@ -1,15 +1,28 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
+using ISimpleHttpListener.Rx.Model;
+using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 
 namespace ISSDP.UPnP.PCL.Interfaces.Service
 {
-    public interface IDevice
+    public interface IDevice : IDisposable
     {
-        Task<IObservable<IMSearchRequest>> CreateMSearchObservable(bool allowMultipleBindingToPort = false);
+        IObservable<DeviceActivity> DeviceActivityObservable { get; }
 
-        Task SendNotifyAsync(INotifySsdp notifySsdp);
+        Task StartAsync(CancellationToken ct);
 
-        Task SendMSearchResponseAsync(IMSearchResponse mSearchResponse, IMSearchRequest mSearchRequest);
+        Task HotStartAsync(IObservable<IHttpRequestResponse> httpListenerObservable);
+
+        Task UpdateAsync();
+
+        Task ByeByeAsync();
+
+        Task SendNotifyAsync(INotify notifySsdp, IPEndPoint ipEndPoint);
+
+        bool IsStarted { get; }
     }
 }

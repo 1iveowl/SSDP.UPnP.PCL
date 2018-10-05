@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using ISimpleHttpServer.Model;
+using ISimpleHttpListener.Rx.Enum;
+using ISimpleHttpListener.Rx.Model;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Model;
 using SSDP.UPnP.PCL.Model;
@@ -28,7 +29,7 @@ namespace SSDP.UPnP.PCL.Helper
 
         internal static int ConvertStringToInt(string str)
         {
-            if (int.TryParse(str, out int x))
+            if (int.TryParse(str, out var x))
             {
                 return x;
             }
@@ -37,59 +38,8 @@ namespace SSDP.UPnP.PCL.Helper
 
         internal static string GetHeaderValue(IDictionary<string, string> headers, string key)
         {
-            headers.TryGetValue(key.ToUpper(), out string value);
+            headers.TryGetValue(key.ToUpper(), out var value);
             return value;
-        }
-
-        internal static IST GetSTValue(string stString)
-        {
-            var stringParts = stString.Split(':');
-
-            switch (stringParts[0].ToLower())
-            {
-                case "ssdp":
-                    return new ST
-                    {
-                        STtype = STtype.All
-                    };
-                case "uuid":
-                    return new ST
-                    {
-                        STtype = STtype.UIID
-                    };
-                case "upnp":
-                    return new ST
-                    {
-                        STtype = STtype.RootDevice
-                    };
-                case "urn":
-                {
-                    var st = new ST();
-                    if (stringParts[1].ToLower() != "schemas-upnp-org")
-                    {
-                        st.DomainName = stringParts[1];
-                        st.HasDomain = true;
-                        }
-                    else
-                    {
-                        st.HasDomain = false;
-                    }
-
-                    if (stringParts[2].ToLower() == "device")
-                    {
-                        st.STtype = STtype.DeviceType;
-                    }
-                    if (stringParts[2].ToLower() == "service")
-                    {
-                        st.STtype = STtype.ServiceType;
-                    }
-                    st.Type = stringParts[3];
-                    st.Version = stringParts[4];
-                    return st;
-                }
-            }
-
-            return null;
         }
 
         private static T ConvertToDeviceInfo<T>(string str) where T : DeviceInfo, IDeviceInfo, new()
@@ -177,29 +127,17 @@ namespace SSDP.UPnP.PCL.Helper
             {
                 return DateTime.ParseExact(dateString, "r", null);
             }
+
             return default(DateTime);
         }
 
-        internal static string GetNtsString(NTS nts)
-        {
-            switch (nts)
-            {
-                case NTS.Alive: return "ssdp:alive";
-                case NTS.ByeBye: return "ssdp:byebye";
-                case NTS.Update: return "ssdp:update";
-
-                default:
-                    return "<unknown>";
-            }
-        }
-
-        internal static CastMethod GetCastMetod(IHttpCommon request)
+        internal static TransportType GetCastMetod(IHttpCommon request)
         {
             switch (request.RequestType)
             {
-                case RequestType.TCP: return CastMethod.Unicast;
-                case RequestType.UDP: return CastMethod.Multicast;
-                default: return CastMethod.NoCast;
+                case RequestType.TCP: return TransportType.Unicast;
+                case RequestType.UDP: return TransportType.Multicast;
+                default: return TransportType.NoCast;
             }
         }
 

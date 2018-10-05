@@ -5,8 +5,12 @@
     <AssemblyName>ISSDP.UPnP.PCL</AssemblyName>
     <RootNamespace>ISSDP.UPnP.PCL</RootNamespace>
 
-    <AssemblyVersion>5.1.1.0</AssemblyVersion>
-    <FileVersion>5.1.1.0</FileVersion>
+    <AssemblyVersion>6.0.0.0</AssemblyVersion>
+    <FileVersion>6.0.0.0</FileVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SimpleHttpListener.Rx" Version="6.0.5" />
+  </ItemGroup>
 
 </Project>

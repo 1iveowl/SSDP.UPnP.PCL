@@ -1,6 +1,6 @@
 ﻿namespace ISSDP.UPnP.PCL.Enum
 {
-    public enum CastMethod
+    public enum TransportType
     {
         NoCast,
         Multicast,

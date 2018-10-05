@@ -1,22 +1,27 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using Console.NETCore.Test.Model;
-using ISimpleHttpServer.Service;
 using ISSDP.UPnP.PCL.Enum;
 using ISSDP.UPnP.PCL.Interfaces.Service;
-using SSDP.UPnP.Netstandard.Helper;
+using SSDP.UPnP.PCL.ExtensionMethod;
+using SSDP.UPnP.PCL.Model;
 using SSDP.UPnP.PCL.Service;
+using static SSDP.UPnP.PCL.Helper.Constants;
 
 class Program
 {
-    private static IHttpListener _httpListener;
-
     private static IControlPoint _controlPoint;
-    private static IDevice _device;
-    private static string _controlPointLocalIp = "192.168.0.59";
-    //private static string _remoteDeviceIp = "10.10.2.170";
+    private static IPAddress _controlPointLocalIp1 = null;
+    //private static IPAddress _controlPointLocalIp2;
+
+    //private static IPAddress _deviceRemoteIp1;
 
 
     // For this test to work you most likely need to stop the SSDP Discovery service on Windows
@@ -24,42 +29,66 @@ class Program
 
     static async Task Main(string[] args)
     {
-        await StartAsync();
+        if (args?.Any() ?? false)
+        {
+            var ipStr = args[0];
+
+            if (IPAddress.TryParse(ipStr, out var ip))
+            {
+                _controlPointLocalIp1 = ip;
+            }
+        }
+
+        if (_controlPointLocalIp1 is null)
+        {
+            _controlPointLocalIp1 = GetBestGuessLocalIPAddress();
+        }
+        
+        System.Console.WriteLine($"IP Address: {_controlPointLocalIp1.ToString()}");
+
+        //_controlPointLocalIp2 = IPAddress.Parse("169.254.38.70");
+
+        //_deviceRemoteIp1 = IPAddress.Parse("192.168.0.48");
+
+        var cts = new CancellationTokenSource();
+
+        await StartAsync(cts.Token);
+
+        System.Console.WriteLine("Press any key to end (1).");
 
         System.Console.ReadKey();
 
-        while (true)
-        {
-            await Task.Delay(TimeSpan.FromSeconds(10));
-        }
+        cts.Cancel();
+
+        System.Console.WriteLine("Press any key to end (2)");
+        System.Console.ReadKey();
     }
 
-    private static async Task StartAsync()
+    private static async Task StartAsync(CancellationToken ct)
     {
-
-
-        _httpListener = await Initializer.GetHttpListener(_controlPointLocalIp);
-
         //StartDeviceListening();
 
-        await StartControlPointListeningAsync();
+        await StartControlPointListeningAsync(ct);
     }
 
-    private static async Task StartControlPointListeningAsync()
+    private static async Task StartControlPointListeningAsync(CancellationToken ct)
     {
-        _controlPoint = new ControlPoint(_httpListener);
+        _controlPoint = new ControlPoint(_controlPointLocalIp1);
 
-        await ListenToNotify();
+        _controlPoint.Start(ct);
 
-        await ListenToMSearchResponse();
+        ListenToNotify();
+
+        ListenToMSearchResponse(ct);
+        
+        await StartMSearchRequestMulticastAsync();
     }
 
-    private static async Task ListenToNotify()
+    private static void ListenToNotify()
     {
         var counter = 0;
 
-        // Use allowMultipleBindingToPort:true on Windows
-        var observerNotify = await _controlPoint.CreateNotifyObservable(allowMultipleBindingToPort:true);
+        var observerNotify = _controlPoint.NotifyObservable();
 
         var disposableNotify = observerNotify
             .Subscribe(
@@ -70,22 +99,28 @@ class Program
                     System.Console.ForegroundColor = ConsoleColor.White;
                     System.Console.WriteLine($"---### Control Point Received a NOTIFY - #{counter} ###---");
                     System.Console.ResetColor();
-                    System.Console.WriteLine($"{n.NotifyCastMethod.ToString()}");
-                    System.Console.WriteLine($"From: {n.Name}:{n.Port}");
+                    System.Console.WriteLine($"{n?.NotifyTransportType.ToString()}");
+                    System.Console.WriteLine($"From: {n?.HOST}");
                     System.Console.WriteLine($"Location: {n?.Location?.AbsoluteUri}");
                     System.Console.WriteLine($"Cache-Control: max-age = {n.CacheControl}");
                     System.Console.WriteLine($"Server: " +
-                                             $"{n.Server.OperatingSystem}/{n.Server.OperatingSystemVersion} " +
+                                             $"{n?.Server?.OperatingSystem}/{n?.Server?.OperatingSystemVersion} " +
                                              $"UPNP/" +
-                                             $"{n.Server.UpnpMajorVersion}.{n.Server.UpnpMinorVersion}" +
+                                             $"{n?.Server?.UpnpMajorVersion}.{n?.Server?.UpnpMinorVersion}" +
                                              $" " +
-                                             $"{n.Server.ProductName}/{n.Server.ProductVersion}" +
-                                             $" - ({n.Server.FullString})");
-                    System.Console.WriteLine($"NT: {n.NT}");
-                    System.Console.WriteLine($"NTS: {n.NTS}");
-                    System.Console.WriteLine($"USN: {n.USN}");
-                    System.Console.WriteLine($"BOOTID: {n.BOOTID}");
+                                             $"{n?.Server?.ProductName}/{n?.Server?.ProductVersion}" +
+                                             $" - ({n?.Server?.FullString})");
+                    System.Console.WriteLine($"NT: {n?.NT}");
+                    System.Console.WriteLine($"NTS: {n?.NTS}");
+                    System.Console.WriteLine($"USN: {n?.USN?.ToUri()}");
+
+                    if (n.BOOTID > 0)
+                    {
+                        System.Console.WriteLine($"BOOTID: {n.BOOTID}");
+                    }
+                
                     System.Console.WriteLine($"CONFIGID: {n.CONFIGID}");
+                    
                     System.Console.WriteLine($"NEXTBOOTID: {n.NEXTBOOTID}");
                     System.Console.WriteLine($"SEARCHPORT: {n.SEARCHPORT}");
                     System.Console.WriteLine($"SECURELOCATION: {n.SECURELOCATION}");
@@ -98,23 +133,28 @@ class Program
                         {
                             System.Console.WriteLine($"{header.Key}: {header.Value}; ");
                         }
+
                         System.Console.ResetColor();
+                    }
+
+                    System.Console.WriteLine($"Is UPnP 2.0 compliant: {n.IsUuidUpnp2Compliant}");
+
+                    if (n.HasParsingError)
+                    {
+                        System.Console.WriteLine($"Parsing errors: {n.HasParsingError}");
                     }
 
                     System.Console.WriteLine();
                 });
     }
 
-    private static async Task ListenToMSearchResponse()
+    private static void ListenToMSearchResponse(CancellationToken ct)
     {
-
-        var mSeachResObs = await _controlPoint.CreateMSearchResponseObservable(Initializer.TcpResponseListenerPort);
+        var mSearchResObs = _controlPoint.MSearchResponseObservable();
 
         var counter = 0;
 
-        var mSearchresponseSubscribe = mSeachResObs
-            //.Where(req => req.HostIp == _remoteDeviceIp)
-            //.SubscribeOn(Scheduler.CurrentThread)
+        var disposableMSearchresponse = mSearchResObs
             .Subscribe(
                 res =>
                 {
@@ -123,62 +163,84 @@ class Program
                     System.Console.ForegroundColor = ConsoleColor.White;
                     System.Console.WriteLine($"---### Control Point Received a  M-SEARCH RESPONSE #{counter} ###---");
                     System.Console.ResetColor();
-                    System.Console.WriteLine($"{res.ResponseCastMethod.ToString()}");
-                    System.Console.WriteLine($"From: {res.Name}:{res.Port}");
+                    System.Console.WriteLine($"{res?.TransportType.ToString()}");
                     System.Console.WriteLine($"Status code: {res.StatusCode} {res.ResponseReason}");
-                    System.Console.WriteLine($"Location: {res.Location.AbsoluteUri}");
+                    System.Console.WriteLine($"Location: {res?.Location?.AbsoluteUri}");
                     System.Console.WriteLine($"Date: {res.Date.ToString(CultureInfo.CurrentCulture)}");
                     System.Console.WriteLine($"Cache-Control: max-age = {res.CacheControl}");
                     System.Console.WriteLine($"Server: " +
-                                             $"{res.Server.OperatingSystem}/{res.Server.OperatingSystemVersion} " +
+                                             $"{res?.Server?.OperatingSystem}/{res?.Server?.OperatingSystemVersion} " +
                                              $"UPNP/" +
-                                             $"{res.Server.UpnpMajorVersion}.{res.Server.UpnpMinorVersion}" +
+                                             $"{res?.Server?.UpnpMajorVersion}.{res?.Server?.UpnpMinorVersion}" +
                                              $" " +
-                                             $"{res.Server.ProductName}/{res.Server.ProductVersion}" +
-                                             $" - ({res.Server.FullString})");
-                    System.Console.WriteLine($"ST: {res.ST}");
-                    System.Console.WriteLine($"USN: {res.USN}");
-                    System.Console.WriteLine($"BOOTID.UPNP.ORG: {res.BOOTID}");
-                    System.Console.WriteLine($"CONFIGID.UPNP.ORG: {res.CONFIGID}");
-                    System.Console.WriteLine($"SEARCHPORT.UPNP.ORG: {res.SEARCHPORT}");
-                    System.Console.WriteLine($"SECURELOCATION: {res.SECURELOCATION}");
+                                             $"{res?.Server?.ProductName}/{res?.Server?.ProductVersion}" +
+                                             $" - ({res?.Server?.FullString})");
+                    System.Console.WriteLine($"ST: {res?.ST?.STString}");
+                    System.Console.WriteLine($"USN: {res.USN?.ToUri()}");
+                    System.Console.WriteLine($"BOOTID.UPNP.ORG: {res?.BOOTID}");
+                    System.Console.WriteLine($"CONFIGID.UPNP.ORG: {res?.CONFIGID}");
+                    System.Console.WriteLine($"SEARCHPORT.UPNP.ORG: {res?.SEARCHPORT}");
+                    System.Console.WriteLine($"SECURELOCATION: {res?.SECURELOCATION}");
 
-                    if (res.Headers.Any())
+                    if (res?.Headers?.Any() ?? false)
                     {
                         System.Console.ForegroundColor = ConsoleColor.DarkYellow;
-                        System.Console.WriteLine($"Additional Headers: {res.Headers.Count}");
+                        System.Console.WriteLine($"Additional Headers: {res.Headers?.Count}");
                         foreach (var header in res.Headers)
                         {
                             System.Console.WriteLine($"{header.Key}: {header.Value}; ");
                         }
+
                         System.Console.ResetColor();
+                    }
+
+                    if (res.HasParsingError)
+                    {
+                        System.Console.WriteLine($"Parsing errors: {res.HasParsingError}");
                     }
 
                     System.Console.WriteLine();
                 });
-
-        await StartMSearchRequestMulticastAsync();
     }
 
-    
+
     private static async Task StartMSearchRequestMulticastAsync()
     {
         var mSearchMessage = new MSearch
         {
-            SearchCastMethod = CastMethod.Multicast,
+            TransportType = TransportType.Multicast,
             CPFN = "TestXamarin",
-            Name = Initializer.UdpSSDPMultiCastAddress,
-            Port = Initializer.UdpSSDPMulticastPort,
+
+            Name = UdpSSDPMultiCastAddress,
+            Port = UdpSSDPMulticastPort,
             MX = TimeSpan.FromSeconds(5),
-            TCPPORT = Initializer.TcpResponseListenerPort.ToString(),
+            TCPPORT = TcpResponseListenerPort.ToString(),
+            //ST = new ST("urn:myharmony-com:device:harmony:1"),
             ST = new ST
             {
-                STtype  = STtype.ServiceType,
-                Type = "SwitchPower",
-                Version = "1",
-                HasDomain = false
+                StSearchType = STType.All
             },
-            
+            //ST = new ST
+            //{
+            //    STtype  = STtype.ServiceType,
+            //    Type = "SwitchPower",
+            //    Version = "1",
+            //    HasDomain = false
+            //},
+            //ST = new ST
+            //{
+            //    StSearchType = STSearchType.DomainDeviceSearch,
+            //    Domain = "myharmony-com", 
+            //    DeviceType = "harmony",
+            //    Version = "1",
+            //    //STtype = STtype.DeviceType,
+            //    ////DeviceUUID = "myharmony-com:device:harmony:1",
+            //    //Type = "harmony",
+            //    //Version = "1",
+            //    //HasDomain = true,
+            //    //DomainName = "myharmony-com"
+            //},
+
             UserAgent = new UserAgent
             {
                 OperatingSystem = "Windows",
@@ -189,6 +251,17 @@ class Program
                 UpnpMinorVersion = "0",
             }
         };
-        await _controlPoint.SendMSearchAsync(mSearchMessage);
+
+        await _controlPoint.SendMSearchAsync(mSearchMessage, _controlPointLocalIp1);
+
+        //await Task.Delay(TimeSpan.FromSeconds(1));
+
+        //await _controlPoint.SendMSearchAsync(mSearchMessage);
+
+        //await Task.Delay(TimeSpan.FromSeconds(1));
+        //await _controlPoint.SendMSearchAsync(mSearchMessage);
+        //await Task.Delay(TimeSpan.FromSeconds(1));
+
+        //await _controlPoint.SendMSearchAsync(mSearchMessage);
     }
 }
