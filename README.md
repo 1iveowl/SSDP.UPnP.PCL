@@ -77,7 +77,22 @@ class Program
 
     static async Task Main(string[] args)
     {
-        _controlPointLocalIp1 = IPAddress.Parse("[Your ip address]");
+        if (args?.Any() ?? false)
+        {
+            var ipStr = args[0];
+
+            if (IPAddress.TryParse(ipStr, out var ip))
+            {
+                _controlPointLocalIp1 = ip;
+            }
+        }
+
+        if (_controlPointLocalIp1 is null)
+        {
+            _controlPointLocalIp1 = GetBestGuessLocalIPAddress();
+        }
+        
+        System.Console.WriteLine($"IP Address: {_controlPointLocalIp1.ToString()}");
 
         var cts = new CancellationTokenSource();
 

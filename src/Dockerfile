@@ -26,7 +26,7 @@ FROM build AS publish
 WORKDIR /app/test/Console.NETCore.Test/
 RUN dotnet publish -c Release -o out --source "https://api.nuget.org/v3/index.json"  
 
-EXPOSE 1900, 8321, 8322
+EXPOSE 1900 8321 8322
 
 FROM microsoft/dotnet:2.1-runtime AS runtime
 WORKDIR /app

@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Console.NETCore.Test.Model;
@@ -38,9 +41,9 @@ class Program
 
         if (_controlPointLocalIp1 is null)
         {
-            _controlPointLocalIp1 = IPAddress.Parse("192.168.0.59");
+            _controlPointLocalIp1 = GetBestGuessLocalIPAddress();
         }
-
+        
         System.Console.WriteLine($"IP Address: {_controlPointLocalIp1.ToString()}");
 
         //_controlPointLocalIp2 = IPAddress.Parse("169.254.38.70");
