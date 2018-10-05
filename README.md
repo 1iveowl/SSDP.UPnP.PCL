@@ -49,8 +49,8 @@ In the example below the the first option, IP Address contructor, is used.
 ### Starting the ControlPoint
 When you start the ControlPoint, you have two options, as you can either call the Method:
 
-1. `Start`
-2. or `HotStart` (advanced)
+1. `StartAsync`
+2. or `HotStartAsync` (advanced)
 
 When you use option 1. `Start`, then the ControlPoint will set up it's listeners, based on the parameters you provided as part of contruction.
 
