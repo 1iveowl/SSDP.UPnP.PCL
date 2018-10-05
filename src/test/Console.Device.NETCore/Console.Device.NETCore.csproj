@@ -15,4 +15,14 @@
     <ProjectReference Include="..\..\main\SSDP.UPnP.Netstandard\SSDP.UPnP.Netstandard.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="nlog.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Model\" />
+  </ItemGroup>
+
 </Project>

@@ -21,8 +21,9 @@ An implementation of SSDP for both ControlPoint and Device according to the UPnP
     <copyright>Copyright 2018</copyright>
     <tags>ssdp upnp upnp2.0 iot ios android uwp netcore rx reactivex reactiveextensions</tags>
         <dependencies>
-          <dependency id="System.Reactive" version="4.1.0"/>
-          <dependency id="SimpleHttpListener" version="6.0.0"/>
+          <dependency id="System.Reactive" version="4.1.1"/>
+          <dependency id="SimpleHttpListener" version="6.0.5"/>
+          <dependency id="Nlog" version="4.5.10"/>
         </dependencies>
   </metadata>
   <files>

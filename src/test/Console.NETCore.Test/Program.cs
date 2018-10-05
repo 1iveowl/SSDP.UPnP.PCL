@@ -60,15 +60,14 @@ class Program
 
         _controlPoint.Start(ct);
 
-        ListenToNotify(ct);
+        ListenToNotify();
 
         ListenToMSearchResponse(ct);
-
-
+        
         await StartMSearchRequestMulticastAsync();
     }
 
-    private static void ListenToNotify(CancellationToken ct)
+    private static void ListenToNotify()
     {
         var counter = 0;
 

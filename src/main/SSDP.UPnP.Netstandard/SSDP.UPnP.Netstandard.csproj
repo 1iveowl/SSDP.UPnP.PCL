@@ -9,8 +9,8 @@
   <ItemGroup>
     <PackageReference Include="HttpMachine.PCL" Version="3.1.0" />
     <PackageReference Include="NLog" Version="4.5.10" />
-    <PackageReference Include="SimpleHttpListener.Rx" Version="6.0.4" />
-    <PackageReference Include="System.Reactive" Version="4.1.0" />
+    <PackageReference Include="SimpleHttpListener.Rx" Version="6.0.5" />
+    <PackageReference Include="System.Reactive" Version="4.1.1" />
   </ItemGroup>
 
   <ItemGroup>

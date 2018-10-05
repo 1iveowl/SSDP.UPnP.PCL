@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Reactive.Linq;
 using HttpMachine;
 using ISimpleHttpListener.Rx.Model;
@@ -61,7 +60,6 @@ namespace SSDP.UPnP.PCL.Handler
             IEntity entity, 
             IMSearch mSearchReq)
         {
-
             return new MSearchResponse
             {
                 TransportType = TransportType.Unicast,
