@@ -37,7 +37,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Console", "Console", "{13F6
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Unit", "Unit", "{15FF75C0-28FB-4E8E-B0E4-BD90A2B3DD76}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SSDP.Device.xUnit", "..\test\Unit\SSDP.Device.xUnit\SSDP.Device.xUnit.csproj", "{95A84C3D-8AA5-4475-B788-7D534C66EBE6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SSDP.Device.xUnit", "..\test\Unit\SSDP.Device.xUnit\SSDP.Device.xUnit.csproj", "{95A84C3D-8AA5-4475-B788-7D534C66EBE6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docker", "Docker", "{AE65D0D6-1981-4B6F-B25A-31643058CECD}"
+	ProjectSection(SolutionItems) = preProject
+		..\Dockerfile = ..\Dockerfile
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

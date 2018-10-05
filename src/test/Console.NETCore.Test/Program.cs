@@ -2,8 +2,6 @@
 using System.Globalization;
 using System.Linq;
 using System.Net;
-using System.Reactive.Concurrency;
-using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Console.NETCore.Test.Model;
@@ -17,10 +15,10 @@ using static SSDP.UPnP.PCL.Helper.Constants;
 class Program
 {
     private static IControlPoint _controlPoint;
-    private static IPAddress _controlPointLocalIp1;
-    private static IPAddress _controlPointLocalIp2;
+    private static IPAddress _controlPointLocalIp1 = null;
+    //private static IPAddress _controlPointLocalIp2;
 
-    private static IPAddress _deviceRemoteIp1;
+    //private static IPAddress _deviceRemoteIp1;
 
 
     // For this test to work you most likely need to stop the SSDP Discovery service on Windows
@@ -28,10 +26,26 @@ class Program
 
     static async Task Main(string[] args)
     {
-        _controlPointLocalIp1 = IPAddress.Parse("192.168.0.48");
-        _controlPointLocalIp2 = IPAddress.Parse("169.254.38.70");
+        if (args?.Any() ?? false)
+        {
+            var ipStr = args[0];
 
-        _deviceRemoteIp1 = IPAddress.Parse("192.168.0.59");
+            if (IPAddress.TryParse(ipStr, out var ip))
+            {
+                _controlPointLocalIp1 = ip;
+            }
+        }
+
+        if (_controlPointLocalIp1 is null)
+        {
+            _controlPointLocalIp1 = IPAddress.Parse("192.168.0.59");
+        }
+
+        System.Console.WriteLine($"IP Address: {_controlPointLocalIp1.ToString()}");
+
+        //_controlPointLocalIp2 = IPAddress.Parse("169.254.38.70");
+
+        //_deviceRemoteIp1 = IPAddress.Parse("192.168.0.48");
 
         var cts = new CancellationTokenSource();
 
@@ -74,7 +88,6 @@ class Program
         var observerNotify = _controlPoint.NotifyObservable();
 
         var disposableNotify = observerNotify
-            .Where(n => n.CONFIGID == 100.ToString())
             .Subscribe(
                 n =>
                 {
@@ -139,7 +152,6 @@ class Program
         var counter = 0;
 
         var disposableMSearchresponse = mSearchResObs
-            .Where(n => Equals(n.RemoteIpEndPoint.Address, _deviceRemoteIp1))
             .Subscribe(
                 res =>
                 {
