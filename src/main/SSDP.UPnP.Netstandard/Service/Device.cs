@@ -82,9 +82,9 @@ namespace SSDP.UPnP.PCL.Service
 
             rootDeviceInterface.UdpMulticastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
-            rootDeviceInterface.UdpMulticastClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress));
-
             rootDeviceInterface.UdpMulticastClient.Client.Bind(new IPEndPoint(rootDeviceConfiguration.IpEndPoint?.Address, UdpSSDPMulticastPort));
+
+            rootDeviceInterface.UdpMulticastClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress), rootDeviceConfiguration.IpEndPoint?.Address);
 
             if (rootDeviceConfiguration.IpEndPoint.Port != UdpSSDPMulticastPort)
             {
