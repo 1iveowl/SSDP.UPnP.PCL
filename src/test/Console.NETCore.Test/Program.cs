@@ -163,6 +163,7 @@ class Program
                     System.Console.ForegroundColor = ConsoleColor.White;
                     System.Console.WriteLine($"---### Control Point Received a  M-SEARCH RESPONSE #{counter} ###---");
                     System.Console.ResetColor();
+                    System.Console.WriteLine($"IP: {res.RemoteIpEndPoint.Address}:{res.RemoteIpEndPoint.Port}");
                     System.Console.WriteLine($"{res?.TransportType.ToString()}");
                     System.Console.WriteLine($"Status code: {res.StatusCode} {res.ResponseReason}");
                     System.Console.WriteLine($"Location: {res?.Location?.AbsoluteUri}");
