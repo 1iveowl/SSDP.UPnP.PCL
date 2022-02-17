@@ -5,8 +5,8 @@
     <AssemblyName>ISSDP.UPnP.PCL</AssemblyName>
     <RootNamespace>ISSDP.UPnP.PCL</RootNamespace>
 
-    <AssemblyVersion>6.0.3.0</AssemblyVersion>
-    <FileVersion>6.0.3.0</FileVersion>
+    <AssemblyVersion>6.1</AssemblyVersion>
+    <FileVersion>6.1</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
