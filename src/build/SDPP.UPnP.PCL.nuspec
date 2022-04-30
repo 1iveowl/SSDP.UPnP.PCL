@@ -6,29 +6,34 @@
     <title>SSDP .NET Standard - UPnP v2.0</title>
     <authors>Jasper H. Bojsen</authors>
     <owners>Jasper H. Bojsen</owners>
-    <licenseUrl>https://github.com/1iveowl/SSDP.UPnP.PCL/blob/master/License.md</licenseUrl>
+	<license type="expression">MIT</license>
+	<icon>images\1iveowl-logo.png</icon>
     <projectUrl>https://github.com/1iveowl/SSDP.UPnP.PCL/</projectUrl>
-    <iconUrl>https://nuget.org/Content/Images/packageDefaultIcon.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>
 An implementation of SSDP for both ControlPoint and Device according to the UPnP 2.0 specification. Utilizes Reactive Extensions for easy use and reliability. 
     </description>
     <releaseNotes>
+[All] Bump to System.Reactive 5.0
+[All] Security update for console demo app.
 [Control Point] Fixed NOTIFY Listener bug
 [All] No longer relies on SocketLite.
 [All] Great improvements in the reliability and performance.
 [All] Breaking changes in version 6.0. See project site for details.
     </releaseNotes>
-    <copyright>Copyright 2018</copyright>
+    <copyright>Copyright 2022</copyright>
     <tags>ssdp upnp upnp2.0 iot ios android uwp netcore rx reactivex reactiveextensions</tags>
         <dependencies>
-          <dependency id="System.Reactive" version="4.0.0"/>
-          <dependency id="SimpleHttpListener.Rx" version="6.1.0"/>
-          <dependency id="Nlog" version="4.5.11"/>
+			<group targetFramework=".NETStandard2.0">
+				<dependency id="System.Reactive" version="5.0.0"/>
+				<dependency id="SimpleHttpListener.Rx" version="6.1.0"/>
+				<dependency id="Nlog" version="4.7.13"/>
+			</group>
         </dependencies>
   </metadata>
   <files>
-        <file src="..\main\SSDP.UPnP.Netstandard\bin\Release\netstandard2.0\SSDP.UPnP.PCL.*" target="lib\netstandard2.0\" />
-        <file src="..\interfaces\ISSDP.UPnP.Netstandard\bin\Release\netstandard2.0\ISSDP.UPnP.PCL.*" target="lib\netstandard2.0\" />
-    </files>
+	  <file src="1iveowl-logo.png" target="images\" />
+      <file src="..\main\SSDP.UPnP.Netstandard\bin\Release\netstandard2.0\SSDP.UPnP.PCL.*" target="lib\netstandard2.0\" />
+      <file src="..\interfaces\ISSDP.UPnP.Netstandard\bin\Release\netstandard2.0\ISSDP.UPnP.PCL.*" target="lib\netstandard2.0\" />
+  </files>
 </package>

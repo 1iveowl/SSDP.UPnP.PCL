@@ -12,14 +12,12 @@ using SSDP.UPnP.PCL.Service;
 
 class Program
 {
-    private static IControlPoint _controlPoint;
     private static IDevice _device;
 
     private static IPAddress _deviceLocalIpAddress;
     private static IPAddress _remoteControlPointHost;
 
     private static IPEndPoint _localUnicastIpEndPoint;
-    private static IPEndPoint _localMulticastIpEndPoint;
 
     // For this test to work you most likely need to stop the SSDP Discovery service on Windows
     // If you don't stop the SSDP Windows Service, the service will intercept the UPnP multicasts and consequently nothing will show up in the console. 
