@@ -4,8 +4,8 @@
 [![Downloads](https://img.shields.io/nuget/dt/SSDP.UPnP.PCL?logo=nuget&color=blue)](https://www.nuget.org/packages/SSDP.UPnP.PCL)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](License.md)
 
-[![.NET Standard](https://img.shields.io/badge/.NET%20Standard-2.0-5C2D91?logo=dotnet&logoColor=white)](https://learn.microsoft.com/dotnet/standard/net-standard)
-[![System.Reactive](https://img.shields.io/badge/Rx-5.0.0-ff69b4.svg)](https://reactivex.io/)
+[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![System.Reactive](https://img.shields.io/badge/Rx-7.0-ff69b4.svg)](https://reactivex.io/)
 [![UPnP](https://img.shields.io/badge/UPnP%20Device%20Architecture-2.0-2563EB.svg)](http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v2.0.pdf)
 
 An Rx-based SSDP library for discovering and advertising UPnP Device Architecture 2.0 devices and services.
@@ -14,484 +14,148 @@ An Rx-based SSDP library for discovering and advertising UPnP Device Architectur
 
 ## Overview
 
-This library supports version 2.0 of the UPnP Device Architecture. It uses [Reactive Extensions](https://reactivex.io/) because SSDP is an ongoing stream of discovery replies and notifications, a model that maps naturally to observables.
+SSDP is an ongoing stream of discovery replies and notifications — a model that maps naturally to observables, which is why this library is built on [Reactive Extensions](https://reactivex.io/). It supports multi-homed control points and devices, and targets .NET 10.
 
-The library targets .NET Standard 2.0 and is intended for modern .NET-compatible platforms. It supports multi-homed control points and devices.
+The library is written in a functional style: all message and configuration types are immutable records, parsing returns `ParseResult<T>` values instead of throwing or mutating, and datagram composition is done by pure functions you can call yourself.
 
-## Version 6.0
+## Installing
 
-Version 6.0 improved reliability and stability throughout the library and introduced breaking changes. Prefer it over earlier releases when compatibility allows.
+```shell
+dotnet add package SSDP.UPnP.PCL
+```
 
-- `ControlPoint` is substantially more reliable and supports multi-homed use.
-- `Device` also supports multi-homed use, but needs additional real-world testing; use it with appropriate caution.
+## Version 7.0 — breaking changes
 
-## Get started with a control point
+Version 7.0 is a major modernization and includes breaking changes throughout:
 
-The example below creates a listener, sends an SSDP M-SEARCH discovery request, and observes M-SEARCH replies and UPnP `NOTIFY` messages on the local network.
+| Area | v6 | v7 |
+|---|---|---|
+| Target | .NET Standard 2.0 | .NET 10 |
+| Packages | `SSDP.UPnP.PCL` + `ISSDP.UPnP.PCL` | Single `SSDP.UPnP.PCL` package; the interface package is discontinued |
+| Namespaces | `ISSDP.UPnP.PCL.*`, `SSDP.UPnP.PCL.Service`, ... | `SSDP.UPnP.PCL` (services), `SSDP.UPnP.PCL.Model` (records), `SSDP.UPnP.PCL.Parsing` (pure functions) |
+| Models | Interface + class pairs, mutable | Immutable `record` types with `init` properties |
+| Parsing | Constructor side effects, `HasParsingError` flags | Pure `ST.Parse` / `USN.Parse` / `SsdpMessageParser.*` returning `ParseResult<T>` |
+| Logging | NLog | `Microsoft.Extensions.Logging.Abstractions` (optional `Logger` property) |
+| Dependencies | SimpleHttpListener.Rx 6.x, System.Reactive 5 | SimpleHttpListener.Rx 7.x, System.Reactive 7 |
+| `STType.UIIDSearch` | typo | renamed `STType.UuidSearch` |
 
-> **Important**
-> On Windows, the built-in SSDP Discovery service can receive these messages before your application does. If M-SEARCH responses or `NOTIFY` messages are missing, stop that service and check for other local SSDP listeners.
+Version 7.0 also fixes significant defects found in 6.x — most notably: **devices now actually answer M-SEARCH requests** (per-entity unicast responses with the UDA-mandated MX delay spread), multi-homed control points listen on *all* their interfaces, UUID search targets are parsed correctly, and search matching follows the UDA 2.0 type/domain/version rules.
 
-### Construct a control point
+## Control point
 
-There are two construction options:
+A control point discovers devices: it multicasts M-SEARCH requests and observes responses and NOTIFY advertisements.
 
-1. **IP address constructor:** supply one or more local IP addresses. More than one address creates a multi-homed control point.
-2. **Interface constructor (advanced):** create one or more interfaces that implement `IControlPointInterface`, then pass them to the constructor.
-
-The following example uses the IP address constructor.
-
-### Start a control point
-
-Start a control point with either:
-
-1. `StartAsync`
-2. `HotStartAsync` (advanced)
-
-`StartAsync` creates the listeners using the construction parameters. `HotStartAsync` accepts an `IObservable<IHttpRequestResponse>` for advanced scenarios where the incoming stream is shared with another service, such as UPnP eventing.
-
-The following example uses `StartAsync`.
-
-### Control point example
-
-The following example creates a control point for the selected local IP address. It listens for M-SEARCH responses and `NOTIFY` broadcasts, then writes both message types to a console application. In a production application, replace the console output with appropriate handling.
-
-The example also broadcasts an SSDP M-SEARCH discovery request. UPnP devices on the local network should reply, and those replies appear in the listener output.
-
+> **Windows note:** stop the built-in *SSDP Discovery* service while testing — it intercepts the UPnP multicasts, and nothing will show up in your application while it runs.
 
 ```csharp
-class Program
-{
-    private static IControlPoint _controlPoint;
-    private static IPAddress _controlPointLocalIp1;
+using SSDP.UPnP.PCL;
+using SSDP.UPnP.PCL.Model;
 
+var ipAddress = Constants.GetBestGuessLocalIPAddress();
 
-   // For this test to work you most likely need to stop the SSDP Discovery service on Windows
-    // If you don't stop the SSDP Windows Service, the service will intercept the UPnP multicasts and consequently nothing will show up in the console. 
+using var cts = new CancellationTokenSource();
+using var controlPoint = new ControlPoint(ipAddress);
 
-    static async Task Main(string[] args)
+controlPoint.Start(cts.Token);
+
+using var notifies = controlPoint.NotifyObservable()
+    .Subscribe(notify => Console.WriteLine($"NOTIFY {notify.NTS}: {notify.NT} from {notify.RemoteIpEndPoint}"));
+
+using var responses = controlPoint.MSearchResponseObservable()
+    .Subscribe(response => Console.WriteLine($"RESPONSE: {response.USN?.USNString} at {response.Location}"));
+
+await controlPoint.SendMSearchAsync(
+    new MSearchRequest
     {
-        if (args?.Any() ?? false)
+        TransportType = TransportType.Multicast,
+        MX = TimeSpan.FromSeconds(5),
+        ST = new ST { StSearchType = STType.All },
+        CPFN = "My Control Point",
+        UserAgent = new UserAgent
         {
-            var ipStr = args[0];
-
-            if (IPAddress.TryParse(ipStr, out var ip))
-            {
-                _controlPointLocalIp1 = ip;
-            }
+            OperatingSystem = "Linux",
+            OperatingSystemVersion = "6.1",
+            ProductName = "MyProduct",
+            ProductVersion = "1.0"
         }
-
-        if (_controlPointLocalIp1 is null)
-        {
-            _controlPointLocalIp1 = GetBestGuessLocalIPAddress();
-        }
-        
-        System.Console.WriteLine($"IP Address: {_controlPointLocalIp1.ToString()}");
-
-        var cts = new CancellationTokenSource();
-
-        await StartAsync(cts.Token);
-
-        System.Console.WriteLine("Press any key to end.");
-
-        System.Console.ReadKey();
-
-        cts.Cancel();
-
-        System.Console.WriteLine("Press any key to exit.");
-        System.Console.ReadKey();
-
-    }
-
-    private static async Task StartAsync(CancellationToken ct)
-    {
-
-        await StartControlPointListeningAsync(ct);
-    }
-
-    private static async Task StartControlPointListeningAsync(CancellationToken ct)
-    {
-        _controlPoint = new ControlPoint(_controlPointLocalIp1);
-
-        _controlPoint.Start(ct);
-
-        ListenToNotify();
-
-        ListenToMSearchResponse(ct);
-        
-        await StartMSearchRequestMulticastAsync();
-    }
-
-        private static void ListenToNotify()
-    {
-        var counter = 0;
-
-        var observerNotify = _controlPoint.NotifyObservable();
-
-        var disposableNotify = observerNotify
-            .Subscribe(
-                n =>
-                {
-                    counter++;
-                    System.Console.BackgroundColor = ConsoleColor.DarkBlue;
-                    System.Console.ForegroundColor = ConsoleColor.White;
-                    System.Console.WriteLine($"---### Control Point Received a NOTIFY - #{counter} ###---");
-                    System.Console.ResetColor();
-                    System.Console.WriteLine($"{n?.NotifyTransportType.ToString()}");
-                    System.Console.WriteLine($"From: {n?.HOST}");
-                    System.Console.WriteLine($"Location: {n?.Location?.AbsoluteUri}");
-                    System.Console.WriteLine($"Cache-Control: max-age = {n.CacheControl}");
-                    System.Console.WriteLine($"Server: " +
-                                             $"{n?.Server?.OperatingSystem}/{n?.Server?.OperatingSystemVersion} " +
-                                             $"UPNP/" +
-                                             $"{n?.Server?.UpnpMajorVersion}.{n?.Server?.UpnpMinorVersion}" +
-                                             $" " +
-                                             $"{n?.Server?.ProductName}/{n?.Server?.ProductVersion}" +
-                                             $" - ({n?.Server?.FullString})");
-                    System.Console.WriteLine($"NT: {n?.NT}");
-                    System.Console.WriteLine($"NTS: {n?.NTS}");
-                    System.Console.WriteLine($"USN: {n?.USN?.ToUri()}");
-
-                    if (n.BOOTID > 0)
-                    {
-                        System.Console.WriteLine($"BOOTID: {n.BOOTID}");
-                    }
-                
-                    System.Console.WriteLine($"CONFIGID: {n.CONFIGID}");
-                    
-                    System.Console.WriteLine($"NEXTBOOTID: {n.NEXTBOOTID}");
-                    System.Console.WriteLine($"SEARCHPORT: {n.SEARCHPORT}");
-                    System.Console.WriteLine($"SECURELOCATION: {n.SECURELOCATION}");
-
-                    if (n.Headers.Any())
-                    {
-                        System.Console.ForegroundColor = ConsoleColor.DarkYellow;
-                        System.Console.WriteLine($"Additional Headers: {n.Headers.Count}");
-                        foreach (var header in n.Headers)
-                        {
-                            System.Console.WriteLine($"{header.Key}: {header.Value}; ");
-                        }
-
-                        System.Console.ResetColor();
-                    }
-
-                    System.Console.WriteLine($"Is UPnP 2.0 compliant: {n.IsUuidUpnp2Compliant}");
-
-                    if (n.HasParsingError)
-                    {
-                        System.Console.WriteLine($"Parsing errors: {n.HasParsingError}");
-                    }
-
-                    System.Console.WriteLine();
-                });
-    }
-
-    private static void ListenToMSearchResponse(CancellationToken ct)
-    {
-        var mSearchResObs = _controlPoint.MSearchResponseObservable();
-
-        var counter = 0;
-
-        var disposableMSearchresponse = mSearchResObs
-            .Subscribe(
-                res =>
-                {
-                    counter++;
-                    System.Console.BackgroundColor = ConsoleColor.DarkBlue;
-                    System.Console.ForegroundColor = ConsoleColor.White;
-                    System.Console.WriteLine($"---### Control Point Received a  M-SEARCH RESPONSE #{counter} ###---");
-                    System.Console.ResetColor();
-                    System.Console.WriteLine($"{res?.TransportType.ToString()}");
-                    System.Console.WriteLine($"Status code: {res.StatusCode} {res.ResponseReason}");
-                    System.Console.WriteLine($"Location: {res?.Location?.AbsoluteUri}");
-                    System.Console.WriteLine($"Date: {res.Date.ToString(CultureInfo.CurrentCulture)}");
-                    System.Console.WriteLine($"Cache-Control: max-age = {res.CacheControl}");
-                    System.Console.WriteLine($"Server: " +
-                                             $"{res?.Server?.OperatingSystem}/{res?.Server?.OperatingSystemVersion} " +
-                                             $"UPNP/" +
-                                             $"{res?.Server?.UpnpMajorVersion}.{res?.Server?.UpnpMinorVersion}" +
-                                             $" " +
-                                             $"{res?.Server?.ProductName}/{res?.Server?.ProductVersion}" +
-                                             $" - ({res?.Server?.FullString})");
-                    System.Console.WriteLine($"ST: {res?.ST?.STString}");
-                    System.Console.WriteLine($"USN: {res.USN?.ToUri()}");
-                    System.Console.WriteLine($"BOOTID.UPNP.ORG: {res?.BOOTID}");
-                    System.Console.WriteLine($"CONFIGID.UPNP.ORG: {res?.CONFIGID}");
-                    System.Console.WriteLine($"SEARCHPORT.UPNP.ORG: {res?.SEARCHPORT}");
-                    System.Console.WriteLine($"SECURELOCATION: {res?.SECURELOCATION}");
-
-                    if (res?.Headers?.Any() ?? false)
-                    {
-                        System.Console.ForegroundColor = ConsoleColor.DarkYellow;
-                        System.Console.WriteLine($"Additional Headers: {res.Headers?.Count}");
-                        foreach (var header in res.Headers)
-                        {
-                            System.Console.WriteLine($"{header.Key}: {header.Value}; ");
-                        }
-
-                        System.Console.ResetColor();
-                    }
-
-                    if (res.HasParsingError)
-                    {
-                        System.Console.WriteLine($"Parsing errors: {res.HasParsingError}");
-                    }
-
-                    System.Console.WriteLine();
-                });
-    }
-
-
-    private static async Task StartMSearchRequestMulticastAsync()
-    {
-        var mSearchMessage = new MSearch
-        {
-            TransportType = TransportType.Multicast,
-            CPFN = "TestXamarin",
-
-            Name = UdpSSDPMultiCastAddress,
-            Port = UdpSSDPMulticastPort,
-            MX = TimeSpan.FromSeconds(5),
-            TCPPORT = TcpResponseListenerPort.ToString(),
-            //ST = new ST("urn:myharmony-com:device:harmony:1"),
-            ST = new ST
-            {
-                StSearchType = STType.All
-            },
-            //ST = new ST
-            //{
-            //    STtype  = STtype.ServiceType,
-            //    Type = "SwitchPower",
-            //    Version = "1",
-            //    HasDomain = false
-            //},
-            //ST = new ST
-            //{
-            //    StSearchType = STSearchType.DomainDeviceSearch,
-            //    Domain = "myharmony-com", 
-            //    DeviceType = "harmony",
-            //    Version = "1",
-            //    //STtype = STtype.DeviceType,
-            //    ////DeviceUUID = "myharmony-com:device:harmony:1",
-            //    //Type = "harmony",
-            //    //Version = "1",
-            //    //HasDomain = true,
-            //    //DomainName = "myharmony-com"
-            //},
-
-            UserAgent = new UserAgent
-            {
-                OperatingSystem = "Windows",
-                OperatingSystemVersion = "10.0",
-                ProductName = "SSDP.UPNP.PCL",
-                ProductVersion = "0.9",
-                UpnpMajorVersion = "2",
-                UpnpMinorVersion = "0",
-            }
-        };
-
-        await _controlPoint.SendMSearchAsync(mSearchMessage, _controlPointLocalIp1);
-    }
-}
-
+    },
+    ipAddress);
 ```
 
-### Search for UPnP devices
+Passing several IP addresses to the `ControlPoint` constructor creates a multi-homed control point that listens on all of them.
 
-The [UPnP Device Architecture 2.0 specification](http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v2.0.pdf) defines the required M-SEARCH `ST` (search target) field. It contains one URI and must be one of the following:
+## Device
 
-* `ssdp:all` Search for all devices and services. 
-* `upnp:rootdevice` Search for root devices only. 
-* `uuid:device-UUID` Search for a particular vendor-defined device UUID.
-* `urn:schemas-upnp-org:device:deviceType:ver` Search for a standard UPnP device type.
-* `urn:schemas-upnp-org:service:serviceType:ver` Search for a standard UPnP service type.
-* `urn:domain-name:device:deviceType:ver` Search for a vendor-defined device type.
-* `urn:domain-name:service:serviceType:ver` Search for a vendor-defined service type.
-
-> **Important**
-> Create your own M-SEARCH request type that implements `IMSearchRequest`. Its implementation can be as simple or as specialized as your application requires.
-```csharp
-    internal class MSearch : IMSearchRequest
-    {
-        public bool InvalidRequest { get; } = false;
-        public bool HasParsingError { get; internal set; }
-        public string Name { get; internal set; }
-        public int Port { get; internal set; }
-        public IDictionary<string, string> Headers { get; internal set; }
-        public TransportType TransportType { get; internal set; }
-        public string MAN { get; internal set; }
-        public string HOST { get; internal set; }
-        public TimeSpan MX { get; internal set; }
-        public IST ST { get; internal set; }
-        public IUserAgent UserAgent { get; internal set; }
-        public string CPFN { get; internal set; }
-        public string CPUUID { get; internal set; }
-        public int SEARCHPORT { get; internal set; }
-        public string TCPPORT { get; internal set; }
-        public IPEndPoint LocalIpEndPoint { get; internal set; }
-        public IPEndPoint RemoteIpEndPoint { get; internal set; }
-    }
-```
-
-## Device (beta)
-
-The UPnP 2.0 device implementation is still a work in progress. Use it with care.
-
-### Construct a device
-
-There are two construction options:
-
-1. **Root device configuration:** create an `IRootDeviceConfiguration`. The library supplies an implementation.
-2. **Root device interface (advanced):** create one or more `IRootDeviceInterface` instances. Multiple interfaces create a multi-homed device, and you supply the UDP clients. This is useful when a UDP stream is shared with a control point or UPnP eventing service.
-
-The following example uses a root device configuration.
-
-### Start a device
-
-As with `ControlPoint`, start a device with either:
-
-1. `Start`
-2. `HotStart` (advanced)
-
-`Start` creates listeners from the construction parameters. `HotStart` accepts an `IObservable<IHttpRequestResponse>` for advanced scenarios where the incoming stream is shared with another service, such as UPnP eventing.
-
-The following example uses `Start`.
+A device advertises a root device — its embedded devices and services included — with multicast NOTIFY messages, and answers matching M-SEARCH requests with unicast responses.
 
 ```csharp
-class Program
+using SSDP.UPnP.PCL;
+using SSDP.UPnP.PCL.Model;
+
+var rootDeviceConfiguration = new RootDeviceConfiguration
 {
-    private static IDevice _device;
-
-    private static IPEndPoint _localMulticastIpEndPoint;
-
-    // For this test to work you most likely need to stop the SSDP Discovery service on Windows
-    // If you don't stop the SSDP Windows Service, the service will intercept the UPnP multicasts and consequently nothing will show up in the console. 
-
-    static async Task Main(string[] args)
+    EntityType = EntityType.RootDevice,
+    DeviceUUID = Guid.NewGuid().ToString(),
+    TypeName = "MyRootDevice",
+    Version = 1,
+    CacheControl = TimeSpan.FromSeconds(1800),
+    Location = new Uri("http://192.168.0.10/description.xml"),
+    IpEndPoint = new IPEndPoint(IPAddress.Parse("192.168.0.10"), 1901),
+    CONFIGID = 1,
+    Server = new Server
     {
-        _localUnicastIpEndPoint = new IPEndPoint(IPAddress.Parse("[Your IP Address]"), 1901);
-
-        _deviceLocalIpAddress = IPAddress.Parse("[Your IP Address]");
-
-
-        var cts = new CancellationTokenSource();
-
-        await StartAsync(cts.Token);
-      
-        System.Console.ReadKey();
-    }
-
-    private static async Task StartAsync(CancellationToken ct)
-    {
-        await StartDeviceListening();
-    }
-
-    private static async Task StartDeviceListening()
-    {
-        var rootDevice = 
-
-        _device = new Device(CreateRootDevice());
-        
-        var cts = new CancellationTokenSource();
-
-        await _device.StartAsync(cts.Token);
-
-        System.Console.WriteLine("Press any key to bye bye...");
-        System.Console.ReadLine();
-
-        await _device.ByeByeAsync();
-
-        _device?.Dispose();
-    }
-
-    private static IRootDeviceConfiguration CreateRootDevice()
-    {
-        return new RootDeviceConfiguration
+        OperatingSystem = "Linux",
+        OperatingSystemVersion = "6.1",
+        UpnpMajorVersion = "2",
+        UpnpMinorVersion = "0",
+        IsUpnp2 = true,
+        ProductName = "MyProduct",
+        ProductVersion = "1.0"
+    },
+    Services =
+    [
+        new ServiceConfiguration
         {
-            DeviceUUID = Guid.NewGuid().ToString(),
-            CacheControl = TimeSpan.FromSeconds(30),
-            Location = new Uri("http://[Your IP Address]/device"),
-            Server = new Server
-            {
-                OperatingSystem = "Windows",
-                OperatingSystemVersion = "10",
-                UpnpMajorVersion = "2",
-                UpnpMinorVersion = "0",
-                IsUpnp2 = true
-            },
-            IpEndPoint = new IPEndPoint(IPAddress.Parse("[Your IP Address]"), 1901),
-            TypeName = "Root-Device",
-            Version = 1,
-            EntityType = EntityType.RootDevice,
-            CONFIGID = "100",
-            Services = new List<IServiceConfiguration>
-            {
-                new ServiceConfiguration
-                {
-                    TypeName = "Root-Service-1",
-                    Version = 1,
-                    EntityType = EntityType.ServiceType
-                },
-                new ServiceConfiguration
-                {
-                    TypeName = "Root-Service-2",
-                    Domain = "Root-Service-Domain-1",
-                    Version = 2,
-                    EntityType = EntityType.DomainService
-                },
-            },
-            EmbeddedDevices = new List<IDeviceConfiguration>
-            {
-                new DeviceConfiguration
-                {
-                    TypeName = "Embed-Device-1",
-                    Version = 1,
-                    EntityType = EntityType.Device,
-                    DeviceUUID = Guid.NewGuid().ToString(),
-                    Services = new List<IServiceConfiguration>
-                    {
-                        new ServiceConfiguration
-                        {
-                            TypeName = "Embed-Device-1-Service-1",
-                            Version = 1,
-                            EntityType = EntityType.ServiceType
-                        },
-                        new ServiceConfiguration
-                        {
-                            TypeName = "Embed-Device-1-Service-2",
-                            Domain = "Embed-1-Service-2-Domain-2",
-                            Version = 2,
-                            EntityType = EntityType.DomainService
-                        },
-                    }
-                },
-                new DeviceConfiguration
-                {
-                    TypeName = "Embed-Device-2",
-                    Version = 1,
-                    EntityType = EntityType.DomainDevice,
-                    Domain = "Embed-Device-2-Domain-2",
-                    DeviceUUID = Guid.NewGuid().ToString(),
-                    Services = new List<IServiceConfiguration>
-                    {
-                        new ServiceConfiguration
-                        {
-                            TypeName = "Embed-Device-2-Service-1",
-                            Version = 1,
-                            EntityType = EntityType.ServiceType,
-                            },
-                        new ServiceConfiguration
-                        {
-                            TypeName = "Embed-Device-2-Service-2",
-                            Domain = "Embed-Service-Domain-2",
-                            Version = 2,
-                            EntityType = EntityType.DomainService
-                        },
-                    }
-                }
-            }
+            EntityType = EntityType.ServiceType,
+            TypeName = "MyService",
+            Version = 1
+        }
+    ]
+};
 
-        };
-    }
-}
+using var cts = new CancellationTokenSource();
+using var device = new Device(rootDeviceConfiguration);
+
+await device.StartAsync(cts.Token);   // sends ssdp:alive and starts answering M-SEARCH
+
+// ... later:
+await device.UpdateAsync();           // sends ssdp:update and advances BOOTID
+await device.ByeByeAsync();           // sends ssdp:byebye
 ```
+
+Because configurations are records, derived configurations are non-destructive: `rootDeviceConfiguration with { CacheControl = TimeSpan.FromSeconds(600) }`.
+
+## Advanced
+
+**Hot start.** Both `ControlPoint.HotStart(...)` and `Device.HotStartAsync(...)` accept an externally created `IObservable<HttpRequestResponse>` (from [SimpleHttpListener.Rx](https://github.com/1iveowl/SimpleHttpListener.Rx)) instead of creating their own listeners — useful when the same socket stream is shared with other services such as UPnP eventing.
+
+**Prepared interfaces.** The `ControlPoint(params ControlPointInterface[])` and `Device(params RootDeviceInterface[])` constructors accept caller-configured sockets. The caller keeps ownership: `Dispose` will not close them.
+
+**Pure parsing and composition.** The building blocks are public and side-effect free, so you can use them without running a control point or device:
+
+- `ST.Parse(string)` / `USN.Parse(string)` → `ParseResult<T>`
+- `SsdpMessageParser.ParseMSearchRequest/ParseMSearchResponse/ParseNotify(HttpRequestResponse)`
+- `DatagramComposer.ComposeMSearchRequest/ComposeMSearchResponse/ComposeNotify(...)` → `byte[]`
+
+## Samples
+
+The [samples](samples/) folder contains a runnable control point and device; run them on two machines (or two terminals) on the same LAN and watch them discover each other.
+
+## Version history
+
+- **7.0** — .NET 10, functional/record-based API, SimpleHttpListener.Rx 7, System.Reactive 7, real M-SEARCH responses, xUnit test suite. Breaking.
+- **6.x** — .NET Standard 2.0. Use this if you need older platforms.
+
+## License
+
+MIT — see [License.md](License.md).
