@@ -1,64 +1,48 @@
-﻿using System;
-using System.Collections.Generic;
 using System.Net;
-using SimpleHttpListener.Rx.Model;
-using SSDP.UPnP.PCL.Enum;
-using SSDP.UPnP.PCL.Interfaces.Model;
-using Microsoft.Extensions.Logging;
-using SSDP.UPnP.PCL.Helper;
-using SSDP.UPnP.PCL.Model.Base;
-using Convert = SSDP.UPnP.PCL.Helper.Convert;
 
-namespace SSDP.UPnP.PCL.Model
+namespace SSDP.UPnP.PCL.Model;
+
+/// <summary>
+/// An SSDP M-SEARCH request, either composed for sending via
+/// <see cref="IControlPoint.SendMSearchAsync"/> or parsed from a received
+/// datagram by <see cref="Parsing.SsdpMessageParser.ParseMSearchRequest"/>. Immutable.
+/// </summary>
+public sealed record MSearchRequest
 {
-    internal class MSearchRequest : ParserErrorBase, IMSearchRequest
-    {
-        public TransportType TransportType { get; } = TransportType.NoCast;
-        public string MAN { get; }
-        public string HOST { get; }
-        public TimeSpan MX { get; }
-        public IST ST { get; }
-        public IUserAgent UserAgent { get; }
-        public string CPFN { get; }
-        public string CPUUID { get; }
-        public string TCPPORT { get; }
-        public IPEndPoint LocalIpEndPoint { get; internal set; }
-        public IPEndPoint RemoteIpEndPoint { get; internal set; }
-        public string SECURELOCATION { get; }
-        public int SEARCHPORT { get; }
-        public IDictionary<string, string> Headers { get; }
+    /// <summary>Whether the search is multicast or unicast.</summary>
+    public TransportType TransportType { get; init; } = TransportType.Multicast;
 
-        public MSearchRequest(HttpRequestResponse request, ILogger logger = null)
-        {
-            try
-            {
-                LocalIpEndPoint = request.LocalEndPoint;
-                RemoteIpEndPoint = request.RemoteEndPoint;
-                TransportType = Convert.GetCastMetod(request);
-                MAN = Convert.GetHeaderValue(request.Headers, "MAN");
-                MX = TimeSpan.FromSeconds(Convert.ConvertStringToInt(Convert.GetHeaderValue(request.Headers, "MX")));
-                ST = new ST(Convert.GetHeaderValue(request.Headers, "ST"), ignoreError:true);
-                UserAgent = Convert.ConvertToUserAgent(Convert.GetHeaderValue(request.Headers, "USER-AGENT"));
-                HOST = Convert.GetHeaderValue(request.Headers, "HOST");
+    /// <summary>The <c>HOST</c> header; only used for unicast searches (multicast always targets the SSDP group).</summary>
+    public string? HOST { get; init; }
 
-                CPFN = Convert.GetHeaderValue(request.Headers, "CPFN.UPNP.ORG");
-                CPUUID = Convert.GetHeaderValue(request.Headers, "CPUUID.UPNP.ORG");
-                TCPPORT = Convert.GetHeaderValue(request.Headers, "TCPPORT.UPNP.ORG");
-                SECURELOCATION = Convert.GetHeaderValue(request.Headers, "SECURELOCATION.UPNP.ORG");
+    /// <summary>Maximum response delay in seconds (<c>MX</c> header); UDA 2.0 limits it to 1–5 seconds.</summary>
+    public TimeSpan MX { get; init; } = TimeSpan.FromSeconds(1);
 
-                Headers = HeaderHelper.SingleOutAdditionalHeaders(new List<string>
-                {
-                    "HOST", "CACHE-CONTROL","MAN", "MX", "ST", "USER-AGENT",
-                    "CPFN.UPNP.ORG", "CPUUID.UPNP.ORG", "TCPPORT.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
-                }, request.Headers);
+    /// <summary>The search target.</summary>
+    public required ST ST { get; init; }
 
-                HasParsingError = request.HasParsingErrors;
-            }
-            catch (Exception ex)
-            {
-                logger?.LogError(ex, "Failed to parse SSDP message.");
-                InvalidRequest = true;
-            }
-        }
-    }
+    /// <summary>The control point identity sent in the <c>USER-AGENT</c> header.</summary>
+    public UserAgent UserAgent { get; init; } = new();
+
+    /// <summary>Friendly name of the control point (<c>CPFN.UPNP.ORG</c>, required by UDA 2.0 for multicast).</summary>
+    public string? CPFN { get; init; }
+
+    /// <summary>UUID of the control point (<c>CPUUID.UPNP.ORG</c>), if any.</summary>
+    public string? CPUUID { get; init; }
+
+    /// <summary>The <c>TCPPORT.UPNP.ORG</c> header, if any.</summary>
+    public string? TCPPORT { get; init; }
+
+    /// <summary>Additional vendor-specific headers to send, or the non-standard headers received.</summary>
+    public IReadOnlyDictionary<string, string> Headers { get; init; } =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>For received requests: the local endpoint the request arrived on.</summary>
+    public IPEndPoint? LocalIpEndPoint { get; init; }
+
+    /// <summary>For received requests: the endpoint of the requester. For unicast sends: the target endpoint.</summary>
+    public IPEndPoint? RemoteIpEndPoint { get; init; }
+
+    /// <summary>Whether the underlying HTTP parser flagged errors in the received message.</summary>
+    public bool HasParsingError { get; init; }
 }

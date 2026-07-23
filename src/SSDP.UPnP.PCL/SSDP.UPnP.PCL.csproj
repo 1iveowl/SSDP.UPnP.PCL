@@ -5,7 +5,12 @@
     <AssemblyName>SSDP.UPnP.PCL</AssemblyName>
     <RootNamespace>SSDP.UPnP.PCL</RootNamespace>
     <Version>7.0.0</Version>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="SSDP.UPnP.PCL.Tests" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />

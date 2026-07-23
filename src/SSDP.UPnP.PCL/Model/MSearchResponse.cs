@@ -1,83 +1,69 @@
-﻿using System;
-using System.Collections.Generic;
 using System.Net;
-using SimpleHttpListener.Rx.Model;
-using SSDP.UPnP.PCL.Enum;
-using SSDP.UPnP.PCL.Interfaces.Model;
-using Microsoft.Extensions.Logging;
-using SSDP.UPnP.PCL.Helper;
-using SSDP.UPnP.PCL.Model.Base;
-using Convert = SSDP.UPnP.PCL.Helper.Convert;
 
-namespace SSDP.UPnP.PCL.Model
+namespace SSDP.UPnP.PCL.Model;
+
+/// <summary>
+/// An SSDP M-SEARCH response, either observed by a control point via
+/// <see cref="IControlPoint.MSearchResponseObservable"/> or composed by a device
+/// answering a search. Immutable.
+/// </summary>
+public sealed record MSearchResponse
 {
-    internal class MSearchResponse : ParserErrorBase, IMSearchResponse
-    {
-        public string Name { get; internal set; }
-        public int Port { get; internal set; }
-        public TransportType TransportType { get; internal set; } = TransportType.NoCast;
-        public int StatusCode { get; internal set; }
-        public string ResponseReason { get; internal set; }
-        public TimeSpan CacheControl { get; internal set; }
-        public DateTime Date { get; internal set; }
-        public Uri Location { get; internal set; }
-        public bool Ext { get; internal set; }
-        public IServer Server { get; internal set; }
-        public IST ST { get; internal set; }
-        public IUSN USN { get; internal set; }
-        public int BOOTID { get; internal set; }
-        public int CONFIGID { get; internal set; }
-        public int SEARCHPORT { get; internal set; }
-        public string SECURELOCATION { get; internal set; }
-        public TimeSpan MX { get; internal set; }
-        public IPEndPoint LocalIpEndPoint { get; internal set; }
-        public IPEndPoint RemoteIpEndPoint { get; internal set; }
+    /// <summary>The transport the response was (or will be) sent over.</summary>
+    public TransportType TransportType { get; init; } = TransportType.Unicast;
 
-        public IDictionary<string, string> Headers { get; }
+    /// <summary>HTTP status code; <c>200</c> for well-formed responses.</summary>
+    public int StatusCode { get; init; } = 200;
 
-        internal MSearchResponse()
-        {
+    /// <summary>HTTP reason phrase; <c>OK</c> for well-formed responses.</summary>
+    public string ResponseReason { get; init; } = "OK";
 
-        }
+    /// <summary>Advertisement validity (<c>CACHE-CONTROL: max-age</c>).</summary>
+    public TimeSpan CacheControl { get; init; }
 
-        internal MSearchResponse(HttpRequestResponse response, ILogger logger = null)
-        {
-            try
-            {
-                LocalIpEndPoint = response.LocalEndPoint;
-                RemoteIpEndPoint = response.RemoteEndPoint;
-                HasParsingError = response.HasParsingErrors;
-                TransportType = Convert.GetCastMetod(response);
-                StatusCode = response.StatusCode;
-                ResponseReason = response.ReasonPhrase;
-                CacheControl = TimeSpan.FromSeconds(Convert.GetMaxAge(response.Headers));
-                Location = Convert.UrlToUri(Convert.GetHeaderValue(response.Headers, "LOCATION"));
-                Date = Convert.ToRfc2616Date(Convert.GetHeaderValue(response.Headers, "DATE"));
-                Ext = response.Headers.ContainsKey("EXT");
-                Server = Convert.ConvertToServer(Convert.GetHeaderValue(response.Headers, "SERVER"));
-                ST = new ST(Convert.GetHeaderValue(response.Headers, "ST"), ignoreError:true);
-                USN = new USN(Convert.GetHeaderValue(response.Headers, "USN"));
-                BOOTID = int.TryParse(Convert.GetHeaderValue(response.Headers, "BOOTID.UPNP.ORG"), out var b) ? b : 0;
-                CONFIGID = int.TryParse(Convert.GetHeaderValue(response.Headers, "CONFIGID.UPNP.ORG"), out var c) ? c : 0;
-                SEARCHPORT = int.TryParse(Convert.GetHeaderValue(response.Headers, "SEARCHPORT.UPNP.ORG"), out var s) ? s : 0;
-                SECURELOCATION = Convert.GetHeaderValue(response.Headers, "SECURELOCATION.UPNP.ORG");
+    /// <summary>The <c>DATE</c> header value.</summary>
+    public DateTimeOffset Date { get; init; }
 
-                Headers = HeaderHelper.SingleOutAdditionalHeaders(new List<string>
-                {
-                    "HOST", "CACHE-CONTROL", "LOCATION", "DATE", "EXT", "SERVER", "ST", "USN",
-                    "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG", "SEARCHPORT.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
-                }, response.Headers);
+    /// <summary>The URL of the device description document (<c>LOCATION</c>).</summary>
+    public Uri? Location { get; init; }
 
-                RemoteIpEndPoint = response.RemoteEndPoint;
-                
-            }
-            catch (Exception ex)
-            {
-                logger?.LogError(ex, "Failed to parse SSDP message.");
-                InvalidRequest = true;
-            }
-        }
+    /// <summary>Whether the <c>EXT</c> header was present (required by UDA for responses).</summary>
+    public bool Ext { get; init; } = true;
 
-        
-    }
+    /// <summary>The responding device's identity (<c>SERVER</c> header).</summary>
+    public Server Server { get; init; } = new();
+
+    /// <summary>The search target the response answers (<c>ST</c> header).</summary>
+    public ST? ST { get; init; }
+
+    /// <summary>The unique service name of the responding entity (<c>USN</c> header).</summary>
+    public USN? USN { get; init; }
+
+    /// <summary>The responding device's boot instance (<c>BOOTID.UPNP.ORG</c>).</summary>
+    public uint BOOTID { get; init; }
+
+    /// <summary>The responding device's configuration number (<c>CONFIGID.UPNP.ORG</c>), if any.</summary>
+    public int? CONFIGID { get; init; }
+
+    /// <summary>The port for unicast search (<c>SEARCHPORT.UPNP.ORG</c>), if not 1900.</summary>
+    public int? SEARCHPORT { get; init; }
+
+    /// <summary>The HTTPS description URL (<c>SECURELOCATION.UPNP.ORG</c>), if any.</summary>
+    public string? SECURELOCATION { get; init; }
+
+    /// <summary>The MX value of the search being answered; bounds the response delay.</summary>
+    public TimeSpan MX { get; init; }
+
+    /// <summary>Additional vendor-specific headers.</summary>
+    public IReadOnlyDictionary<string, string> Headers { get; init; } =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>For received responses: the local endpoint the response arrived on.</summary>
+    public IPEndPoint? LocalIpEndPoint { get; init; }
+
+    /// <summary>For received responses: the responder's endpoint. For composed responses: the requester to reply to.</summary>
+    public IPEndPoint? RemoteIpEndPoint { get; init; }
+
+    /// <summary>Whether the underlying HTTP parser flagged errors in the received message.</summary>
+    public bool HasParsingError { get; init; }
 }

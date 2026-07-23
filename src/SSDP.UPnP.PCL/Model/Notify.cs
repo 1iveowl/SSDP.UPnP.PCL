@@ -1,77 +1,66 @@
-﻿using System;
-using System.Collections.Generic;
 using System.Net;
-using SimpleHttpListener.Rx.Model;
-using SSDP.UPnP.PCL.Enum;
-using SSDP.UPnP.PCL.Interfaces.Model;
-using SSDP.UPnP.PCL.Helper;
-using SSDP.UPnP.PCL.Model.Base;
-using static SSDP.UPnP.PCL.Helper.Convert;
 
-namespace SSDP.UPnP.PCL.Model
+namespace SSDP.UPnP.PCL.Model;
+
+/// <summary>
+/// An SSDP NOTIFY message (<c>ssdp:alive</c>, <c>ssdp:byebye</c> or
+/// <c>ssdp:update</c>), either observed by a control point via
+/// <see cref="IControlPoint.NotifyObservable"/> or composed by a device. Immutable.
+/// </summary>
+public sealed record Notify
 {
-    internal class Notify : ParserErrorBase, INotify
-    {
-        public string Name { get; internal set; }
-        public int Port { get; internal set; }
-        public TransportType NotifyTransportType { get; internal set; } = TransportType.NoCast;
-        public TimeSpan CacheControl { get; internal set; }
-        public Uri Location { get; internal set; }
-        public string NT { get; internal set; }
-        public NTS NTS { get; internal set; }
-        public IServer Server { get; internal set; }
-        public IUSN USN { get; internal set; }
+    /// <summary>The transport the notification was (or will be) sent over.</summary>
+    public TransportType NotifyTransportType { get; init; } = TransportType.Multicast;
 
-        public uint BOOTID { get; internal set; }
-        public string CONFIGID { get; internal set; }
-        public uint SEARCHPORT { get; internal set; }
-        public uint NEXTBOOTID { get; internal set; }
-        public string SECURELOCATION { get; internal set; }
-        public bool IsUuidUpnp2Compliant { get; internal set; }
-        public string HOST { get; internal set; }
-        public IDictionary<string, string> Headers { get; internal set; }
+    /// <summary>The <c>HOST</c> header; the SSDP multicast group for multicast notifications.</summary>
+    public string? HOST { get; init; }
 
-        public IPEndPoint LocalIpEndPoint { get; internal set; }
-        public IPEndPoint RemoteIpEndPoint { get; internal set; }
+    /// <summary>Advertisement validity (<c>CACHE-CONTROL: max-age</c>); only sent for <c>ssdp:alive</c>.</summary>
+    public TimeSpan CacheControl { get; init; }
 
-        internal Notify()
-        { }
+    /// <summary>The URL of the device description document (<c>LOCATION</c>); sent for alive and update.</summary>
+    public Uri? Location { get; init; }
 
+    /// <summary>The notification type (<c>NT</c> header): the entity URI being advertised.</summary>
+    public string? NT { get; init; }
 
-        internal Notify(HttpRequestResponse request)
-        {
-            try
-            {
-                LocalIpEndPoint = request.LocalEndPoint;
-                RemoteIpEndPoint = request.RemoteEndPoint;
-                HOST = GetHeaderValue(request.Headers, "HOST");
-                NotifyTransportType = GetCastMetod(request);
-                CacheControl = TimeSpan.FromSeconds(GetMaxAge(request.Headers));
-                Location = UrlToUri(GetHeaderValue(request.Headers, "LOCATION"));
-                NT = GetHeaderValue(request.Headers, "NT");
-                NTS = ConvertToNotificationSubTypeEnum(GetHeaderValue(request.Headers, "NTS"));
-                Server = ConvertToServer(GetHeaderValue(request.Headers, "SERVER"));
-                USN = new USN(GetHeaderValue(request.Headers, "USN"));
+    /// <summary>The notification sub type: alive, byebye or update.</summary>
+    public NTS NTS { get; init; }
 
-                BOOTID = uint.TryParse(GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG"), out var b) ? b : 0;
-                CONFIGID = GetHeaderValue(request.Headers, "CONFIGID.UPNP.ORG");
-                SEARCHPORT = uint.TryParse(GetHeaderValue(request.Headers, "SEARCHPORT.UPNP.ORG"), out var s) ? s : 0;
-                NEXTBOOTID = uint.TryParse(GetHeaderValue(request.Headers, "NEXTBOOTID.UPNP.ORG"), out var n) ? n : 0;
-                SECURELOCATION = GetHeaderValue(request.Headers, "SECURELOCATION.UPNP.ORG");
+    /// <summary>The advertising device's identity (<c>SERVER</c> header); only sent for alive.</summary>
+    public Server? Server { get; init; }
 
-                Headers = HeaderHelper.SingleOutAdditionalHeaders(new List<string>
-                {
-                    "HOST", "CACHE-CONTROL", "LOCATION", "NT", "NTS", "SERVER", "USN",
-                    "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG", 
-                    "SEARCHPORT.UPNP.ORG", "NEXTBOOTID.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
-                }, request.Headers);
-            }
-            catch (Exception)
-            {
-                InvalidRequest = true;
-            }
+    /// <summary>The unique service name of the advertised entity (<c>USN</c> header).</summary>
+    public USN? USN { get; init; }
 
-            IsUuidUpnp2Compliant = Guid.TryParse(USN.DeviceUUID, out var guid);
-        }
-    }
+    /// <summary>The advertising device's boot instance (<c>BOOTID.UPNP.ORG</c>).</summary>
+    public uint BOOTID { get; init; }
+
+    /// <summary>The advertising device's configuration number (<c>CONFIGID.UPNP.ORG</c>), if any.</summary>
+    public int? CONFIGID { get; init; }
+
+    /// <summary>The port for unicast search (<c>SEARCHPORT.UPNP.ORG</c>), if not 1900.</summary>
+    public int? SEARCHPORT { get; init; }
+
+    /// <summary>The boot instance that takes effect after an <c>ssdp:update</c> (<c>NEXTBOOTID.UPNP.ORG</c>).</summary>
+    public uint? NEXTBOOTID { get; init; }
+
+    /// <summary>The HTTPS description URL (<c>SECURELOCATION.UPNP.ORG</c>), if any.</summary>
+    public string? SECURELOCATION { get; init; }
+
+    /// <summary>Whether the USN device UUID is a well-formed GUID as UDA 2.0 requires.</summary>
+    public bool IsUuidUpnp2Compliant { get; init; }
+
+    /// <summary>Additional vendor-specific headers.</summary>
+    public IReadOnlyDictionary<string, string> Headers { get; init; } =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>For received notifications: the local endpoint the message arrived on.</summary>
+    public IPEndPoint? LocalIpEndPoint { get; init; }
+
+    /// <summary>For received notifications: the sender's endpoint.</summary>
+    public IPEndPoint? RemoteIpEndPoint { get; init; }
+
+    /// <summary>Whether the underlying HTTP parser flagged errors in the received message.</summary>
+    public bool HasParsingError { get; init; }
 }

@@ -1,19 +1,35 @@
-﻿using System;
-using System.Collections.Generic;
 using System.Net;
-using System.Text;
-using SSDP.UPnP.PCL.Interfaces.Model;
 
-namespace SSDP.UPnP.PCL.Model
+namespace SSDP.UPnP.PCL.Model;
+
+/// <summary>
+/// The configuration of a root device: the device itself plus the description
+/// document location, server identity and any embedded devices. Immutable.
+/// </summary>
+public sealed record RootDeviceConfiguration : DeviceConfiguration
 {
-    public class RootDeviceConfiguration : DeviceConfiguration, IRootDeviceConfiguration
-    {
-        public IPEndPoint IpEndPoint { get; set; }
-        public IServer Server { get; set; }
-        public Uri Location { get; set; }
-        public Uri SecureLocation { get; set; }
-        public string CONFIGID { get; set; }
-        public TimeSpan CacheControl { get; set; }
-        public IEnumerable<IDeviceConfiguration> EmbeddedDevices { get; set; }
-    }
+    /// <summary>
+    /// The local endpoint the device answers unicast messages on. When constructing a
+    /// <see cref="Device"/> from a configuration this selects the network interface to
+    /// bind; when constructing from prepared UDP clients it is derived from them.
+    /// </summary>
+    public IPEndPoint? IpEndPoint { get; init; }
+
+    /// <summary>The identity sent in <c>SERVER</c> headers.</summary>
+    public Server Server { get; init; } = new();
+
+    /// <summary>The URL of the device description document (<c>LOCATION</c> header).</summary>
+    public Uri? Location { get; init; }
+
+    /// <summary>The HTTPS URL of the device description document (<c>SECURELOCATION.UPNP.ORG</c>), if any.</summary>
+    public Uri? SecureLocation { get; init; }
+
+    /// <summary>The configuration number sent as <c>CONFIGID.UPNP.ORG</c>, if any.</summary>
+    public int? CONFIGID { get; init; }
+
+    /// <summary>Advertisement validity (<c>CACHE-CONTROL: max-age</c>).</summary>
+    public TimeSpan CacheControl { get; init; } = TimeSpan.FromSeconds(1800);
+
+    /// <summary>Devices embedded in this root device.</summary>
+    public IReadOnlyList<DeviceConfiguration> EmbeddedDevices { get; init; } = [];
 }

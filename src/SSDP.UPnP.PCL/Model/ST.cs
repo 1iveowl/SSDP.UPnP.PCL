@@ -1,149 +1,171 @@
-﻿using SSDP.UPnP.PCL.Enum;
-using SSDP.UPnP.PCL.Interfaces.Model;
-using SSDP.UPnP.PCL.Model.Base;
+namespace SSDP.UPnP.PCL.Model;
 
-namespace SSDP.UPnP.PCL.Model
+/// <summary>
+/// An SSDP Search Target (the <c>ST</c> header of an M-SEARCH request or
+/// response), per UPnP Device Architecture 2.0 section 1.3.2. Immutable; create
+/// via an object initializer for outgoing searches or with <see cref="Parse"/>
+/// for received values.
+/// </summary>
+public sealed record ST : Entity
 {
-    public class ST : DeviceServiceBase, IST
+    /// <summary>The kind of search this target expresses.</summary>
+    public STType StSearchType { get; init; }
+
+    /// <summary>The unparsed header value, when this instance was produced by <see cref="Parse"/>.</summary>
+    public string? STString { get; init; }
+
+    /// <summary>
+    /// The SSDP wire representation of this search target, validating that the
+    /// fields required by <see cref="StSearchType"/> are present.
+    /// </summary>
+    /// <exception cref="SSDPException">A field required by <see cref="StSearchType"/> is missing or invalid.</exception>
+    public string ToSearchTargetString()
     {
-        public STType StSearchType { get; set; }
-        public string STString { get; private set; }
-
-        public ST()
+        switch (StSearchType)
         {
+            case STType.All:
+                return "ssdp:all";
+            case STType.RootDeviceSearch:
+                return "upnp:rootdevice";
+            case STType.UuidSearch:
+                if (string.IsNullOrEmpty(DeviceUUID))
+                {
+                    throw new SSDPException("UUID Search requires a Device UUID to be specified.");
+                }
 
+                return $"uuid:{DeviceUUID}";
+            case STType.DeviceTypeSearch:
+            case STType.ServiceTypeSearch:
+            case STType.DomainDeviceSearch:
+            case STType.DomainServiceSearch:
+                if ((StSearchType is STType.DomainDeviceSearch or STType.DomainServiceSearch) && string.IsNullOrEmpty(Domain))
+                {
+                    throw new SSDPException($"{StSearchType} requires a Domain to be specified.");
+                }
+
+                if (string.IsNullOrEmpty(TypeName))
+                {
+                    throw new SSDPException($"{StSearchType} requires a Type name to be specified.");
+                }
+
+                if (Version < 1)
+                {
+                    throw new SSDPException($"{StSearchType} requires a version (1 or greater) to be specified.");
+                }
+
+                var domain = StSearchType is STType.DeviceTypeSearch or STType.ServiceTypeSearch
+                    ? "schemas-upnp-org"
+                    : Domain;
+
+                var kind = StSearchType is STType.DeviceTypeSearch or STType.DomainDeviceSearch
+                    ? "device"
+                    : "service";
+
+                return $"urn:{domain}:{kind}:{TypeName}:{Version}";
+            default:
+                throw new SSDPException($"Unknown search target type: {StSearchType}.");
+        }
+    }
+
+    /// <summary>
+    /// Parses a Search Target header value (e.g. <c>ssdp:all</c>,
+    /// <c>uuid:[device-UUID]</c> or <c>urn:schemas-upnp-org:device:[type]:[version]</c>).
+    /// </summary>
+    /// <param name="searchTarget">The raw header value.</param>
+    /// <returns>The parsed search target, or a failure describing why the value is invalid.</returns>
+    public static ParseResult<ST> Parse(string? searchTarget)
+    {
+        if (string.IsNullOrWhiteSpace(searchTarget))
+        {
+            return ParseResult<ST>.Failure("Search Target (ST) is empty.");
         }
 
-        public ST(string searchTarget, bool ignoreError = false)
+        var parts = searchTarget.Split(':');
+
+        switch (parts[0].ToLowerInvariant())
         {
-            PopulateST(searchTarget, ignoreError);
+            case "ssdp" when parts.Length == 2 && parts[1].Equals("all", StringComparison.OrdinalIgnoreCase):
+                return ParseResult<ST>.Success(new ST
+                {
+                    StSearchType = STType.All,
+                    STString = searchTarget
+                });
+
+            case "ssdp":
+                return ParseResult<ST>.Failure(
+                    $"Search Target (ST) value must be 'ssdp:all'. The value '{searchTarget}' is invalid.");
+
+            case "upnp" when parts.Length == 2 && parts[1].Equals("rootdevice", StringComparison.OrdinalIgnoreCase):
+                return ParseResult<ST>.Success(new ST
+                {
+                    StSearchType = STType.RootDeviceSearch,
+                    EntityType = EntityType.RootDevice,
+                    STString = searchTarget
+                });
+
+            case "upnp":
+                return ParseResult<ST>.Failure(
+                    $"Search Target (ST) value must be 'upnp:rootdevice'. The value '{searchTarget}' is invalid.");
+
+            case "uuid" when parts.Length >= 2 && !string.IsNullOrEmpty(parts[1]):
+                return ParseResult<ST>.Success(new ST
+                {
+                    StSearchType = STType.UuidSearch,
+                    EntityType = EntityType.Device,
+                    DeviceUUID = searchTarget[5..],
+                    STString = searchTarget
+                });
+
+            case "uuid":
+                return ParseResult<ST>.Failure(
+                    $"Search Target (ST) value must be 'uuid:[device-UUID]'. The value '{searchTarget}' is invalid.");
+
+            case "urn":
+                return ParseUrn(searchTarget, parts);
+
+            default:
+                return ParseResult<ST>.Failure(
+                    $"Search Target (ST) '{searchTarget}' is invalid. See UPnP Device Architecture 2.0 section 1.3.2.");
+        }
+    }
+
+    private static ParseResult<ST> ParseUrn(string searchTarget, string[] parts)
+    {
+        if (parts.Length != 5)
+        {
+            return ParseResult<ST>.Failure(
+                $"Search Target (ST) value must be in the form 'urn:[domain]:[device or service]:[type]:[version]'. The value '{searchTarget}' is invalid.");
         }
 
-        private void PopulateST(string searchTarget, bool ignoreError = false)
+        var isStandardDomain = parts[1].Equals("schemas-upnp-org", StringComparison.OrdinalIgnoreCase);
+
+        if (!int.TryParse(parts[4], out var version))
         {
-            STString = searchTarget;
+            version = -1;
+        }
 
-            var sta = searchTarget?.Split(':');
-
-            if (sta == null)
+        return parts[2].ToLowerInvariant() switch
+        {
+            "device" => ParseResult<ST>.Success(new ST
             {
-                throw new SSDPException("Invalid Search Target (ST) string.");
-            }
-
-            switch (sta[0].ToLower())
+                StSearchType = isStandardDomain ? STType.DeviceTypeSearch : STType.DomainDeviceSearch,
+                EntityType = isStandardDomain ? EntityType.DeviceType : EntityType.DomainDevice,
+                Domain = isStandardDomain ? null : parts[1],
+                TypeName = parts[3],
+                Version = version,
+                STString = searchTarget
+            }),
+            "service" => ParseResult<ST>.Success(new ST
             {
-                case "ssdp":
-                    if (sta[1].ToLower() == "all" && sta.Length == 2)
-                    {
-                        StSearchType = STType.All;
-                    }
-                    else
-                    {
-                        if (!ignoreError)
-                        {
-                            throw new SSDPException($"Search Target (ST) value must be 'ssdp.all'. The value '{searchTarget}' is invalid. ");
-                        }
-
-                    }
-                    break;
-                case "upnp":
-                    if (sta[1].ToLower() == "rootdevice" && sta.Length == 2)
-                    {
-                        StSearchType = STType.RootDeviceSearch;
-                        EntityType = EntityType.RootDevice;
-                    }
-                    else
-                    {
-                        if (!ignoreError)
-                        {
-                            throw new SSDPException($"Search Target (ST) value must be 'upnp:rootdevice'. The value '{searchTarget}' is invalid. ");
-                        }
-                    }
-                    break;
-                case "uuid":
-                    StSearchType = STType.UIIDSearch;
-                    DeviceUUID = searchTarget.Substring(5);
-                    EntityType = EntityType.Device;
-                    break;
-                case "urn":
-                    if (sta.Length != 5)
-                    {
-                        if (!ignoreError)
-                        {
-                            throw new SSDPException($"Search Target (ST) value must be in the form of 'urn:[domain]:[device or service]:[Type]:ver'. The value '{searchTarget}' is invalid.");
-                        }
-
-                        break;
-                    }
-
-                    if (sta[1].ToLower() == "schemas-upnp-org")
-                    {
-                        if (sta[2].ToLower() == "device")
-                        {
-                            StSearchType = STType.DeviceTypeSearch;
-                            TypeName = sta[3];
-                            EntityType = EntityType.DeviceType;
-                        }
-                        else if (sta[2].ToLower() == "service")
-                        {
-                            StSearchType = STType.ServiceTypeSearch;
-                            TypeName = sta[3];
-                            EntityType = EntityType.ServiceType;
-                        }
-                        else
-                        {
-                            if (!ignoreError)
-                            {
-                                throw new SSDPException($"Search Target (ST) value must be in the form of 'schemas-upnp-org:[device or service]:[Type]:ver'. The value '{searchTarget}' is invalid because of the value {sta[2]} ");
-                            }
-                        }
-
-                        Version = GetVersion(sta[4]);
-                    }
-                    else
-                    {
-                        if (sta[2].ToLower() == "device")
-                        {
-                            StSearchType = STType.DomainDeviceSearch;
-                            base.TypeName = sta[3];
-                            EntityType = EntityType.DomainDevice;
-                        }
-                        else if (sta[2].ToLower() == "service")
-                        {
-                            StSearchType = STType.DomainServiceSearch;
-                            TypeName = sta[3];
-                            EntityType = EntityType.DomainService;
-                        }
-                        else
-                        {
-                            if (!ignoreError)
-                            {
-                                throw new SSDPException($"Search Target (ST) value must be in the form of 'schemas-upnp-org:[device or service]:[Type]:ver'. The value '{searchTarget}' is invalid because of the value {sta[2]} ");
-                            }
-                        }
-                        Domain = sta[1];
-
-                        Version = GetVersion(sta[4]);
-
-
-                    }
-                    break;
-
-                default:
-                    throw new SSDPException($"Search Target (ST) '{searchTarget}' is invalid. Please see the UPnP 2.0 specification page 37: http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v2.0.pdf");
-
-                    int GetVersion(string version)
-                    {
-                        if (int.TryParse(version, out var ver))
-                        {
-                            return ver;
-                        }
-                        else
-                        {
-                            return -1;
-                        }
-                    }
-            }
-        }
+                StSearchType = isStandardDomain ? STType.ServiceTypeSearch : STType.DomainServiceSearch,
+                EntityType = isStandardDomain ? EntityType.ServiceType : EntityType.DomainService,
+                Domain = isStandardDomain ? null : parts[1],
+                TypeName = parts[3],
+                Version = version,
+                STString = searchTarget
+            }),
+            _ => ParseResult<ST>.Failure(
+                $"Search Target (ST) value must be in the form 'urn:[domain]:[device or service]:[type]:[version]'. The value '{searchTarget}' is invalid because of '{parts[2]}'.")
+        };
     }
 }

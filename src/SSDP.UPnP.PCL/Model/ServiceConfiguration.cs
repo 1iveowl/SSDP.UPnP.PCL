@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using SSDP.UPnP.PCL.Interfaces.Model;
+namespace SSDP.UPnP.PCL.Model;
 
-namespace SSDP.UPnP.PCL.Model
-{
-    public class ServiceConfiguration : Entity, IServiceConfiguration
-    {
-    }
-}
+/// <summary>
+/// The configuration of a service hosted by a device. Immutable.
+/// </summary>
+public sealed record ServiceConfiguration : Entity;

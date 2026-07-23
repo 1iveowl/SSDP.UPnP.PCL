@@ -1,151 +1,93 @@
-﻿using System;
-using System.Collections.Generic;
 using System.Net;
-using System.Threading;
-using System.Threading.Tasks;
-using SSDP.UPnP.PCL.Enum;
-using SSDP.UPnP.PCL.Interfaces.Model;
-using SSDP.UPnP.PCL.Interfaces.Service;
+using SSDP.UPnP.PCL;
 using SSDP.UPnP.PCL.Model;
-using SSDP.UPnP.PCL.Service;
 
+// SSDP device sample: advertises a root device with two services and an
+// embedded device, answers M-SEARCH requests, and says byebye on exit.
+//
+// On Windows, stop the "SSDP Discovery" service first — it intercepts the UPnP
+// multicasts and the device will not see M-SEARCH requests while it runs.
 
-class Program
+var ipAddress = args.Length > 0 && IPAddress.TryParse(args[0], out var parsed)
+    ? parsed
+    : Constants.GetBestGuessLocalIPAddress();
+
+if (ipAddress is null)
 {
-    private static IDevice _device;
-
-    private static IPAddress _deviceLocalIpAddress;
-    private static IPAddress _remoteControlPointHost;
-
-    private static IPEndPoint _localUnicastIpEndPoint;
-
-    // For this test to work you most likely need to stop the SSDP Discovery service on Windows
-    // If you don't stop the SSDP Windows Service, the service will intercept the UPnP multicasts and consequently nothing will show up in the console. 
-
-    static async Task Main(string[] args)
-    {
-        _localUnicastIpEndPoint = new IPEndPoint(IPAddress.Parse("192.168.0.59"), 8000);
-
-        _deviceLocalIpAddress = IPAddress.Parse("192.168.0.59");
-        _remoteControlPointHost = IPAddress.Parse("192.168.0.48");
-
-        var cts = new CancellationTokenSource();
-
-        await StartAsync(cts.Token);
-      
-        System.Console.ReadKey();
-    }
-
-    private static async Task StartAsync(CancellationToken ct)
-    {
-        await StartDeviceListening();
-    }
-
-    private static async Task StartDeviceListening()
-    {
-        var rootDevice = 
-
-        _device = new Device(CreateRootDevice());
-        
-        var cts = new CancellationTokenSource();
-
-        await _device.StartAsync(cts.Token);
-
-        System.Console.WriteLine("Press any key to bye bye...");
-        System.Console.ReadLine();
-
-        await _device.ByeByeAsync();
-
-        _device?.Dispose();
-    }
-
-    private static IRootDeviceConfiguration CreateRootDevice()
-    {
-        return new RootDeviceConfiguration
-        {
-            DeviceUUID = Guid.NewGuid().ToString(),
-            CacheControl = TimeSpan.FromSeconds(30),
-            Location = new Uri("http://192.168.0.59/device"),
-            Server = new Server
-            {
-                OperatingSystem = "Windows",
-                OperatingSystemVersion = "10",
-                UpnpMajorVersion = "2",
-                UpnpMinorVersion = "0",
-                IsUpnp2 = true
-            },
-            IpEndPoint = new IPEndPoint(IPAddress.Parse("192.168.0.59"), 1901),
-            TypeName = "Root-Device",
-            Version = 1,
-            EntityType = EntityType.RootDevice,
-            CONFIGID = "100",
-            Services = new List<IServiceConfiguration>
-            {
-                new ServiceConfiguration
-                {
-                    TypeName = "Root-Service-1",
-                    Version = 1,
-                    EntityType = EntityType.ServiceType
-                },
-                new ServiceConfiguration
-                {
-                    TypeName = "Root-Service-2",
-                    Domain = "Root-Service-Domain-1",
-                    Version = 2,
-                    EntityType = EntityType.DomainService
-                },
-            },
-            EmbeddedDevices = new List<IDeviceConfiguration>
-            {
-                new DeviceConfiguration
-                {
-                    TypeName = "Embed-Device-1",
-                    Version = 1,
-                    EntityType = EntityType.Device,
-                    DeviceUUID = Guid.NewGuid().ToString(),
-                    Services = new List<IServiceConfiguration>
-                    {
-                        new ServiceConfiguration
-                        {
-                            TypeName = "Embed-Device-1-Service-1",
-                            Version = 1,
-                            EntityType = EntityType.ServiceType
-                        },
-                        new ServiceConfiguration
-                        {
-                            TypeName = "Embed-Device-1-Service-2",
-                            Domain = "Embed-1-Service-2-Domain-2",
-                            Version = 2,
-                            EntityType = EntityType.DomainService
-                        },
-                    }
-                },
-                new DeviceConfiguration
-                {
-                    TypeName = "Embed-Device-2",
-                    Version = 1,
-                    EntityType = EntityType.DomainDevice,
-                    Domain = "Embed-Device-2-Domain-2",
-                    DeviceUUID = Guid.NewGuid().ToString(),
-                    Services = new List<IServiceConfiguration>
-                    {
-                        new ServiceConfiguration
-                        {
-                            TypeName = "Embed-Device-2-Service-1",
-                            Version = 1,
-                            EntityType = EntityType.ServiceType,
-                            },
-                        new ServiceConfiguration
-                        {
-                            TypeName = "Embed-Device-2-Service-2",
-                            Domain = "Embed-Service-Domain-2",
-                            Version = 2,
-                            EntityType = EntityType.DomainService
-                        },
-                    }
-                }
-            }
-
-        };
-    }
+    Console.WriteLine("No suitable local IPv4 address found. Pass one as the first argument.");
+    return;
 }
+
+Console.WriteLine($"IP Address: {ipAddress}");
+
+var rootDeviceConfiguration = new RootDeviceConfiguration
+{
+    EntityType = EntityType.RootDevice,
+    DeviceUUID = Guid.NewGuid().ToString(),
+    TypeName = "SampleRootDevice",
+    Version = 1,
+    CacheControl = TimeSpan.FromSeconds(1800),
+    Location = new Uri($"http://{ipAddress}/device"),
+    IpEndPoint = new IPEndPoint(ipAddress, 1901),
+    CONFIGID = 100,
+    Server = new Server
+    {
+        OperatingSystem = Environment.OSVersion.Platform.ToString(),
+        OperatingSystemVersion = Environment.OSVersion.Version.ToString(2),
+        UpnpMajorVersion = "2",
+        UpnpMinorVersion = "0",
+        IsUpnp2 = true,
+        ProductName = "SSDP.UPNP.PCL",
+        ProductVersion = "7.0"
+    },
+    Services =
+    [
+        new ServiceConfiguration
+        {
+            EntityType = EntityType.ServiceType,
+            TypeName = "SampleService",
+            Version = 1
+        },
+        new ServiceConfiguration
+        {
+            EntityType = EntityType.DomainService,
+            Domain = "sample-domain-org",
+            TypeName = "SampleDomainService",
+            Version = 2
+        }
+    ],
+    EmbeddedDevices =
+    [
+        new DeviceConfiguration
+        {
+            EntityType = EntityType.Device,
+            DeviceUUID = Guid.NewGuid().ToString(),
+            TypeName = "SampleEmbeddedDevice",
+            Version = 1,
+            Services =
+            [
+                new ServiceConfiguration
+                {
+                    EntityType = EntityType.ServiceType,
+                    TypeName = "SampleEmbeddedService",
+                    Version = 1
+                }
+            ]
+        }
+    ]
+};
+
+using var cts = new CancellationTokenSource();
+using var device = new Device(rootDeviceConfiguration);
+
+using var activitySubscription = device.DeviceActivityObservable
+    .Subscribe(activity => Console.WriteLine($"[activity] {activity}"));
+
+await device.StartAsync(cts.Token);
+
+Console.WriteLine("Device started and advertised. Press any key to say byebye and exit.");
+Console.ReadKey();
+
+await device.ByeByeAsync();
+
+cts.Cancel();

@@ -1,19 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using SSDP.UPnP.PCL.Interfaces.Model;
-using SSDP.UPnP.PCL.ExtensionMethod;
+namespace SSDP.UPnP.PCL.Model;
 
-namespace SSDP.UPnP.PCL.Model
+/// <summary>
+/// The configuration of a UPnP device (root or embedded). Immutable; use
+/// <c>with</c> expressions to derive updated copies.
+/// </summary>
+public record DeviceConfiguration : Entity
 {
-    public class DeviceConfiguration : Entity, IDeviceConfiguration
-    {
-        public uint BOOTID { get; internal set; }
-        public IEnumerable<IServiceConfiguration> Services { get; set; }
+    /// <summary>
+    /// The boot instance id sent as <c>BOOTID.UPNP.ORG</c>; defaults to the Unix
+    /// timestamp at creation, per UDA 2.0 section 1.2.2.
+    /// </summary>
+    public uint BOOTID { get; init; } = (uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-        public DeviceConfiguration()
-        {
-            BOOTID = (uint)DateTime.UtcNow.FromUnixTime();
-        }
-    }
+    /// <summary>The services hosted by this device.</summary>
+    public IReadOnlyList<ServiceConfiguration> Services { get; init; } = [];
 }
