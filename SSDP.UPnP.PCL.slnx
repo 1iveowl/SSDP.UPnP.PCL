@@ -1,10 +1,9 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/main/SSDP.UPnP.Netstandard/SSDP.UPnP.Netstandard.csproj" />
-    <Project Path="src/interfaces/ISSDP.UPnP.Netstandard/ISSDP.UPnP.Netstandard.csproj" />
+    <Project Path="src/SSDP.UPnP.PCL/SSDP.UPnP.PCL.csproj" />
   </Folder>
   <Folder Name="/samples/">
-    <Project Path="src/test/Console.NETCore.Test/Console.NETCore.Test.csproj" />
-    <Project Path="src/test/Console.Device.NETCore/Console.Device.NETCore.csproj" />
+    <Project Path="samples/Sample.ControlPoint/Sample.ControlPoint.csproj" />
+    <Project Path="samples/Sample.Device/Sample.Device.csproj" />
   </Folder>
 </Solution>
