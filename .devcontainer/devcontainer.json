@@ -1,0 +1,68 @@
+{
+	"name": "C# (.NET)",
+	"image": "mcr.microsoft.com/devcontainers/dotnet:2-10.0-noble",
+	// Run as root so AI tools have full access
+	"remoteUser": "root",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	"features": {
+		"ghcr.io/devcontainers/features/dotnet:2": {},
+		"ghcr.io/devcontainers/features/node:2": {
+			"version": "lts"
+		}
+	},
+	// Named volumes so AI tool state (auth, config, history) survives container rebuilds
+	"mounts": [
+		"source=vscode-server-${localWorkspaceFolderBasename},target=/root/.vscode-server,type=volume",
+		"source=codex-home-${localWorkspaceFolderBasename},target=/root/.codex,type=volume",
+		"source=claude-home-${localWorkspaceFolderBasename},target=/root/.claude,type=volume",
+		"source=copilot-home-${localWorkspaceFolderBasename},target=/root/.copilot,type=volume"
+	],
+	// Static paths inside the container (containerEnv does not support ${localEnv:...})
+	"containerEnv": {
+		"CODEX_HOME": "/root/.codex",
+		"CLAUDE_CONFIG_DIR": "/root/.claude",
+		"COPILOT_HOME": "/root/.copilot"
+	},
+	// API keys pulled from your host shell environment at connect time
+	"remoteEnv": {
+		"ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}",
+		"OPENAI_API_KEY": "${localEnv:OPENAI_API_KEY}"
+	},
+	"forwardPorts": [
+		5000,
+		5001
+	],
+	"portsAttributes": {
+		"5001": {
+			"protocol": "https"
+		}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				// C# tooling
+				"ms-dotnettools.csdevkit",
+				"ms-dotnettools.csharp",
+				"ms-dotnettools.vscode-dotnet-runtime",
+				// AI tools
+				"anthropic.claude-code",
+				"openai.chatgpt",
+				"GitHub.copilot",
+				"GitHub.copilot-chat"
+			],
+			"settings": {
+				"claudeCode.initialPermissionMode": "bypassPermissions",
+				"claudeCode.preferredLocation": "sidebar",
+				"github.copilot.enable": {
+					"*": true
+				},
+				"terminal.integrated.defaultProfile.linux": "bash",
+				"files.insertFinalNewline": true,
+				"editor.rulers": [
+					120
+				]
+			}
+		}
+	},
+	"postCreateCommand": "bash .devcontainer/post-create.sh"
+}
