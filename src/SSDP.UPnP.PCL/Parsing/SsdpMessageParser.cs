@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Globalization;
 using SimpleHttpListener.Rx.Model;
 using SSDP.UPnP.PCL.Model;
@@ -8,26 +9,37 @@ namespace SSDP.UPnP.PCL.Parsing;
 /// Pure functions that turn parsed HTTP messages (from SimpleHttpListener.Rx)
 /// into typed SSDP messages. No function in this class has side effects.
 /// </summary>
+/// <remarks>
+/// Header dictionaries are expected to be case-insensitive, as produced by
+/// SimpleHttpListener.Rx.
+/// <para>
+/// Leniency policy: requests are parsed strictly (a request with an invalid ST is
+/// useless to a device and fails), while responses and notifications are parsed
+/// leniently (real-world devices send malformed headers; fields that cannot be
+/// parsed are left unset) — except that a response in which <em>neither</em> ST
+/// nor USN can be parsed is rejected, since it identifies nothing.
+/// </para>
+/// </remarks>
 public static class SsdpMessageParser
 {
-    private static readonly string[] MSearchRequestStandardHeaders =
-    [
+    private static readonly FrozenSet<string> MSearchRequestStandardHeaders = new[]
+    {
         "HOST", "CACHE-CONTROL", "MAN", "MX", "ST", "USER-AGENT",
         "CPFN.UPNP.ORG", "CPUUID.UPNP.ORG", "TCPPORT.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
-    ];
+    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
-    private static readonly string[] MSearchResponseStandardHeaders =
-    [
+    private static readonly FrozenSet<string> MSearchResponseStandardHeaders = new[]
+    {
         "HOST", "CACHE-CONTROL", "LOCATION", "DATE", "EXT", "SERVER", "ST", "USN",
         "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG", "SEARCHPORT.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
-    ];
+    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
-    private static readonly string[] NotifyStandardHeaders =
-    [
+    private static readonly FrozenSet<string> NotifyStandardHeaders = new[]
+    {
         "HOST", "CACHE-CONTROL", "LOCATION", "NT", "NTS", "SERVER", "USN",
         "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG",
         "SEARCHPORT.UPNP.ORG", "NEXTBOOTID.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
-    ];
+    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Parses a received M-SEARCH request message.
@@ -61,7 +73,9 @@ public static class SsdpMessageParser
     }
 
     /// <summary>
-    /// Parses a received M-SEARCH response message.
+    /// Parses a received M-SEARCH response message. Lenient: unparsable ST or USN
+    /// headers are left unset — but a response where neither can be parsed fails,
+    /// since it identifies nothing.
     /// </summary>
     /// <param name="response">A message with <see cref="MessageType.Response"/>.</param>
     /// <returns>The parsed response, or a failure describing the problem.</returns>
@@ -69,6 +83,12 @@ public static class SsdpMessageParser
     {
         var st = ST.Parse(GetHeaderValue(response.Headers, "ST"));
         var usn = USN.Parse(GetHeaderValue(response.Headers, "USN"));
+
+        if (!st.IsSuccess && !usn.IsSuccess)
+        {
+            return ParseResult<MSearchResponse>.Failure(
+                $"Neither ST nor USN could be parsed. ST: {st.Error} USN: {usn.Error}");
+        }
 
         return ParseResult<MSearchResponse>.Success(new MSearchResponse
         {
@@ -94,7 +114,8 @@ public static class SsdpMessageParser
     }
 
     /// <summary>
-    /// Parses a received NOTIFY request message.
+    /// Parses a received NOTIFY request message. Lenient: unparsable fields (e.g. a
+    /// malformed USN) are left unset rather than failing the whole message.
     /// </summary>
     /// <param name="request">A message with <see cref="MessageType.Request"/> and method <c>NOTIFY</c>.</param>
     /// <returns>The parsed notification, or a failure describing the problem.</returns>
@@ -209,7 +230,7 @@ public static class SsdpMessageParser
             : DateTimeOffset.MinValue;
 
     internal static string? GetHeaderValue(IReadOnlyDictionary<string, string> headers, string key) =>
-        headers.TryGetValue(key.ToUpperInvariant(), out var value) ? value : null;
+        headers.TryGetValue(key, out var value) ? value : null;
 
     private static TransportType ToTransportType(HttpTransport transport) => transport switch
     {
@@ -220,13 +241,21 @@ public static class SsdpMessageParser
 
     private static IReadOnlyDictionary<string, string> AdditionalHeaders(
         IReadOnlyDictionary<string, string> headers,
-        string[] standardHeaders)
+        FrozenSet<string> standardHeaders)
     {
-        var defaults = new HashSet<string>(standardHeaders, StringComparer.OrdinalIgnoreCase);
+        List<KeyValuePair<string, string>>? extras = null;
 
-        return headers
-            .Where(header => !defaults.Contains(header.Key))
-            .ToDictionary(header => header.Key, header => header.Value, StringComparer.OrdinalIgnoreCase);
+        foreach (var header in headers)
+        {
+            if (!standardHeaders.Contains(header.Key))
+            {
+                (extras ??= []).Add(header);
+            }
+        }
+
+        return extras is null
+            ? FrozenDictionary<string, string>.Empty
+            : new Dictionary<string, string>(extras, StringComparer.OrdinalIgnoreCase);
     }
 
     private static int ParseIntOr(string? value, int fallback) =>

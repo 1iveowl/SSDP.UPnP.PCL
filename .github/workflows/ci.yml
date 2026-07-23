@@ -19,22 +19,6 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      # Interim step while SimpleHttpListener.Rx 7.x and HttpMachine.PCL 6.x
-      # complete NuGet validation: pack them from source into the local feed.
-      # Remove this step (and the local-feed source in nuget.config) once both
-      # packages are indexed on nuget.org.
-      - name: Bootstrap local package feed
-        run: |
-          mkdir -p local-feed
-          git clone --depth 1 https://github.com/1iveowl/HttpMachine.PCL external/HttpMachine.PCL
-          sed -i 's|<AssemblyName>HttpMachine</AssemblyName>|<AssemblyName>HttpMachine</AssemblyName>\n    <PackageId>HttpMachine.PCL</PackageId>|' \
-            external/HttpMachine.PCL/src/main/HttpMachine.netstandard/HttpMachine.netstandard.csproj
-          dotnet pack external/HttpMachine.PCL/src/interface/IHttpMachine/IHttpMachine.csproj -c Release -o local-feed
-          dotnet pack external/HttpMachine.PCL/src/main/HttpMachine.netstandard/HttpMachine.netstandard.csproj -c Release -o local-feed
-          git clone --depth 1 https://github.com/1iveowl/SimpleHttpListener.Rx external/SimpleHttpListener.Rx
-          dotnet pack external/SimpleHttpListener.Rx/src/SimpleHttpListener.Rx/SimpleHttpListener.Rx.csproj -c Release -o local-feed \
-            -p:RestoreAdditionalProjectSources=${{ github.workspace }}/local-feed
-
       - name: Restore
         run: dotnet restore SSDP.UPnP.PCL.slnx
 

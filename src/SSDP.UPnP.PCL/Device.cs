@@ -14,9 +14,16 @@ namespace SSDP.UPnP.PCL;
 /// <summary>
 /// An SSDP device: advertises a root device (and its embedded devices and
 /// services) with NOTIFY messages and answers M-SEARCH requests with unicast
-/// responses. Supports multi-homed operation by advertising on several
-/// interfaces at once.
+/// responses, following the UDA 2.0 advertisement matrix (three messages for the
+/// root device, two per embedded device, one per service). Supports multi-homed
+/// operation by advertising on several interfaces at once.
 /// </summary>
+/// <remarks>
+/// Advertisement sending is best-effort: a failed send is logged (see
+/// <see cref="Logger"/>) and does not stop the device or abort the batch. Call
+/// <see cref="ByeByeAsync"/> before disposing for a clean exit — <see cref="Dispose"/>
+/// only closes resources and does not notify the network.
+/// </remarks>
 public class Device : IDevice
 {
     // Per UDA 2.0 the response delay must be spread over the M-SEARCH MX value,
@@ -25,20 +32,24 @@ public class Device : IDevice
 
     private readonly BehaviorSubject<DeviceActivity> _deviceActivitySubject = new(DeviceActivity.Initialized);
 
-    private readonly List<RootDeviceInterface> _rootDeviceInterfaces;
+    // Snapshot-swapped, never mutated in place: readers take a local copy, and
+    // UpdateAsync/start stamping publish a fresh array (see UpdateAsync).
+    private volatile RootDeviceInterface[] _rootDeviceInterfaces;
 
     private readonly bool _isClientsProvided;
 
     private IDisposable? _requestSubscription;
 
+    private CancellationToken _listenerCt;
+
     private bool _skipAlive;
 
-    /// <summary>Optional logger for diagnostics.</summary>
+    /// <summary>Optional logger for diagnostics and best-effort send failures.</summary>
     public ILogger? Logger { get; set; }
 
     /// <summary>
-    /// The time source used for DATE headers and BOOTID updates; replace with a
-    /// fake in tests.
+    /// The time source used for DATE headers, BOOTID stamping and protocol delays;
+    /// replace with a fake in tests.
     /// </summary>
     public TimeProvider TimeProvider { get; set; } = TimeProvider.System;
 
@@ -48,7 +59,7 @@ public class Device : IDevice
     /// <inheritdoc />
     public bool IsStarted { get; private set; }
 
-    private Device(List<RootDeviceInterface> rootDeviceInterfaces, bool isClientsProvided)
+    private Device(RootDeviceInterface[] rootDeviceInterfaces, bool isClientsProvided)
     {
         _rootDeviceInterfaces = rootDeviceInterfaces;
         _isClientsProvided = isClientsProvided;
@@ -77,7 +88,7 @@ public class Device : IDevice
     {
     }
 
-    private static List<RootDeviceInterface> CreateInterfaces(RootDeviceConfiguration rootDeviceConfiguration)
+    private static RootDeviceInterface[] CreateInterfaces(RootDeviceConfiguration rootDeviceConfiguration)
     {
         if (rootDeviceConfiguration?.IpEndPoint is null)
         {
@@ -122,7 +133,7 @@ public class Device : IDevice
         ];
     }
 
-    private static List<RootDeviceInterface> DeriveEndPoints(RootDeviceInterface[] rootDeviceInterfaces)
+    private static RootDeviceInterface[] DeriveEndPoints(RootDeviceInterface[] rootDeviceInterfaces)
     {
         if (rootDeviceInterfaces is null || rootDeviceInterfaces.Length == 0)
         {
@@ -137,7 +148,7 @@ public class Device : IDevice
                     IpEndPoint = rootDeviceInterface.UdpUnicastClient.Client.LocalEndPoint as IPEndPoint
                 }
             })
-            .ToList();
+            .ToArray();
     }
 
     internal Task HotStartAsync(IObservable<HttpRequestResponse> httpListenerObservable, bool skipAlive)
@@ -148,15 +159,19 @@ public class Device : IDevice
     }
 
     /// <inheritdoc />
+    /// <exception cref="SSDPException">The device is already started.</exception>
     public Task HotStartAsync(IObservable<HttpRequestResponse> httpListenerObservable) =>
-        StartCoreAsync(httpListenerObservable);
+        StartCoreAsync(httpListenerObservable, CancellationToken.None);
 
     /// <inheritdoc />
+    /// <exception cref="SSDPException">The device is already started.</exception>
     public Task StartAsync(CancellationToken ct)
     {
+        var interfaces = _rootDeviceInterfaces;
+
         var listenerObservables = new List<IObservable<HttpRequestResponse>>();
 
-        foreach (var rootDevice in _rootDeviceInterfaces)
+        foreach (var rootDevice in interfaces)
         {
             listenerObservables.Add(
                 rootDevice.UdpMulticastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError));
@@ -168,11 +183,29 @@ public class Device : IDevice
             }
         }
 
-        return StartCoreAsync(listenerObservables.Merge().Publish().RefCount());
+        return StartCoreAsync(listenerObservables.Merge().Publish().RefCount(), ct);
     }
 
-    private async Task StartCoreAsync(IObservable<HttpRequestResponse> httpListenerObservable)
+    private async Task StartCoreAsync(IObservable<HttpRequestResponse> httpListenerObservable, CancellationToken ct)
     {
+        if (IsStarted)
+        {
+            throw new SSDPException("Device is already started.");
+        }
+
+        _listenerCt = ct;
+
+        // Stamp unset BOOTIDs (0) with the current Unix time, per UDA 2.0
+        // section 1.2.2. Explicitly configured values are preserved.
+        var now = (uint)TimeProvider.GetUtcNow().ToUnixTimeSeconds();
+
+        _rootDeviceInterfaces = _rootDeviceInterfaces
+            .Select(rootDeviceInterface => rootDeviceInterface with
+            {
+                RootDeviceConfiguration = WithStampedBootIds(rootDeviceInterface.RootDeviceConfiguration, now)
+            })
+            .ToArray();
+
         _requestSubscription = httpListenerObservable
             .Where(x => x.MessageType == MessageType.Request)
             .Where(req => req.Method == "M-SEARCH")
@@ -180,7 +213,6 @@ public class Device : IDevice
             .Where(result => result.IsSuccess)
             .Select(result => result.Value!)
             .SelectMany(RespondAsync)
-            .FinallyAsync(SendByeByeAsync)
             .Subscribe(
                 _ => { },
                 ex => Logger?.LogError(ex, "SSDP device listener terminated unexpectedly."));
@@ -189,86 +221,128 @@ public class Device : IDevice
 
         if (!_skipAlive)
         {
-            await SendAliveAsync();
+            await SendAliveAsync(ct);
         }
     }
 
+    private static RootDeviceConfiguration WithStampedBootIds(RootDeviceConfiguration root, uint now) =>
+        root with
+        {
+            BOOTID = root.BOOTID == 0 ? now : root.BOOTID,
+            EmbeddedDevices = root.EmbeddedDevices
+                .Select(device => device with { BOOTID = device.BOOTID == 0 ? now : device.BOOTID })
+                .ToList()
+        };
+
+    // Answers one M-SEARCH request. Never throws: request handling failures are
+    // logged and must not terminate the listener pipeline (a dead pipeline would
+    // silently stop the device answering all future searches).
     private async Task<MSearchRequest> RespondAsync(MSearchRequest request)
     {
-        var rootDeviceInterface = _rootDeviceInterfaces
-            .FirstOrDefault(i => i.IsMatchingInterface(request.LocalIpEndPoint));
-
-        if (rootDeviceInterface is null || request.RemoteIpEndPoint is null)
+        try
         {
-            return request;
+            var interfaces = _rootDeviceInterfaces;
+
+            var rootDeviceInterface = interfaces
+                .FirstOrDefault(i => i.IsMatchingInterface(request.LocalIpEndPoint));
+
+            if (rootDeviceInterface is null || request.RemoteIpEndPoint is null)
+            {
+                return request;
+            }
+
+            _deviceActivitySubject.OnNext(DeviceActivity.Responding);
+
+            var searchPort = (rootDeviceInterface.UdpUnicastClient.Client.LocalEndPoint as IPEndPoint)?.Port;
+
+            var responses = SearchMatcher.BuildResponses(
+                rootDeviceInterface.RootDeviceConfiguration,
+                request,
+                TimeProvider.GetUtcNow(),
+                searchPort);
+
+            // Each response message is delayed independently over the MX window
+            // (UDA 2.0 section 1.3.3) and sent concurrently.
+            await Task.WhenAll(responses.Select(response =>
+                SendResponseAsync(rootDeviceInterface, response, request.MX)));
         }
-
-        _deviceActivitySubject.OnNext(DeviceActivity.Responding);
-
-        // Spread the response over the MX window (UDA 2.0 section 1.3.3). Unicast
-        // requests carry no MX and are answered immediately.
-        if (request.MX > TimeSpan.Zero)
+        catch (Exception ex)
         {
-            var window = request.MX < MaxResponseDelay ? request.MX : MaxResponseDelay;
-
-            await Task.Delay(
-                TimeSpan.FromMilliseconds(Random.Shared.NextDouble() * window.TotalMilliseconds),
-                TimeProvider);
-        }
-
-        var searchPort = (rootDeviceInterface.UdpUnicastClient.Client.LocalEndPoint as IPEndPoint)?.Port;
-
-        var responses = SearchMatcher.BuildResponses(
-            rootDeviceInterface.RootDeviceConfiguration,
-            request,
-            TimeProvider.GetUtcNow(),
-            searchPort);
-
-        foreach (var response in responses)
-        {
-            var datagram = DatagramComposer.ComposeMSearchResponse(response);
-
-            await rootDeviceInterface.UdpUnicastClient.SendAsync(datagram, datagram.Length, response.RemoteIpEndPoint);
+            Logger?.LogError(ex, "Failed to respond to an M-SEARCH request.");
         }
 
         return request;
     }
 
-    /// <inheritdoc />
-    public async Task UpdateAsync()
+    private async Task SendResponseAsync(
+        RootDeviceInterface rootDeviceInterface,
+        MSearchResponse response,
+        TimeSpan mx)
     {
+        try
+        {
+            // Unicast requests carry no MX and are answered immediately.
+            if (mx > TimeSpan.Zero)
+            {
+                var window = mx < MaxResponseDelay ? mx : MaxResponseDelay;
+
+                await Task.Delay(
+                    TimeSpan.FromMilliseconds(Random.Shared.NextDouble() * window.TotalMilliseconds),
+                    TimeProvider,
+                    _listenerCt);
+            }
+
+            var datagram = DatagramComposer.ComposeMSearchResponse(response);
+
+            await rootDeviceInterface.UdpUnicastClient.SendAsync(datagram, response.RemoteIpEndPoint, _listenerCt);
+        }
+        catch (OperationCanceledException)
+        {
+            // Listener stopped while a response was pending — nothing to do.
+        }
+        catch (Exception ex)
+        {
+            Logger?.LogError(ex, "Failed to send an M-SEARCH response to {RemoteEndPoint}.", response.RemoteIpEndPoint);
+        }
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Sends are best-effort: individual failures are logged and the BOOTID advance
+    /// still takes effect, so the device's state stays consistent.
+    /// </remarks>
+    public async Task UpdateAsync(CancellationToken ct = default)
+    {
+        var interfaces = _rootDeviceInterfaces;
         var nextBootId = (uint)TimeProvider.GetUtcNow().ToUnixTimeSeconds();
 
-        for (var i = 0; i < _rootDeviceInterfaces.Count; i++)
+        var updated = new RootDeviceInterface[interfaces.Length];
+
+        for (var i = 0; i < interfaces.Length; i++)
         {
-            var rootDeviceInterface = _rootDeviceInterfaces[i];
+            var rootDeviceInterface = interfaces[i];
             var root = rootDeviceInterface.RootDeviceConfiguration;
             var searchPort = (rootDeviceInterface.UdpUnicastClient.Client.LocalEndPoint as IPEndPoint)?.Port;
 
-            var notifications = SearchMatcher.AllDevices(root)
-                .SelectMany(device => NotificationsFor(device, root)
-                    .Select(entity => new Notify
-                    {
-                        NotifyTransportType = TransportType.Multicast,
-                        HOST = $"{Constants.UdpSSDPMultiCastAddress}:{Constants.UdpSSDPMulticastPort}",
-                        Location = root.Location,
-                        NT = entity.ToUriString(),
-                        NTS = NTS.Update,
-                        USN = UsnFor(device, entity),
-                        BOOTID = device.BOOTID,
-                        CONFIGID = root.CONFIGID,
-                        NEXTBOOTID = nextBootId,
-                        SEARCHPORT = searchPort == Constants.UdpSSDPMulticastPort ? null : searchPort,
-                    }))
-                .ToList();
+            var notifications = SearchMatcher.AdvertisementMessages(root)
+                .Select(message => new Notify
+                {
+                    NotifyTransportType = TransportType.Multicast,
+                    HOST = $"{Constants.UdpSSDPMultiCastAddress}:{Constants.UdpSSDPMulticastPort}",
+                    Location = root.Location,
+                    NT = message.Entity.ToUriString(),
+                    NTS = NTS.Update,
+                    USN = UsnFor(message.Owner, message.Entity),
+                    BOOTID = message.Owner.BOOTID,
+                    CONFIGID = root.CONFIGID,
+                    NEXTBOOTID = nextBootId,
+                    SEARCHPORT = searchPort == Constants.UdpSSDPMulticastPort ? null : searchPort,
+                });
 
-            foreach (var notify in notifications)
-            {
-                await SendNotifyAsync(rootDeviceInterface, notify);
-            }
+            await SendNotificationsAsync(rootDeviceInterface, notifications, ct);
 
             // Non-destructively advance every device's BOOTID (UDA 2.0 section 1.2.4).
-            _rootDeviceInterfaces[i] = rootDeviceInterface with
+            updated[i] = rootDeviceInterface with
             {
                 RootDeviceConfiguration = root with
                 {
@@ -279,101 +353,117 @@ public class Device : IDevice
                 }
             };
         }
+
+        _rootDeviceInterfaces = updated;
     }
 
     /// <inheritdoc />
-    public async Task ByeByeAsync()
+    /// <remarks>
+    /// Must be called before <see cref="Dispose"/> for a clean exit; disposing alone
+    /// does not notify the network. Sends are best-effort: individual failures are
+    /// logged and do not abort the batch.
+    /// </remarks>
+    public async Task ByeByeAsync(CancellationToken ct = default)
     {
-        await SendByeByeAsync();
+        foreach (var rootDeviceInterface in _rootDeviceInterfaces)
+        {
+            var root = rootDeviceInterface.RootDeviceConfiguration;
+
+            var notifications = SearchMatcher.AdvertisementMessages(root)
+                .Select(message => new Notify
+                {
+                    NotifyTransportType = TransportType.Multicast,
+                    HOST = $"{Constants.UdpSSDPMultiCastAddress}:{Constants.UdpSSDPMulticastPort}",
+                    NT = message.Entity.ToUriString(),
+                    NTS = NTS.ByeBye,
+                    USN = UsnFor(message.Owner, message.Entity),
+                    BOOTID = message.Owner.BOOTID,
+                    CONFIGID = root.CONFIGID,
+                });
+
+            await SendNotificationsAsync(rootDeviceInterface, notifications, ct);
+        }
     }
 
-    private async Task SendAliveAsync()
+    private async Task SendAliveAsync(CancellationToken ct)
     {
         foreach (var rootDeviceInterface in _rootDeviceInterfaces)
         {
             var root = rootDeviceInterface.RootDeviceConfiguration;
             var searchPort = (rootDeviceInterface.UdpUnicastClient.Client.LocalEndPoint as IPEndPoint)?.Port;
 
-            var notifications = SearchMatcher.AllDevices(root)
-                .SelectMany(device => NotificationsFor(device, root)
-                    .Select(entity => new Notify
-                    {
-                        NotifyTransportType = TransportType.Multicast,
-                        HOST = $"{Constants.UdpSSDPMultiCastAddress}:{Constants.UdpSSDPMulticastPort}",
-                        CacheControl = root.CacheControl,
-                        Location = root.Location,
-                        NT = entity.ToUriString(),
-                        NTS = NTS.Alive,
-                        Server = root.Server,
-                        USN = UsnFor(device, entity),
-                        BOOTID = device.BOOTID,
-                        CONFIGID = root.CONFIGID,
-                        SEARCHPORT = searchPort == Constants.UdpSSDPMulticastPort ? null : searchPort,
-                        SECURELOCATION = root.SecureLocation?.AbsoluteUri,
-                    }));
+            var notifications = SearchMatcher.AdvertisementMessages(root)
+                .Select(message => new Notify
+                {
+                    NotifyTransportType = TransportType.Multicast,
+                    HOST = $"{Constants.UdpSSDPMultiCastAddress}:{Constants.UdpSSDPMulticastPort}",
+                    CacheControl = root.CacheControl,
+                    Location = root.Location,
+                    NT = message.Entity.ToUriString(),
+                    NTS = NTS.Alive,
+                    Server = root.Server,
+                    USN = UsnFor(message.Owner, message.Entity),
+                    BOOTID = message.Owner.BOOTID,
+                    CONFIGID = root.CONFIGID,
+                    SEARCHPORT = searchPort == Constants.UdpSSDPMulticastPort ? null : searchPort,
+                    SECURELOCATION = root.SecureLocation?.AbsoluteUri,
+                });
 
-            foreach (var notify in notifications)
-            {
-                await SendNotifyAsync(rootDeviceInterface, notify);
-            }
+            await SendNotificationsAsync(rootDeviceInterface, notifications, ct);
         }
     }
 
-    private async Task SendByeByeAsync()
-    {
-        foreach (var rootDeviceInterface in _rootDeviceInterfaces)
-        {
-            var root = rootDeviceInterface.RootDeviceConfiguration;
-
-            var notifications = SearchMatcher.AllDevices(root)
-                .SelectMany(device => NotificationsFor(device, root)
-                    .Select(entity => new Notify
-                    {
-                        NotifyTransportType = TransportType.Multicast,
-                        HOST = $"{Constants.UdpSSDPMultiCastAddress}:{Constants.UdpSSDPMulticastPort}",
-                        NT = entity.ToUriString(),
-                        NTS = NTS.ByeBye,
-                        USN = UsnFor(device, entity),
-                        BOOTID = device.BOOTID,
-                        CONFIGID = root.CONFIGID,
-                    }));
-
-            foreach (var notify in notifications)
-            {
-                await SendNotifyAsync(rootDeviceInterface, notify);
-            }
-        }
-    }
-
-    // The entities a device advertises: itself, then its services.
-    private static IEnumerable<Entity> NotificationsFor(DeviceConfiguration device, RootDeviceConfiguration root) =>
-        new Entity[] { device }.Concat(device.Services);
-
-    private static USN UsnFor(DeviceConfiguration device, Entity entity) => new()
+    private static USN UsnFor(DeviceConfiguration owner, Entity entity) => new()
     {
         EntityType = entity.EntityType,
         TypeName = entity.TypeName,
         Domain = entity.Domain,
         Version = entity.Version,
-        DeviceUUID = device.DeviceUUID
+        DeviceUUID = owner.DeviceUUID
     };
 
     /// <inheritdoc />
     /// <exception cref="SSDPException"><paramref name="ipEndPoint"/> is not one of this device's interfaces.</exception>
-    public async Task SendNotifyAsync(Notify notify, IPEndPoint ipEndPoint)
+    public async Task SendNotifyAsync(Notify notify, IPEndPoint ipEndPoint, CancellationToken ct = default)
     {
         var rootDeviceInterface = _rootDeviceInterfaces.FirstOrDefault(i => i.IsMatchingInterface(ipEndPoint))
             ?? throw new SSDPException($"End Point not available: {ipEndPoint.Address}:{ipEndPoint.Port}");
 
-        await SendNotifyAsync(rootDeviceInterface, notify);
+        _deviceActivitySubject.OnNext(DeviceActivity.Notifying);
+
+        await SendNotifyCoreAsync(rootDeviceInterface, notify, ct);
     }
 
-    private async Task SendNotifyAsync(RootDeviceInterface rootDeviceInterface, Notify notify)
+    // Sends a batch of NOTIFY messages concurrently — each message keeps its own
+    // spec-mandated jitter and triple-send cadence, but different messages are not
+    // serialized against each other. Individual failures are logged, not thrown.
+    private async Task SendNotificationsAsync(
+        RootDeviceInterface rootDeviceInterface,
+        IEnumerable<Notify> notifications,
+        CancellationToken ct)
     {
         _deviceActivitySubject.OnNext(DeviceActivity.Notifying);
 
+        await Task.WhenAll(notifications.Select(async notify =>
+        {
+            try
+            {
+                await SendNotifyCoreAsync(rootDeviceInterface, notify, ct);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception ex)
+            {
+                Logger?.LogError(ex, "Failed to send a NOTIFY ({NTS}) message.", notify.NTS);
+            }
+        }));
+    }
+
+    private async Task SendNotifyCoreAsync(RootDeviceInterface rootDeviceInterface, Notify notify, CancellationToken ct)
+    {
         // Insert random delay according to UPnP 2.0 spec. section 1.2.1 (page 27).
-        await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.Next(50, 100)), TimeProvider);
+        await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.Next(50, 100)), TimeProvider, ct);
 
         var datagram = DatagramComposer.ComposeNotify(notify);
 
@@ -381,17 +471,18 @@ public class Device : IDevice
         for (var i = 0; i < 3; i++)
         {
             await rootDeviceInterface.UdpMulticastClient
-                .SendAsync(datagram, datagram.Length, Constants.UdpSSDPMultiCastAddress, Constants.UdpSSDPMulticastPort);
+                .SendAsync(datagram, Constants.UdpSSDPMultiCastAddress, Constants.UdpSSDPMulticastPort, ct);
 
             // Random delay between resends of 200 - 400 milliseconds.
-            await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.Next(200, 400)), TimeProvider);
+            await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.Next(200, 400)), TimeProvider, ct);
         }
     }
 
     /// <summary>
     /// Stops listening and closes the sockets this device created. Sockets supplied
     /// through the prepared-interface constructor are left open, since the caller
-    /// owns them.
+    /// owns them. Does not send <c>ssdp:byebye</c> — call <see cref="ByeByeAsync"/>
+    /// first for a clean exit.
     /// </summary>
     public void Dispose()
     {

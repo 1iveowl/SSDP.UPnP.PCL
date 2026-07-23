@@ -63,6 +63,36 @@ public class ControlPointTests
     }
 
     [Fact]
+    public void HotStart_Twice_Throws()
+    {
+        var subject = new Subject<HttpRequestResponse>();
+        using var controlPoint = HotStartedControlPoint(subject);
+
+        Assert.Throws<SSDPException>(() => controlPoint.HotStart(subject));
+    }
+
+    [Fact]
+    public void ParsedStreams_AreSharedAcrossCalls()
+    {
+        var subject = new Subject<HttpRequestResponse>();
+        using var controlPoint = HotStartedControlPoint(subject);
+
+        var firstStream = new List<Notify>();
+        var secondStream = new List<Notify>();
+
+        using var first = controlPoint.NotifyObservable().Subscribe(firstStream.Add);
+        using var second = controlPoint.NotifyObservable().Subscribe(secondStream.Add);
+
+        subject.OnNext(NotifyMessage("ssdp:alive"));
+
+        var a = Assert.Single(firstStream);
+        var b = Assert.Single(secondStream);
+
+        // One parse, one record instance, delivered to both subscribers.
+        Assert.Same(a, b);
+    }
+
+    [Fact]
     public void NotifyObservable_EmitsAliveByeByeAndUpdate()
     {
         var subject = new Subject<HttpRequestResponse>();
@@ -122,6 +152,6 @@ public class ControlPointTests
         var request = new MSearchRequest { ST = new ST { StSearchType = STType.All } };
 
         await Assert.ThrowsAsync<SSDPException>(
-            () => controlPoint.SendMSearchAsync(request, IPAddress.Parse("10.99.99.99")));
+            () => controlPoint.SendMSearchAsync(request, IPAddress.Parse("10.99.99.99"), TestContext.Current.CancellationToken));
     }
 }

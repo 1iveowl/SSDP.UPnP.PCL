@@ -9,7 +9,6 @@ public class SearchMatcherTests
 {
     private static readonly RootDeviceConfiguration Root = new()
     {
-        EntityType = EntityType.RootDevice,
         DeviceUUID = "root-uuid",
         TypeName = "RootDevice",
         Version = 2,
@@ -20,21 +19,20 @@ public class SearchMatcherTests
         IpEndPoint = new IPEndPoint(IPAddress.Parse("192.168.0.10"), 1901),
         Services =
         [
-            new ServiceConfiguration { EntityType = EntityType.ServiceType, TypeName = "RootService", Version = 1 },
-            new ServiceConfiguration { EntityType = EntityType.DomainService, Domain = "domain-org", TypeName = "DomainService", Version = 2 }
+            new ServiceConfiguration { TypeName = "RootService", Version = 1 },
+            new ServiceConfiguration { Domain = "domain-org", TypeName = "DomainService", Version = 2 }
         ],
         EmbeddedDevices =
         [
             new DeviceConfiguration
             {
-                EntityType = EntityType.Device,
                 DeviceUUID = "embedded-uuid",
                 TypeName = "EmbeddedDevice",
                 Version = 3,
                 BOOTID = 200,
                 Services =
                 [
-                    new ServiceConfiguration { EntityType = EntityType.ServiceType, TypeName = "EmbeddedService", Version = 1 }
+                    new ServiceConfiguration { TypeName = "EmbeddedService", Version = 1 }
                 ]
             }
         ]
@@ -44,36 +42,73 @@ public class SearchMatcherTests
         new() { StSearchType = type, TypeName = typeName, Version = version, Domain = domain, DeviceUUID = uuid };
 
     [Fact]
-    public void All_ReturnsEveryDeviceAndService()
+    public void AdvertisementMessages_FollowUdaMatrix()
     {
-        var entities = SearchMatcher.MatchingEntities(Root, Search(STType.All)).ToList();
+        var messages = SearchMatcher.AdvertisementMessages(Root).ToList();
 
-        // 2 devices (root + embedded) + 3 services.
-        Assert.Equal(5, entities.Count);
+        // 3 for the root device + 2 for the embedded device + 3 services.
+        Assert.Equal(8, messages.Count);
+
+        var uris = messages.Select(message => message.Entity.ToUriString()).ToList();
+
+        Assert.Equal(
+        [
+            "upnp:rootdevice",
+            "uuid:root-uuid",
+            "urn:schemas-upnp-org:device:RootDevice:2",
+            "uuid:embedded-uuid",
+            "urn:schemas-upnp-org:device:EmbeddedDevice:3",
+            "urn:schemas-upnp-org:service:EmbeddedService:1",
+            "urn:schemas-upnp-org:service:RootService:1",
+            "urn:domain-org:service:DomainService:2"
+        ], uris);
     }
 
     [Fact]
-    public void RootDeviceSearch_ReturnsRootOnly()
+    public void AdvertisementMessages_DeriveDomainForms()
     {
-        var entities = SearchMatcher.MatchingEntities(Root, Search(STType.RootDeviceSearch)).ToList();
+        var domainRoot = Root with { Domain = "acme-com" };
 
-        var entity = Assert.Single(entities);
-        Assert.Same(Root, entity);
+        var deviceTypeMessage = SearchMatcher.AdvertisementMessages(domainRoot)
+            .Single(message => message.Entity.EntityType is EntityType.DeviceType or EntityType.DomainDevice
+                               && message.Owner.DeviceUUID == "root-uuid");
+
+        Assert.Equal(EntityType.DomainDevice, deviceTypeMessage.Entity.EntityType);
+        Assert.Equal("urn:acme-com:device:RootDevice:2", deviceTypeMessage.Entity.ToUriString());
     }
 
     [Fact]
-    public void UuidSearch_FindsEmbeddedDevice()
+    public void All_ReturnsFullMatrix()
     {
-        var entities = SearchMatcher.MatchingEntities(Root, Search(STType.UuidSearch, uuid: "embedded-uuid")).ToList();
+        Assert.Equal(8, SearchMatcher.MatchingMessages(Root, Search(STType.All)).Count());
+    }
 
-        var entity = Assert.Single(entities);
-        Assert.Equal("embedded-uuid", entity.DeviceUUID);
+    [Fact]
+    public void RootDeviceSearch_ReturnsRootMessageOnly()
+    {
+        var messages = SearchMatcher.MatchingMessages(Root, Search(STType.RootDeviceSearch)).ToList();
+
+        var message = Assert.Single(messages);
+        Assert.Equal(EntityType.RootDevice, message.Entity.EntityType);
+        Assert.Equal("root-uuid", message.Owner.DeviceUUID);
+    }
+
+    [Theory]
+    [InlineData("root-uuid")]
+    [InlineData("embedded-uuid")]
+    public void UuidSearch_FindsTheDevice(string uuid)
+    {
+        var messages = SearchMatcher.MatchingMessages(Root, Search(STType.UuidSearch, uuid: uuid)).ToList();
+
+        var message = Assert.Single(messages);
+        Assert.Equal(EntityType.Device, message.Entity.EntityType);
+        Assert.Equal(uuid, message.Owner.DeviceUUID);
     }
 
     [Fact]
     public void UuidSearch_UnknownUuid_ReturnsNothing()
     {
-        Assert.Empty(SearchMatcher.MatchingEntities(Root, Search(STType.UuidSearch, uuid: "nope")));
+        Assert.Empty(SearchMatcher.MatchingMessages(Root, Search(STType.UuidSearch, uuid: "nope")));
     }
 
     [Theory]
@@ -82,57 +117,79 @@ public class SearchMatcherTests
     [InlineData(4, false)] // future version is not supported
     public void DeviceTypeSearch_HonorsVersionBackwardsCompatibility(int searchVersion, bool expectMatch)
     {
-        var entities = SearchMatcher.MatchingEntities(
+        var messages = SearchMatcher.MatchingMessages(
             Root, Search(STType.DeviceTypeSearch, "EmbeddedDevice", searchVersion));
 
-        Assert.Equal(expectMatch, entities.Any());
+        Assert.Equal(expectMatch, messages.Any());
     }
 
     [Fact]
     public void DeviceTypeSearch_ComparesTypeName()
     {
-        Assert.Empty(SearchMatcher.MatchingEntities(Root, Search(STType.DeviceTypeSearch, "SomeOtherDevice", 1)));
+        Assert.Empty(SearchMatcher.MatchingMessages(Root, Search(STType.DeviceTypeSearch, "SomeOtherDevice", 1)));
     }
 
     [Fact]
     public void ServiceTypeSearch_DoesNotMatchDomainServices()
     {
-        Assert.Empty(SearchMatcher.MatchingEntities(Root, Search(STType.ServiceTypeSearch, "DomainService", 1)));
+        Assert.Empty(SearchMatcher.MatchingMessages(Root, Search(STType.ServiceTypeSearch, "DomainService", 1)));
     }
 
     [Fact]
     public void DomainServiceSearch_MatchesDomain()
     {
-        var entities = SearchMatcher.MatchingEntities(
+        var messages = SearchMatcher.MatchingMessages(
             Root, Search(STType.DomainServiceSearch, "DomainService", 1, domain: "domain-org")).ToList();
 
-        var entity = Assert.Single(entities);
-        Assert.Equal("DomainService", entity.TypeName);
+        var message = Assert.Single(messages);
+        Assert.Equal("DomainService", message.Entity.TypeName);
+        Assert.Equal("root-uuid", message.Owner.DeviceUUID);
     }
 
     [Fact]
     public void DomainServiceSearch_WrongDomain_ReturnsNothing()
     {
-        Assert.Empty(SearchMatcher.MatchingEntities(
+        Assert.Empty(SearchMatcher.MatchingMessages(
             Root, Search(STType.DomainServiceSearch, "DomainService", 1, domain: "other-org")));
     }
 
-    [Fact]
-    public void OwnerDevice_ForEmbeddedService_IsTheEmbeddedDevice()
+    [Theory]
+    [InlineData("RootService", "root-uuid")]
+    [InlineData("EmbeddedService", "embedded-uuid")]
+    public void ServiceMessages_CarryTheOwningDevice(string serviceType, string expectedOwnerUuid)
     {
-        var embeddedService = Root.EmbeddedDevices[0].Services[0];
+        var messages = SearchMatcher.MatchingMessages(
+            Root, Search(STType.ServiceTypeSearch, serviceType, 1)).ToList();
 
-        var owner = SearchMatcher.OwnerDevice(Root, embeddedService);
-
-        Assert.Equal("embedded-uuid", owner.DeviceUUID);
+        var message = Assert.Single(messages);
+        Assert.Equal(expectedOwnerUuid, message.Owner.DeviceUUID);
     }
 
     [Fact]
-    public void OwnerDevice_ForRootService_IsTheRoot()
+    public void ValueEqualServicesOnDifferentDevices_KeepTheirOwnOwners()
     {
-        var owner = SearchMatcher.OwnerDevice(Root, Root.Services[0]);
+        // Two field-identical service records under different devices must not be
+        // confused with each other (regression: owner lookups must never rely on
+        // record value equality).
+        var duplicated = Root with
+        {
+            Services = [new ServiceConfiguration { TypeName = "DupService", Version = 1 }],
+            EmbeddedDevices =
+            [
+                Root.EmbeddedDevices[0] with
+                {
+                    Services = [new ServiceConfiguration { TypeName = "DupService", Version = 1 }]
+                }
+            ]
+        };
 
-        Assert.Equal("root-uuid", owner.DeviceUUID);
+        var owners = SearchMatcher.MatchingMessages(duplicated, Search(STType.ServiceTypeSearch, "DupService", 1))
+            .Select(message => message.Owner.DeviceUUID)
+            .ToList();
+
+        Assert.Equal(2, owners.Count);
+        Assert.Contains("root-uuid", owners);
+        Assert.Contains("embedded-uuid", owners);
     }
 
     [Fact]

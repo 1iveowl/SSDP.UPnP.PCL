@@ -204,4 +204,51 @@ public class SsdpMessageParserTests
         Assert.Equal(DateTimeOffset.MinValue, SsdpMessageParser.ParseRfc1123Date("not a date"));
         Assert.Equal(DateTimeOffset.MinValue, SsdpMessageParser.ParseRfc1123Date(null));
     }
+
+    [Fact]
+    public void ParseMSearchResponse_GarbageStButValidUsn_IsLenient()
+    {
+        var message = Message(MessageType.Response, new Dictionary<string, string>
+        {
+            ["ST"] = "garbage",
+            ["USN"] = "uuid:device-1::upnp:rootdevice"
+        });
+
+        var result = SsdpMessageParser.ParseMSearchResponse(message);
+
+        Assert.True(result.IsSuccess);
+        Assert.Null(result.Value.ST);
+        Assert.Equal("device-1", result.Value.USN?.DeviceUUID);
+    }
+
+    [Fact]
+    public void ParseMSearchResponse_NeitherStNorUsnParsable_Fails()
+    {
+        var message = Message(MessageType.Response, new Dictionary<string, string>
+        {
+            ["ST"] = "garbage",
+            ["USN"] = "also-garbage"
+        });
+
+        var result = SsdpMessageParser.ParseMSearchResponse(message);
+
+        Assert.False(result.IsSuccess);
+    }
+
+    [Fact]
+    public void ParseNotify_GarbageUsn_IsLenient()
+    {
+        var message = Message(MessageType.Request, new Dictionary<string, string>
+        {
+            ["NT"] = "upnp:rootdevice",
+            ["NTS"] = "ssdp:alive",
+            ["USN"] = "garbage"
+        }, method: "NOTIFY");
+
+        var result = SsdpMessageParser.ParseNotify(message);
+
+        Assert.True(result.IsSuccess);
+        Assert.Null(result.Value.USN);
+        Assert.False(result.Value.IsUuidUpnp2Compliant);
+    }
 }

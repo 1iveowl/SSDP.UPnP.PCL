@@ -14,6 +14,7 @@ namespace SSDP.UPnP.PCL;
 /// An SSDP control point: sends M-SEARCH discovery requests and observes the
 /// responses and NOTIFY advertisements on the local network. Supports
 /// multi-homed operation by listening on several interfaces at once.
+/// IPv4 only.
 /// </summary>
 public class ControlPoint : IControlPoint
 {
@@ -21,27 +22,47 @@ public class ControlPoint : IControlPoint
 
     private readonly bool _isClientsProvided;
 
-    private IObservable<HttpRequestResponse>? _httpListenerObservable;
+    private IObservable<MSearchResponse>? _mSearchResponseObservable;
+
+    private IObservable<Notify>? _notifyObservable;
 
     /// <inheritdoc />
     public bool IsStarted { get; private set; }
 
     /// <summary>
-    /// Creates a control point that listens on the given local IP addresses. Each
-    /// address gets a UDP client joined to the SSDP multicast group and a TCP
+    /// Creates a control point that listens on the given local IP addresses, with
+    /// the default TCP response port (<see cref="Constants.TcpResponseListenerPort"/>).
+    /// Each address gets a UDP client joined to the SSDP multicast group and a TCP
     /// listener for unicast responses; more than one address creates a multi-homed
     /// control point.
     /// </summary>
     /// <param name="ipAddressParam">One or more local IPv4 addresses to bind.</param>
     /// <exception cref="SSDPException">No address was given, or an address could not be tied to a network interface.</exception>
     public ControlPoint(params IPAddress[] ipAddressParam)
+        : this(ipAddressParam, Constants.TcpResponseListenerPort)
     {
-        if (ipAddressParam is null || ipAddressParam.Length == 0)
+    }
+
+    /// <summary>
+    /// Creates a control point that listens on the given local IP addresses, using
+    /// <paramref name="tcpResponsePort"/> for the per-interface TCP response
+    /// listener — use distinct ports to run several control points on one host.
+    /// </summary>
+    /// <param name="ipAddresses">One or more local IPv4 addresses to bind.</param>
+    /// <param name="tcpResponsePort">The local TCP port to listen on for unicast responses.</param>
+    /// <exception cref="SSDPException">No address was given, or an address could not be tied to a network interface.</exception>
+    public ControlPoint(IEnumerable<IPAddress> ipAddresses, int tcpResponsePort)
+    {
+        var addresses = ipAddresses?.ToList();
+
+        if (addresses is null || addresses.Count == 0)
         {
             throw new SSDPException("At least one IP Address must be specified");
         }
 
-        _controlPointInterfaces = ipAddressParam.Select(CreateInterface).ToList();
+        _controlPointInterfaces = addresses
+            .Select(ipAddress => CreateInterface(ipAddress, tcpResponsePort))
+            .ToList();
     }
 
     /// <summary>
@@ -63,7 +84,7 @@ public class ControlPoint : IControlPoint
         _isClientsProvided = true;
     }
 
-    private static ControlPointInterface CreateInterface(IPAddress ipAddress)
+    private static ControlPointInterface CreateInterface(IPAddress ipAddress, int tcpResponsePort)
     {
         var udpClient = new UdpClient();
 
@@ -89,7 +110,7 @@ public class ControlPoint : IControlPoint
         {
             IpAddress = ipAddress,
             UdpClient = udpClient,
-            TcpListener = new TcpListener(new IPEndPoint(ipAddress, Constants.TcpResponseListenerPort))
+            TcpListener = new TcpListener(new IPEndPoint(ipAddress, tcpResponsePort))
             {
                 ExclusiveAddressUse = false
             }
@@ -97,9 +118,17 @@ public class ControlPoint : IControlPoint
     }
 
     /// <inheritdoc />
-    /// <exception cref="SSDPException">An interface has neither a UDP client nor a TCP listener.</exception>
+    /// <exception cref="SSDPException">
+    /// The control point is already started, or an interface has neither a UDP
+    /// client nor a TCP listener.
+    /// </exception>
     public void Start(CancellationToken ct)
     {
+        if (IsStarted)
+        {
+            throw new SSDPException("Control Point is already started.");
+        }
+
         var listenerObservables = new List<IObservable<HttpRequestResponse>>();
 
         foreach (var node in _controlPointInterfaces)
@@ -122,18 +151,42 @@ public class ControlPoint : IControlPoint
             }
         }
 
-        _httpListenerObservable = listenerObservables
-            .Merge()
-            .Publish()
-            .RefCount();
-
-        IsStarted = true;
+        BuildParsedStreams(listenerObservables.Merge().Publish().RefCount());
     }
 
     /// <inheritdoc />
+    /// <exception cref="SSDPException">The control point is already started.</exception>
     public void HotStart(IObservable<HttpRequestResponse> httpListenerObservable)
     {
-        _httpListenerObservable = httpListenerObservable;
+        if (IsStarted)
+        {
+            throw new SSDPException("Control Point is already started.");
+        }
+
+        BuildParsedStreams(httpListenerObservable);
+    }
+
+    // The parsed streams are built once and shared (Publish/RefCount), so any
+    // number of subscribers cause each message to be parsed exactly once.
+    private void BuildParsedStreams(IObservable<HttpRequestResponse> source)
+    {
+        _mSearchResponseObservable = source
+            .Where(x => x.MessageType == MessageType.Response)
+            .Select(SsdpMessageParser.ParseMSearchResponse)
+            .Where(result => result.IsSuccess)
+            .Select(result => result.Value!)
+            .Publish()
+            .RefCount();
+
+        _notifyObservable = source
+            .Where(x => x.MessageType == MessageType.Request)
+            .Where(req => req.Method == "NOTIFY")
+            .Select(SsdpMessageParser.ParseNotify)
+            .Where(result => result.IsSuccess)
+            .Select(result => result.Value!)
+            .Where(notify => notify.NTS is NTS.Alive or NTS.ByeBye or NTS.Update)
+            .Publish()
+            .RefCount();
 
         IsStarted = true;
     }
@@ -146,11 +199,7 @@ public class ControlPoint : IControlPoint
     /// </remarks>
     /// <exception cref="SSDPException">The control point has not been started.</exception>
     public IObservable<MSearchResponse> MSearchResponseObservable() =>
-        Started()
-            .Where(x => x.MessageType == MessageType.Response)
-            .Select(SsdpMessageParser.ParseMSearchResponse)
-            .Where(result => result.IsSuccess)
-            .Select(result => result.Value!);
+        _mSearchResponseObservable ?? throw new SSDPException("Control Point not started.");
 
     /// <inheritdoc />
     /// <remarks>
@@ -159,23 +208,14 @@ public class ControlPoint : IControlPoint
     /// </remarks>
     /// <exception cref="SSDPException">The control point has not been started.</exception>
     public IObservable<Notify> NotifyObservable() =>
-        Started()
-            .Where(x => x.MessageType == MessageType.Request)
-            .Where(req => req.Method == "NOTIFY")
-            .Select(SsdpMessageParser.ParseNotify)
-            .Where(result => result.IsSuccess)
-            .Select(result => result.Value!)
-            .Where(notify => notify.NTS is NTS.Alive or NTS.ByeBye or NTS.Update);
-
-    private IObservable<HttpRequestResponse> Started() =>
-        _httpListenerObservable ?? throw new SSDPException("Control Point not started.");
+        _notifyObservable ?? throw new SSDPException("Control Point not started.");
 
     /// <inheritdoc />
     /// <exception cref="SSDPException">
     /// The control point has not been started, <paramref name="ipAddress"/> is not
     /// one of its interfaces, or the request is not fully specified.
     /// </exception>
-    public async Task SendMSearchAsync(MSearchRequest mSearch, IPAddress ipAddress)
+    public async Task SendMSearchAsync(MSearchRequest mSearch, IPAddress ipAddress, CancellationToken ct = default)
     {
         if (!IsStarted)
         {
@@ -198,11 +238,11 @@ public class ControlPoint : IControlPoint
             case TransportType.Multicast:
                 await cp.UdpClient.SendAsync(
                     dataGram,
-                    dataGram.Length,
-                    new IPEndPoint(IPAddress.Parse(Constants.UdpSSDPMultiCastAddress), Constants.UdpSSDPMulticastPort));
+                    new IPEndPoint(IPAddress.Parse(Constants.UdpSSDPMultiCastAddress), Constants.UdpSSDPMulticastPort),
+                    ct);
                 break;
             case TransportType.Unicast when mSearch.RemoteIpEndPoint is not null:
-                await SendOnTcpAsync(mSearch.RemoteIpEndPoint, dataGram);
+                await SendOnTcpAsync(mSearch.RemoteIpEndPoint, dataGram, ct);
                 break;
             case TransportType.Unicast:
                 throw new SSDPException("A unicast M-SEARCH requires a RemoteIpEndPoint.");
@@ -211,16 +251,16 @@ public class ControlPoint : IControlPoint
         }
     }
 
-    private static async Task SendOnTcpAsync(IPEndPoint ipEndPoint, byte[] data)
+    private static async Task SendOnTcpAsync(IPEndPoint ipEndPoint, byte[] data, CancellationToken ct)
     {
         using var tcpClient = new TcpClient();
 
-        await tcpClient.ConnectAsync(ipEndPoint.Address, ipEndPoint.Port);
+        await tcpClient.ConnectAsync(ipEndPoint.Address, ipEndPoint.Port, ct);
 
         var stream = tcpClient.GetStream();
 
-        await stream.WriteAsync(data);
-        await stream.FlushAsync();
+        await stream.WriteAsync(data, ct);
+        await stream.FlushAsync(ct);
     }
 
     /// <summary>

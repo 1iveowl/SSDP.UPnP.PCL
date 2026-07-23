@@ -304,7 +304,3 @@ $RECYCLE.BIN/
 
 # Local planning documents (not committed)
 /plan/
-/local-feed/
-
-# Local clones used as interim package sources while NuGet validation completes
-/external/

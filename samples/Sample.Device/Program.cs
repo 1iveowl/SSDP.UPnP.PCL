@@ -22,7 +22,6 @@ Console.WriteLine($"IP Address: {ipAddress}");
 
 var rootDeviceConfiguration = new RootDeviceConfiguration
 {
-    EntityType = EntityType.RootDevice,
     DeviceUUID = Guid.NewGuid().ToString(),
     TypeName = "SampleRootDevice",
     Version = 1,
@@ -44,13 +43,11 @@ var rootDeviceConfiguration = new RootDeviceConfiguration
     [
         new ServiceConfiguration
         {
-            EntityType = EntityType.ServiceType,
             TypeName = "SampleService",
             Version = 1
         },
         new ServiceConfiguration
         {
-            EntityType = EntityType.DomainService,
             Domain = "sample-domain-org",
             TypeName = "SampleDomainService",
             Version = 2
@@ -60,7 +57,6 @@ var rootDeviceConfiguration = new RootDeviceConfiguration
     [
         new DeviceConfiguration
         {
-            EntityType = EntityType.Device,
             DeviceUUID = Guid.NewGuid().ToString(),
             TypeName = "SampleEmbeddedDevice",
             Version = 1,
@@ -68,7 +64,6 @@ var rootDeviceConfiguration = new RootDeviceConfiguration
             [
                 new ServiceConfiguration
                 {
-                    EntityType = EntityType.ServiceType,
                     TypeName = "SampleEmbeddedService",
                     Version = 1
                 }

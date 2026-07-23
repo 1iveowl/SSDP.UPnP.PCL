@@ -14,7 +14,7 @@ An Rx-based SSDP library for discovering and advertising UPnP Device Architectur
 
 ## Overview
 
-SSDP is an ongoing stream of discovery replies and notifications — a model that maps naturally to observables, which is why this library is built on [Reactive Extensions](https://reactivex.io/). It supports multi-homed control points and devices, and targets .NET 10.
+SSDP is an ongoing stream of discovery replies and notifications — a model that maps naturally to observables, which is why this library is built on [Reactive Extensions](https://reactivex.io/). It supports multi-homed control points and devices, and targets .NET 10. IPv4 only.
 
 The library is written in a functional style: all message and configuration types are immutable records, parsing returns `ParseResult<T>` values instead of throwing or mutating, and datagram composition is done by pure functions you can call yourself.
 
@@ -39,7 +39,17 @@ Version 7.0 is a major modernization and includes breaking changes throughout:
 | Dependencies | SimpleHttpListener.Rx 6.x, System.Reactive 5 | SimpleHttpListener.Rx 7.x, System.Reactive 7 |
 | `STType.UIIDSearch` | typo | renamed `STType.UuidSearch` |
 
-Version 7.0 also fixes significant defects found in 6.x — most notably: **devices now actually answer M-SEARCH requests** (per-entity unicast responses with the UDA-mandated MX delay spread), multi-homed control points listen on *all* their interfaces, UUID search targets are parsed correctly, and search matching follows the UDA 2.0 type/domain/version rules.
+Version 7.0 also fixes significant defects found in 6.x — most notably: **devices now actually answer M-SEARCH requests** (unicast responses spread independently over the MX window), multi-homed control points listen on *all* their interfaces, UUID search targets are parsed correctly, and search matching follows the UDA 2.0 type/domain/version rules.
+
+Further behavior notes for 7.0:
+
+- **Full UDA 2.0 advertisement matrix.** Devices advertise (and answer searches with) the complete message set from UDA 2.0 §1.2.2: three messages for the root device (`upnp:rootdevice`, `uuid:...`, device type), two per embedded device, and one per service. The standard vs vendor-domain URI form is derived from each configuration's `Domain` — you no longer set `EntityType` on configurations.
+- **Advertisement sends are best-effort and concurrent.** Each NOTIFY keeps its own spec-mandated jitter and triple-send cadence, but messages are no longer serialized against each other, so a full alive/byebye burst completes in about a second. Individual send failures are logged (set `Device.Logger`) and never stop the device or abort a batch; `UpdateAsync` always advances BOOTID.
+- **Say goodbye explicitly.** `Dispose` only closes resources — call `await device.ByeByeAsync()` before disposing for a clean exit.
+- **BOOTID stamping.** Leave `BOOTID` at 0 and the device stamps it with the Unix timestamp at start (from its `TimeProvider`, replaceable in tests); set it explicitly to control it yourself.
+- **Single-use start.** `Start`/`StartAsync`/`HotStart(Async)` may only be called once per instance.
+- **Cancellation.** All public async methods accept an optional `CancellationToken`.
+- **Parsing policy.** Requests are parsed strictly; responses and notifications leniently (unparsable fields are left unset), except a response where neither ST nor USN parses is dropped. The control point's observables are shared streams — each message is parsed once no matter how many subscribers.
 
 ## Control point
 
@@ -82,7 +92,7 @@ await controlPoint.SendMSearchAsync(
     ipAddress);
 ```
 
-Passing several IP addresses to the `ControlPoint` constructor creates a multi-homed control point that listens on all of them.
+Passing several IP addresses to the `ControlPoint` constructor creates a multi-homed control point that listens on all of them. To run several control points on one host, give each its own TCP response port: `new ControlPoint([ipAddress], tcpResponsePort: 8322)`.
 
 ## Device
 
@@ -94,7 +104,6 @@ using SSDP.UPnP.PCL.Model;
 
 var rootDeviceConfiguration = new RootDeviceConfiguration
 {
-    EntityType = EntityType.RootDevice,
     DeviceUUID = Guid.NewGuid().ToString(),
     TypeName = "MyRootDevice",
     Version = 1,
@@ -116,7 +125,6 @@ var rootDeviceConfiguration = new RootDeviceConfiguration
     [
         new ServiceConfiguration
         {
-            EntityType = EntityType.ServiceType,
             TypeName = "MyService",
             Version = 1
         }
@@ -130,6 +138,8 @@ await device.StartAsync(cts.Token);   // sends ssdp:alive and starts answering M
 
 // ... later:
 await device.UpdateAsync();           // sends ssdp:update and advances BOOTID
+
+// Before exiting: Dispose only closes sockets, so say goodbye first.
 await device.ByeByeAsync();           // sends ssdp:byebye
 ```
 
@@ -153,7 +163,7 @@ The [samples](samples/) folder contains a runnable control point and device; run
 
 ## Version history
 
-- **7.0** — .NET 10, functional/record-based API, SimpleHttpListener.Rx 7, System.Reactive 7, real M-SEARCH responses, xUnit test suite. Breaking.
+- **7.0** — .NET 10, functional/record-based API, SimpleHttpListener.Rx 7, System.Reactive 7, real M-SEARCH responses, full UDA 2.0 advertisement matrix, xUnit test suite. Breaking.
 - **6.x** — .NET Standard 2.0. Use this if you need older platforms.
 
 ## License

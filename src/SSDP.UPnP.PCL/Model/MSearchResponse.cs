@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Net;
 
 namespace SSDP.UPnP.PCL.Model;
@@ -56,7 +57,7 @@ public sealed record MSearchResponse
 
     /// <summary>Additional vendor-specific headers.</summary>
     public IReadOnlyDictionary<string, string> Headers { get; init; } =
-        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        FrozenDictionary<string, string>.Empty;
 
     /// <summary>For received responses: the local endpoint the response arrived on.</summary>
     public IPEndPoint? LocalIpEndPoint { get; init; }

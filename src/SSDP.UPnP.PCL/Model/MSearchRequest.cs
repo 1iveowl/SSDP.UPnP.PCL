@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Net;
 
 namespace SSDP.UPnP.PCL.Model;
@@ -35,7 +36,7 @@ public sealed record MSearchRequest
 
     /// <summary>Additional vendor-specific headers to send, or the non-standard headers received.</summary>
     public IReadOnlyDictionary<string, string> Headers { get; init; } =
-        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        FrozenDictionary<string, string>.Empty;
 
     /// <summary>For received requests: the local endpoint the request arrived on.</summary>
     public IPEndPoint? LocalIpEndPoint { get; init; }

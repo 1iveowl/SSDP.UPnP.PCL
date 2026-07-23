@@ -193,6 +193,30 @@ public class DatagramComposerTests
     }
 
     [Fact]
+    public void ComposeNotify_SearchPortOnDefaultPort_IsOmitted()
+    {
+        var notify = new Notify
+        {
+            NTS = NTS.Alive,
+            Location = new Uri("http://192.168.0.10/description.xml"),
+            NT = "upnp:rootdevice",
+            Server = new Server(),
+            USN = new USN { EntityType = EntityType.RootDevice, DeviceUUID = "device-1" },
+            SEARCHPORT = 1900
+        };
+
+        var lines = HeaderLines(DatagramComposer.ComposeNotify(notify));
+
+        Assert.DoesNotContain(lines, line => line.StartsWith("SEARCHPORT.UPNP.ORG:"));
+    }
+
+    [Fact]
+    public void DeviceInfo_ToHeaderString_WithUnsetFields_PinsCurrentShape()
+    {
+        Assert.Equal("/ UPnP/2.0 /", new Server().ToHeaderString());
+    }
+
+    [Fact]
     public void ComposedRequest_ParsesBackWithSameValues()
     {
         var request = new MSearchRequest

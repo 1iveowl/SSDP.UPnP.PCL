@@ -15,25 +15,28 @@ public interface IControlPoint : IDisposable
 
     /// <summary>
     /// Creates the network listeners for the configured interfaces and starts
-    /// listening. Cancel <paramref name="ct"/> to stop.
+    /// listening. Cancel <paramref name="ct"/> to stop. A control point can only be
+    /// started once.
     /// </summary>
     void Start(CancellationToken ct);
 
     /// <summary>
     /// Starts the control point on an externally created message stream instead of
     /// its own listeners — for advanced scenarios where the stream is shared with
-    /// other services (e.g. UPnP eventing).
+    /// other services (e.g. UPnP eventing). A control point can only be started once.
     /// </summary>
     void HotStart(IObservable<HttpRequestResponse> httpListenerObservable);
 
     /// <summary>
     /// The NOTIFY advertisements (<c>ssdp:alive</c>, <c>ssdp:byebye</c>,
-    /// <c>ssdp:update</c>) observed on the network.
+    /// <c>ssdp:update</c>) observed on the network. The stream is shared: each
+    /// message is parsed once regardless of subscriber count.
     /// </summary>
     IObservable<Notify> NotifyObservable();
 
     /// <summary>
-    /// The M-SEARCH responses observed on the network.
+    /// The M-SEARCH responses observed on the network. The stream is shared: each
+    /// message is parsed once regardless of subscriber count.
     /// </summary>
     IObservable<MSearchResponse> MSearchResponseObservable();
 
@@ -42,5 +45,5 @@ public interface IControlPoint : IDisposable
     /// <paramref name="ipAddress"/>: multicast to the SSDP group, or unicast to
     /// <see cref="MSearchRequest.RemoteIpEndPoint"/>.
     /// </summary>
-    Task SendMSearchAsync(MSearchRequest mSearch, IPAddress ipAddress);
+    Task SendMSearchAsync(MSearchRequest mSearch, IPAddress ipAddress, CancellationToken ct = default);
 }

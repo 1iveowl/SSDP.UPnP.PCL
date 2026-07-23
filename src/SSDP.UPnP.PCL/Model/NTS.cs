@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+
 namespace SSDP.UPnP.PCL.Model;
 
 /// <summary>
@@ -26,6 +28,15 @@ public enum NTS
 /// </summary>
 public static class NTSExtensions
 {
+    private static readonly FrozenDictionary<string, NTS> WireValues =
+        new Dictionary<string, NTS>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["ssdp:alive"] = NTS.Alive,
+            ["ssdp:byebye"] = NTS.ByeBye,
+            ["ssdp:update"] = NTS.Update,
+            ["upnp:propchange"] = NTS.Propchange
+        }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
     /// Returns the SSDP wire representation of the notification sub type
     /// (e.g. <c>ssdp:alive</c>), or <c>&lt;unknown&gt;</c> when the value has none.
@@ -43,12 +54,6 @@ public static class NTSExtensions
     /// Parses the SSDP wire representation of a notification sub type;
     /// unrecognized values map to <see cref="NTS.Unknown"/>.
     /// </summary>
-    public static NTS ToNTS(string? value) => value?.ToLowerInvariant() switch
-    {
-        "ssdp:alive" => NTS.Alive,
-        "ssdp:byebye" => NTS.ByeBye,
-        "ssdp:update" => NTS.Update,
-        "upnp:propchange" => NTS.Propchange,
-        _ => NTS.Unknown
-    };
+    public static NTS ToNTS(string? value) =>
+        value is not null && WireValues.TryGetValue(value, out var nts) ? nts : NTS.Unknown;
 }
