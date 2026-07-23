@@ -2,6 +2,11 @@
 set -euo pipefail
 
 dotnet restore src/main/SSDP.UPnP.PCL.sln
+
+# The original root-based setup created these named volumes. Keep their state,
+# including authentication, while making it available to the vscode user.
+sudo chown -R "$(id -u):$(id -g)" "${CLAUDE_CONFIG_DIR}" "${CODEX_HOME}" "${COPILOT_HOME}"
+
 npm install -g --allow-scripts=@anthropic-ai/claude-code @anthropic-ai/claude-code @openai/codex
 
 # The named tool-state volumes persist these settings across container rebuilds.
