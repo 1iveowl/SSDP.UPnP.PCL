@@ -1,0 +1,15 @@
+<Project>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Authors>1iveowl</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/1iveowl/SSDP.UPnP.PCL</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/1iveowl/SSDP.UPnP.PCL</RepositoryUrl>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(CI)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+</Project>
