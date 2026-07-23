@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using SSDP.UPnP.PCL.Enum;
@@ -11,145 +11,115 @@ namespace SSDP.UPnP.PCL.Service.Base
         protected IEnumerable<IEntity> GetAllEntities(IRootDeviceInterface rootDeviceInterface)
         {
             var devices = GetAllDevices(rootDeviceInterface);
-
-            if (!devices?.Any() ?? true)
-            {
-                return null;
-            }
-
             var services = GetAllServices(rootDeviceInterface);
 
-            if (!services?.Any() ?? true)
-            {
-                return devices;
-            }
-            else
-            {
-                return devices.Concat(services.Select(s => s as IEntity));
-            }
+            return devices.Cast<IEntity>().Concat(services);
         }
 
         protected IEnumerable<IEntity> GetEntities(
             IRootDeviceInterface rootDeviceInterface,
             IMSearch mSearchReq)
         {
-            IEnumerable<IEntity> entities;
-
             switch (mSearchReq.ST.StSearchType)
             {
                 case STType.All:
-                    entities = GetAllEntities(rootDeviceInterface);
-                    break;
+                    return GetAllEntities(rootDeviceInterface);
                 case STType.RootDeviceSearch:
-                    entities = new List<IEntity>
+                    return new List<IEntity>
                     {
                         rootDeviceInterface.RootDeviceConfiguration
                     };
-                    break;
                 case STType.UIIDSearch:
-                    entities = GetAllDevices(rootDeviceInterface)?
+                    return GetAllDevices(rootDeviceInterface)
                         .Where(d => d.DeviceUUID == mSearchReq.ST.DeviceUUID);
-                    break;
                 case STType.ServiceTypeSearch:
                 case STType.DomainServiceSearch:
-                    entities = ServiceEntitiesMatchingSearch(rootDeviceInterface, mSearchReq);
-                    break;
+                    return GetAllServices(rootDeviceInterface)
+                        .Where(service => IsMatch(service, mSearchReq.ST));
                 case STType.DeviceTypeSearch:
                 case STType.DomainDeviceSearch:
-                    entities = DevicesEntitiesMatchingSearch(rootDeviceInterface, mSearchReq);
-                    break;
+                    return GetAllDevices(rootDeviceInterface)
+                        .Where(device => IsMatch(device, mSearchReq.ST));
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new ArgumentOutOfRangeException(nameof(mSearchReq));
             }
-
-            if (!entities?.Any() ?? false)
-            {
-                return null;
-            }
-
-            return entities;
         }
 
-        private IEnumerable<IEntity> DevicesEntitiesMatchingSearch(IRootDeviceInterface rootDeviceInterface, IMSearch mSearchReq) => 
-                GetAllDevices(rootDeviceInterface)?
-                    .Where(s =>
-                    {
-                        if (mSearchReq.ST.StSearchType == STType.DeviceTypeSearch
-                            || mSearchReq.ST.StSearchType == STType.All)
-                        {
-                            return true;
-                        }
+        // A search matches an entity when the type name matches, the domain matches
+        // (schemas-upnp-org searches match entities without a vendor domain), and the
+        // entity's version is at least the requested version (UDA 2.0 backwards
+        // compatibility rule: a device must respond to searches for any version it
+        // supersedes).
+        private static bool IsMatch(IEntity entity, IST st)
+        {
+            if (entity.TypeName != st.TypeName)
+            {
+                return false;
+            }
 
-                        if (mSearchReq.ST.StSearchType == STType.DomainServiceSearch)
-                        {
-                            return s.Domain == mSearchReq.ST.Domain;
-                        }
+            if (entity.Version < st.Version)
+            {
+                return false;
+            }
 
-                        return false;
-                    })
-                    .Where(s => s.Version <= mSearchReq.ST.Version)
-                    .Append(rootDeviceInterface.RootDeviceConfiguration);
-
-
-        private IEnumerable<IEntity> ServiceEntitiesMatchingSearch(IRootDeviceInterface rootDeviceInterface, IMSearch mSearchReq) =>
-            GetAllServices(rootDeviceInterface)?
-                .Where(s =>
-                {
-                    if (mSearchReq.ST.StSearchType == STType.ServiceTypeSearch
-                        || mSearchReq.ST.StSearchType == STType.All)
-                    {
-                        return true;
-                    }
-
-                    if (mSearchReq.ST.StSearchType == STType.DomainServiceSearch)
-                    {
-                        return s.Domain == mSearchReq.ST.Domain;
-                    }
-
+            switch (st.StSearchType)
+            {
+                case STType.DeviceTypeSearch:
+                case STType.ServiceTypeSearch:
+                    return string.IsNullOrEmpty(entity.Domain);
+                case STType.DomainDeviceSearch:
+                case STType.DomainServiceSearch:
+                    return entity.Domain == st.Domain;
+                default:
                     return false;
-                })
-                .Where(s => s.Version <= mSearchReq.ST.Version);
+            }
+        }
 
         protected IEnumerable<IServiceConfiguration> GetAllServices(IRootDeviceInterface rootDeviceInterface)
         {
-            if (rootDeviceInterface is null)
+            if (rootDeviceInterface?.RootDeviceConfiguration is null)
             {
-                return null;
+                return Enumerable.Empty<IServiceConfiguration>();
             }
 
-            if (!rootDeviceInterface.RootDeviceConfiguration?.EmbeddedDevices?.Any() ?? true)
-            {
-                return rootDeviceInterface?.RootDeviceConfiguration?.Services;
-            }
-            else
-            {
-                return rootDeviceInterface?.RootDeviceConfiguration?.Services
-                    .Concat(rootDeviceInterface.RootDeviceConfiguration?.EmbeddedDevices?
-                        .SelectMany(embeddedDevice => embeddedDevice?.Services));
-            }
+            var rootServices = rootDeviceInterface.RootDeviceConfiguration.Services
+                               ?? Enumerable.Empty<IServiceConfiguration>();
+
+            var embeddedServices = (rootDeviceInterface.RootDeviceConfiguration.EmbeddedDevices
+                                    ?? Enumerable.Empty<IDeviceConfiguration>())
+                .SelectMany(embeddedDevice => embeddedDevice?.Services ?? Enumerable.Empty<IServiceConfiguration>());
+
+            return rootServices.Concat(embeddedServices);
         }
 
         protected IEnumerable<IDeviceConfiguration> GetAllDevices(IRootDeviceInterface rootDeviceInterface)
         {
-            if (rootDeviceInterface is null)
+            if (rootDeviceInterface?.RootDeviceConfiguration is null)
             {
-                return null;
+                return Enumerable.Empty<IDeviceConfiguration>();
             }
 
-            if (!rootDeviceInterface.RootDeviceConfiguration?.EmbeddedDevices?.Any() ?? true)
-            {
-                var deviceList = new List<IDeviceConfiguration>
-                {
-                    rootDeviceInterface.RootDeviceConfiguration
-                };
+            var embeddedDevices = rootDeviceInterface.RootDeviceConfiguration.EmbeddedDevices
+                                  ?? Enumerable.Empty<IDeviceConfiguration>();
 
-                return deviceList;
-            }
-            else
+            return embeddedDevices
+                .Where(device => device is not null)
+                .Append(rootDeviceInterface.RootDeviceConfiguration);
+        }
+
+        // Resolves the device that owns an entity: a device owns itself; a service is
+        // owned by the device whose Services collection contains it. Needed to build
+        // spec-compliant USNs ("uuid:<device-UUID>::<entity URI>") for service entities.
+        protected IDeviceConfiguration GetOwnerDevice(IRootDeviceInterface rootDeviceInterface, IEntity entity)
+        {
+            if (entity is IDeviceConfiguration deviceConfiguration)
             {
-                return rootDeviceInterface?.RootDeviceConfiguration?.EmbeddedDevices
-                    .Append(rootDeviceInterface.RootDeviceConfiguration);
+                return deviceConfiguration;
             }
+
+            return GetAllDevices(rootDeviceInterface)
+                       .FirstOrDefault(device => device.Services?.Contains(entity) ?? false)
+                   ?? rootDeviceInterface.RootDeviceConfiguration;
         }
     }
 }

@@ -62,16 +62,18 @@ namespace SSDP.UPnP.PCL.Model
                     break;
                 case "uuid":
                     StSearchType = STType.UIIDSearch;
-                    DeviceUUID = searchTarget.Remove(5);
+                    DeviceUUID = searchTarget.Substring(5);
                     EntityType = EntityType.Device;
                     break;
                 case "urn":
-                    if (sta[3] == null || sta[4] == null || sta.Length != 5)
+                    if (sta.Length != 5)
                     {
                         if (!ignoreError)
                         {
-                            throw new SSDPException($"Search Target (ST) value must be in the form of 'schemas-upnp-org:[device or service]:[Type]:ver''. The value '{searchTarget}' is invalid.");
+                            throw new SSDPException($"Search Target (ST) value must be in the form of 'urn:[domain]:[device or service]:[Type]:ver'. The value '{searchTarget}' is invalid.");
                         }
+
+                        break;
                     }
 
                     if (sta[1].ToLower() == "schemas-upnp-org")

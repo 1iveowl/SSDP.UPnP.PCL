@@ -13,7 +13,7 @@ namespace SSDP.UPnP.PCL.Model
 
         public DeviceConfiguration()
         {
-            BOOTID = (uint) DateTime.Now.FromUnixTime();
+            BOOTID = (uint)DateTime.UtcNow.FromUnixTime();
         }
     }
 }

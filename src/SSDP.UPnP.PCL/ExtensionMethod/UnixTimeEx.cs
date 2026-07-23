@@ -10,7 +10,7 @@ namespace SSDP.UPnP.PCL.ExtensionMethod
 
         public static int FromUnixTime(this DateTime now)
         {
-            return Convert.ToInt32((now - epoch).TotalSeconds);
+            return Convert.ToInt32((now.ToUniversalTime() - epoch).TotalSeconds);
         }
     }
 }

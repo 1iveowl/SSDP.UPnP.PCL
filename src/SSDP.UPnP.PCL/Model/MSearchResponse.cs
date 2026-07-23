@@ -56,7 +56,7 @@ namespace SSDP.UPnP.PCL.Model
                 Ext = response.Headers.ContainsKey("EXT");
                 Server = Convert.ConvertToServer(Convert.GetHeaderValue(response.Headers, "SERVER"));
                 ST = new ST(Convert.GetHeaderValue(response.Headers, "ST"), ignoreError:true);
-                USN = new USN(Convert.GetHeaderValue(response.Headers, "USN"));Convert.GetHeaderValue(response.Headers, "USN");
+                USN = new USN(Convert.GetHeaderValue(response.Headers, "USN"));
                 BOOTID = int.TryParse(Convert.GetHeaderValue(response.Headers, "BOOTID.UPNP.ORG"), out var b) ? b : 0;
                 CONFIGID = int.TryParse(Convert.GetHeaderValue(response.Headers, "CONFIGID.UPNP.ORG"), out var c) ? c : 0;
                 SEARCHPORT = int.TryParse(Convert.GetHeaderValue(response.Headers, "SEARCHPORT.UPNP.ORG"), out var s) ? s : 0;

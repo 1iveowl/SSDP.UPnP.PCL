@@ -1,36 +1,36 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using SimpleHttpListener.Rx.Model;
-using SSDP.UPnP.PCL.Enum;
-using SSDP.UPnP.PCL.Interfaces.Model;
-using SSDP.UPnP.PCL.Interfaces.Service;
 using Microsoft.Extensions.Logging;
 using SimpleHttpListener.Rx;
+using SimpleHttpListener.Rx.Model;
+using SSDP.UPnP.PCL.Enum;
 using SSDP.UPnP.PCL.ExtensionMethod;
 using SSDP.UPnP.PCL.Handler;
 using SSDP.UPnP.PCL.Helper;
+using SSDP.UPnP.PCL.Interfaces.Model;
+using SSDP.UPnP.PCL.Interfaces.Service;
 using SSDP.UPnP.PCL.Model;
 using SSDP.UPnP.PCL.Rx;
 using SSDP.UPnP.PCL.Service.Base;
 using static SSDP.UPnP.PCL.Helper.Constants;
 
-[assembly: InternalsVisibleTo("SSDP.Device.xUnit")]
 namespace SSDP.UPnP.PCL.Service
 {
     public class Device : EntityBase, IDevice
     {
-        private readonly IObserver<DeviceActivity> _observerDeviceActivity;
+        // Per UDA 2.0 the response delay must be spread over the M-SEARCH MX value,
+        // and MX must be treated as at most 5 seconds.
+        private static readonly TimeSpan MaxResponseDelay = TimeSpan.FromSeconds(5);
+
+        private readonly BehaviorSubject<DeviceActivity> _deviceActivitySubject;
 
         private IDisposable _disposableDeviceActivity;
 
@@ -40,9 +40,7 @@ namespace SSDP.UPnP.PCL.Service
 
         private readonly bool _isClientsProvided;
 
-#if DEBUG
         private bool _skipAlive;
-#endif
 
         public ILogger Logger { get; set; }
 
@@ -52,15 +50,13 @@ namespace SSDP.UPnP.PCL.Service
 
         private Device()
         {
-            var deviceActivitySubject = new BehaviorSubject<DeviceActivity>(DeviceActivity.Initialized);
-
-            _observerDeviceActivity = deviceActivitySubject.AsObserver();
-            DeviceActivityObservable = deviceActivitySubject.AsObservable();
+            _deviceActivitySubject = new BehaviorSubject<DeviceActivity>(DeviceActivity.Initialized);
+            DeviceActivityObservable = _deviceActivitySubject.AsObservable();
         }
 
         public Device(IRootDeviceConfiguration rootDeviceConfiguration) : this()
         {
-            if (rootDeviceConfiguration?.IpEndPoint == null)
+            if (rootDeviceConfiguration?.IpEndPoint is null)
             {
                 throw new SSDPException("At least one Root Device must be fully specified.");
             }
@@ -81,9 +77,9 @@ namespace SSDP.UPnP.PCL.Service
 
             rootDeviceInterface.UdpMulticastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
-            rootDeviceInterface.UdpMulticastClient.Client.Bind(new IPEndPoint(rootDeviceConfiguration.IpEndPoint?.Address, UdpSSDPMulticastPort));
+            rootDeviceInterface.UdpMulticastClient.Client.Bind(new IPEndPoint(rootDeviceConfiguration.IpEndPoint.Address, UdpSSDPMulticastPort));
 
-            rootDeviceInterface.UdpMulticastClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress), rootDeviceConfiguration.IpEndPoint?.Address);
+            rootDeviceInterface.UdpMulticastClient.JoinMulticastGroup(IPAddress.Parse(UdpSSDPMultiCastAddress), rootDeviceConfiguration.IpEndPoint.Address);
 
             if (rootDeviceConfiguration.IpEndPoint.Port != UdpSSDPMulticastPort)
             {
@@ -96,41 +92,43 @@ namespace SSDP.UPnP.PCL.Service
                 rootDeviceInterface.UdpUnicastClient = rootDeviceInterface.UdpMulticastClient;
             }
 
-            _rootDeviceInterfaces = new List<IRootDeviceInterface> {rootDeviceInterface};
-
+            _rootDeviceInterfaces = new List<IRootDeviceInterface> { rootDeviceInterface };
         }
 
         public Device(params IRootDeviceInterface[] rootDeviceInterfaces) : this()
         {
+            if (rootDeviceInterfaces is null || rootDeviceInterfaces.Length == 0)
+            {
+                throw new SSDPException("At least one Root Device Interface must be specified.");
+            }
+
             _rootDeviceInterfaces = rootDeviceInterfaces;
 
             foreach (var rootNode in rootDeviceInterfaces)
             {
-                if (!(rootNode.UdpUnicastClient is null))
+                if (rootNode.UdpUnicastClient is not null)
                 {
                     ((RootDeviceConfiguration)rootNode.RootDeviceConfiguration).IpEndPoint = rootNode.UdpUnicastClient.Client.LocalEndPoint as IPEndPoint;
                 }
-                else if (!(rootNode.UdpMulticastClient is null))
+                else if (rootNode.UdpMulticastClient is not null)
                 {
                     ((RootDeviceConfiguration)rootNode.RootDeviceConfiguration).IpEndPoint = rootNode.UdpMulticastClient.Client.LocalEndPoint as IPEndPoint;
                 }
                 else
                 {
-                    throw new SSDPException($"No UDP Client specified for interface.");
+                    throw new SSDPException("No UDP Client specified for interface.");
                 }
             }
 
             _isClientsProvided = true;
         }
 
-#if DEBUG
         internal async Task HotStartAsync(IObservable<HttpRequestResponse> httpListenerObservable, bool skipAlive)
         {
             _skipAlive = skipAlive;
 
             await HotStartAsync(httpListenerObservable);
         }
-#endif
 
         public async Task HotStartAsync(IObservable<HttpRequestResponse> httpListenerObservable)
         {
@@ -141,74 +139,67 @@ namespace SSDP.UPnP.PCL.Service
 
         public async Task StartAsync(CancellationToken ct)
         {
-            if (!_rootDeviceInterfaces?.Any() ?? _rootDeviceInterfaces is null)
+            if (_rootDeviceInterfaces is null || !_rootDeviceInterfaces.Any())
             {
                 throw new SSDPException("No Root Device interfaces specified.");
             }
 
+            var listenerObservables = new List<IObservable<HttpRequestResponse>>();
+
             foreach (var rootDevice in _rootDeviceInterfaces)
             {
-                if (_httpListenerObservable == null)
+                if (rootDevice.UdpMulticastClient is not null)
                 {
-                    _httpListenerObservable = rootDevice.UdpMulticastClient
-                        .ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError);
-                }
-                else
-                {
-                    _httpListenerObservable = _httpListenerObservable.Merge(
+                    listenerObservables.Add(
                         rootDevice.UdpMulticastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError));
                 }
 
-                if (rootDevice.UdpMulticastClient != rootDevice.UdpUnicastClient)
+                if (rootDevice.UdpUnicastClient is not null
+                    && rootDevice.UdpUnicastClient != rootDevice.UdpMulticastClient)
                 {
-                    if (_httpListenerObservable == null)
-                    {
-                        _httpListenerObservable = rootDevice.UdpUnicastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError);
-                    }
-                    else
-                    {
-                        _httpListenerObservable = _httpListenerObservable.Merge(
-                                rootDevice.UdpUnicastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError));
-                    }
+                    listenerObservables.Add(
+                        rootDevice.UdpUnicastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError));
                 }
-
-                await StartAsync();
             }
+
+            if (listenerObservables.Count == 0)
+            {
+                throw new SSDPException("No UDP Client defined for any Root Device interface.");
+            }
+
+            _httpListenerObservable = listenerObservables
+                .Merge()
+                .Publish()
+                .RefCount();
+
+            await StartAsync();
         }
 
         private async Task StartAsync()
         {
             var mSearchDeviceRequestHandler = new MSearchDeviceRequestHandler(
                 _rootDeviceInterfaces,
-                _observerDeviceActivity,
                 Logger);
 
-            _disposableDeviceActivity = mSearchDeviceRequestHandler.
-                MSearchRequestObservable(_httpListenerObservable)
+            _disposableDeviceActivity = mSearchDeviceRequestHandler
+                .MSearchRequestObservable(_httpListenerObservable)
+                .SelectMany(async x =>
+                {
+                    await SendMSearchResponseAsync(x.RootDeviceInterface, x.Response);
+                    return x;
+                })
                 .FinallyAsync(async () => { await SendByeByeAsync(); })
                 .Finally(mSearchDeviceRequestHandler.Dispose)
                 .Subscribe(
-                    _ =>
-                    {
-
-                    },
-                    ex =>
-                    {
-
-                    },
-                    () =>
-                    {
-
-                    });
+                    _ => { },
+                    ex => Logger?.LogError(ex, "SSDP device listener terminated unexpectedly."));
 
             IsStarted = true;
 
-#if DEBUG
             if (_skipAlive)
             {
                 return;
             }
-#endif
 
             await SendAliveAsync();
         }
@@ -223,29 +214,53 @@ namespace SSDP.UPnP.PCL.Service
             await SendByeByeAsync();
         }
 
+        // Responds to an M-SEARCH request with a unicast UDP datagram sent to the
+        // requester, after a random delay spread over the request's MX value (UDA 2.0
+        // section 1.3.3).
+        private async Task SendMSearchResponseAsync(
+            IRootDeviceInterface rootDeviceInterface,
+            IMSearchResponse response)
+        {
+            if (response.RemoteIpEndPoint is null || rootDeviceInterface.UdpUnicastClient is null)
+            {
+                return;
+            }
+
+            _deviceActivitySubject.OnNext(DeviceActivity.Responding);
+
+            var maxDelay = response.MX > TimeSpan.Zero && response.MX < MaxResponseDelay
+                ? response.MX
+                : MaxResponseDelay;
+
+            await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.NextDouble() * maxDelay.TotalMilliseconds));
+
+            var datagram = ComposeMSearchResponseDatagram(response);
+
+            await rootDeviceInterface.UdpUnicastClient.SendAsync(datagram, datagram.Length, response.RemoteIpEndPoint);
+        }
+
         private async Task SendUpdateAsync()
         {
             foreach (var rootDeviceInterface in _rootDeviceInterfaces)
             {
                 var notifications = GetAllDevices(rootDeviceInterface)
-                    .Where(device => !(device is null))
                     .SelectMany(device =>
                     {
-                        var notifyList = new List<Notify>();
-
                         var rootConfiguration = rootDeviceInterface.RootDeviceConfiguration;
 
-                        var searchPort = (uint) (((IPEndPoint)rootDeviceInterface.UdpUnicastClient.Client.LocalEndPoint)?.Port ?? 1900);
+                        var searchPort = (uint)((rootDeviceInterface.UdpUnicastClient.Client.LocalEndPoint as IPEndPoint)?.Port ?? UdpSSDPMulticastPort);
 
-                        var nextBootId = (uint) DateTime.Now.FromUnixTime();
+                        var nextBootId = (uint)DateTime.UtcNow.FromUnixTime();
 
-                        notifyList.Add(CreateNotify(device));
-                        
-                        if (device?.Services?.Any() ?? false)
+                        var entities = new List<IEntity> { device };
+
+                        if (device.Services?.Any() ?? false)
                         {
-                            notifyList.AddRange(device.Services.Select(CreateNotify));
+                            entities.AddRange(device.Services);
                         }
-                        
+
+                        var notifyList = entities.Select(CreateNotify).ToList();
+
                         ((DeviceConfiguration)device).BOOTID = nextBootId;
 
                         return notifyList;
@@ -267,7 +282,7 @@ namespace SSDP.UPnP.PCL.Service
                                 NotifyTransportType = TransportType.Multicast,
                                 HOST = $"{UdpSSDPMultiCastAddress}:{UdpSSDPMulticastPort}",
                                 Location = rootConfiguration.Location,
-                                NT = device.ToUri(),
+                                NT = entity.ToUri(),
                                 NTS = NTS.Update,
                                 USN = usn,
                                 BOOTID = device.BOOTID,
@@ -275,7 +290,7 @@ namespace SSDP.UPnP.PCL.Service
                                 NEXTBOOTID = nextBootId,
                                 SEARCHPORT = searchPort,
                             };
-                        };
+                        }
                     });
 
                 foreach (var notify in notifications)
@@ -290,21 +305,18 @@ namespace SSDP.UPnP.PCL.Service
             foreach (var rootDeviceInterface in _rootDeviceInterfaces)
             {
                 var notifications = GetAllDevices(rootDeviceInterface)
-                    .Where(device => !(device is null))
                     .SelectMany(device =>
                     {
-                        var notifyList = new List<Notify>();
-
                         var rootConfiguration = rootDeviceInterface.RootDeviceConfiguration;
 
-                        notifyList.Add(CreateNotify(device));
+                        var entities = new List<IEntity> { device };
 
-                        if (device?.Services?.Any() ?? false)
+                        if (device.Services?.Any() ?? false)
                         {
-                            notifyList.AddRange(device.Services.Select(CreateNotify));
+                            entities.AddRange(device.Services);
                         }
 
-                        return notifyList;
+                        return entities.Select(CreateNotify);
 
                         // Local function
                         Notify CreateNotify(IEntity entity)
@@ -322,45 +334,41 @@ namespace SSDP.UPnP.PCL.Service
                             {
                                 NotifyTransportType = TransportType.Multicast,
                                 HOST = $"{UdpSSDPMultiCastAddress}:{UdpSSDPMulticastPort}",
-                                NT = device.ToUri(),
+                                NT = entity.ToUri(),
                                 NTS = NTS.ByeBye,
                                 USN = usn,
                                 BOOTID = device.BOOTID,
                                 CONFIGID = rootConfiguration.CONFIGID,
                             };
-                        };
+                        }
                     });
 
                 foreach (var notify in notifications)
                 {
                     await SendNotifyAsync(notify, rootDeviceInterface.RootDeviceConfiguration.IpEndPoint);
                 }
-
             }
         }
-        
+
         private async Task SendAliveAsync()
         {
             foreach (var rootDeviceInterface in _rootDeviceInterfaces)
             {
                 var notifications = GetAllDevices(rootDeviceInterface)
-                    .Where(device => !(device is null))
                     .SelectMany(device =>
                     {
-                        var notifyList = new List<Notify>();
-
                         var rootConfiguration = rootDeviceInterface.RootDeviceConfiguration;
 
-                        var searchPort = (uint)(((IPEndPoint) rootDeviceInterface.UdpUnicastClient.Client.LocalEndPoint)?.Port ?? 1900);
-                        
-                        notifyList.Add(CreateNotify(device));
+                        var searchPort = (uint)((rootDeviceInterface.UdpUnicastClient.Client.LocalEndPoint as IPEndPoint)?.Port ?? UdpSSDPMulticastPort);
 
-                        if (device?.Services?.Any() ?? false)
+                        var entities = new List<IEntity> { device };
+
+                        if (device.Services?.Any() ?? false)
                         {
-                            notifyList.AddRange(device.Services.Select(CreateNotify));
+                            entities.AddRange(device.Services);
                         }
-                        
-                        return notifyList;
+
+                        return entities.Select(CreateNotify);
 
                         // Local function
                         Notify CreateNotify(IEntity entity)
@@ -380,7 +388,7 @@ namespace SSDP.UPnP.PCL.Service
                                 HOST = $"{UdpSSDPMultiCastAddress}:{UdpSSDPMulticastPort}",
                                 CacheControl = rootConfiguration.CacheControl,
                                 Location = rootConfiguration.Location,
-                                NT = rootConfiguration.ToUri(),
+                                NT = entity.ToUri(),
                                 NTS = NTS.Alive,
                                 Server = rootConfiguration.Server,
                                 USN = usn,
@@ -389,14 +397,13 @@ namespace SSDP.UPnP.PCL.Service
                                 SEARCHPORT = searchPort,
                                 SECURELOCATION = rootConfiguration.SecureLocation?.AbsoluteUri,
                             };
-                        };
+                        }
                     });
 
                 foreach (var notify in notifications)
                 {
                     await SendNotifyAsync(notify, rootDeviceInterface.RootDeviceConfiguration.IpEndPoint);
                 }
-
             }
         }
 
@@ -404,19 +411,20 @@ namespace SSDP.UPnP.PCL.Service
         {
             var rootDeviceInterface = _rootDeviceInterfaces?.FirstOrDefault(i => i.IsMatchingInterface(ipEndPoint));
 
-            if (rootDeviceInterface == null)
+            if (rootDeviceInterface is null)
             {
                 throw new SSDPException($"End Point not available: {ipEndPoint.Address}:{ipEndPoint.Port}");
             }
 
-            await SendNotiFyAsync(rootDeviceInterface, notifySsdp);
+            await SendNotifyAsync(rootDeviceInterface, notifySsdp);
         }
 
-        private async Task SendNotiFyAsync(IRootDeviceInterface rootDeviceInterface, INotify notify)
+        private async Task SendNotifyAsync(IRootDeviceInterface rootDeviceInterface, INotify notify)
         {
+            _deviceActivitySubject.OnNext(DeviceActivity.Notifying);
+
             // Insert random delay according to UPnP 2.0 spec. section 1.2.1 (page 27).
-            var wait = new Random();
-            await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(50, 100)));
+            await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.Next(50, 100)));
 
             // According to the UPnP spec the UDP Multicast Notify should be send three times
             for (var i = 0; i < 3; i++)
@@ -424,32 +432,37 @@ namespace SSDP.UPnP.PCL.Service
                 var datagram = ComposeNotifyDatagram(notify);
                 await rootDeviceInterface.UdpMulticastClient
                     .SendAsync(datagram, datagram.Length, UdpSSDPMultiCastAddress, UdpSSDPMulticastPort);
-                // Random delay between resends of 200 - 400 milliseconds. 
-                await Task.Delay(TimeSpan.FromMilliseconds(wait.Next(200, 400)));
+                // Random delay between resends of 200 - 400 milliseconds.
+                await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.Next(200, 400)));
             }
         }
 
-        private static byte[] ComposeMSearchResponseDatagram(IMSearchResponse response)
+        internal static byte[] ComposeMSearchResponseDatagram(IMSearchResponse response)
         {
             var stringBuilder = new StringBuilder();
 
             stringBuilder.Append($"HTTP/1.1 {response.StatusCode} {response.ResponseReason}\r\n");
-            stringBuilder.Append($"CACHE-CONTROL: max-age = {response.CacheControl.TotalSeconds}\r\n");
-            stringBuilder.Append($"DATE: {DateTime.Now:r}\r\n");
-            stringBuilder.Append($"EXT:\r\n");
+            stringBuilder.Append($"CACHE-CONTROL: max-age={(int)response.CacheControl.TotalSeconds}\r\n");
+            stringBuilder.Append($"DATE: {DateTime.UtcNow:r}\r\n");
+            stringBuilder.Append("EXT:\r\n");
             stringBuilder.Append($"LOCATION: {response.Location}\r\n");
             stringBuilder.Append($"SERVER: " +
-                                 $"{response.Server.OperatingSystem}/{response.Server.OperatingSystemVersion}/" +
+                                 $"{response.Server.OperatingSystem}/{response.Server.OperatingSystemVersion}" +
                                  $" " +
                                  $"UPnP/{response.Server.UpnpMajorVersion}.{response.Server.UpnpMinorVersion}" +
                                  $" " +
                                  $"{response.Server.ProductName}/{response.Server.ProductVersion}\r\n");
-            stringBuilder.Append($"ST: {response.ST}\r\n");
-            stringBuilder.Append($"USN: {response.USN}\r\n");
+            stringBuilder.Append($"ST: {response.ST.ToUri()}\r\n");
+            stringBuilder.Append($"USN: {response.USN.ToUri()}\r\n");
             stringBuilder.Append($"BOOTID.UPNP.ORG: {response.BOOTID}\r\n");
 
             HeaderHelper.AddOptionalHeader(stringBuilder, "CONFIGID.UPNP.ORG", response.CONFIGID.ToString());
-            HeaderHelper.AddOptionalHeader(stringBuilder, "SEARCHPORT.UPNP.ORG", response.SEARCHPORT.ToString());
+
+            if (response.SEARCHPORT > 0)
+            {
+                HeaderHelper.AddOptionalHeader(stringBuilder, "SEARCHPORT.UPNP.ORG", response.SEARCHPORT.ToString());
+            }
+
             HeaderHelper.AddOptionalHeader(stringBuilder, "SECURELOCATION.UPNP.ORG", response.SECURELOCATION);
 
             // Adding additional vendor specific headers if they exist.
@@ -462,24 +475,23 @@ namespace SSDP.UPnP.PCL.Service
             }
 
             stringBuilder.Append("\r\n");
-            stringBuilder.Append("\r\n");
 
             return Encoding.UTF8.GetBytes(stringBuilder.ToString());
         }
 
-        private static byte[] ComposeNotifyDatagram(INotify notify)
+        internal static byte[] ComposeNotifyDatagram(INotify notify)
         {
             var stringBuilder = new StringBuilder();
 
             stringBuilder.Append("NOTIFY * HTTP/1.1\r\n");
 
             stringBuilder.Append(notify.NotifyTransportType == TransportType.Multicast
-                ? "HOST: 239.255.255.250:1900\r\n"
+                ? $"HOST: {UdpSSDPMultiCastAddress}:{UdpSSDPMulticastPort}\r\n"
                 : $"HOST: {notify.HOST}\r\n");
 
             if (notify.NTS == NTS.Alive)
             {
-                stringBuilder.Append($"CACHE-CONTROL: max-age = {notify.CacheControl.TotalSeconds}\r\n");
+                stringBuilder.Append($"CACHE-CONTROL: max-age={(int)notify.CacheControl.TotalSeconds}\r\n");
             }
 
             if (notify.NTS == NTS.Alive || notify.NTS == NTS.Update)
@@ -493,22 +505,30 @@ namespace SSDP.UPnP.PCL.Service
             if (notify.NTS == NTS.Alive)
             {
                 stringBuilder.Append($"SERVER: " +
-                                     $"{notify.Server.OperatingSystem}/{notify.Server.OperatingSystemVersion}/" +
+                                     $"{notify.Server.OperatingSystem}/{notify.Server.OperatingSystemVersion}" +
                                      $" " +
                                      $"UPnP/{notify.Server.UpnpMajorVersion}.{notify.Server.UpnpMinorVersion}" +
                                      $" " +
                                      $"{notify.Server.ProductName}/{notify.Server.ProductVersion}\r\n");
             }
 
-            stringBuilder.Append($"USN: {notify?.USN.ToUri()}\r\n");
-            Debug.WriteLine(notify?.USN.ToUri());
-                
+            stringBuilder.Append($"USN: {notify.USN.ToUri()}\r\n");
+
             stringBuilder.Append($"BOOTID.UPNP.ORG: {notify.BOOTID}\r\n");
             stringBuilder.Append($"CONFIGID.UPNP.ORG: {notify.CONFIGID}\r\n");
 
+            if (notify.NTS == NTS.Update)
+            {
+                stringBuilder.Append($"NEXTBOOTID.UPNP.ORG: {notify.NEXTBOOTID}\r\n");
+            }
+
             if (notify.NTS == NTS.Alive || notify.NTS == NTS.Update)
             {
-                HeaderHelper.AddOptionalHeader(stringBuilder, "SEARCHPORT.UPNP.ORG", notify.SEARCHPORT.ToString());
+                if (notify.SEARCHPORT > 0 && notify.SEARCHPORT != UdpSSDPMulticastPort)
+                {
+                    HeaderHelper.AddOptionalHeader(stringBuilder, "SEARCHPORT.UPNP.ORG", notify.SEARCHPORT.ToString());
+                }
+
                 HeaderHelper.AddOptionalHeader(stringBuilder, "SECURELOCATION.UPNP.ORG", notify.SECURELOCATION);
             }
 
@@ -526,18 +546,23 @@ namespace SSDP.UPnP.PCL.Service
             return Encoding.UTF8.GetBytes(stringBuilder.ToString());
         }
 
-
-
         public void Dispose()
         {
             _disposableDeviceActivity?.Dispose();
+
+            _deviceActivitySubject.OnCompleted();
+            _deviceActivitySubject.Dispose();
 
             if (!_isClientsProvided)
             {
                 foreach (var client in _rootDeviceInterfaces)
                 {
-                    client?.UdpMulticastClient?.Client?.Dispose();
-                    client?.UdpUnicastClient?.Client.Dispose();
+                    client?.UdpMulticastClient?.Dispose();
+
+                    if (client?.UdpUnicastClient != client?.UdpMulticastClient)
+                    {
+                        client?.UdpUnicastClient?.Dispose();
+                    }
                 }
             }
         }
