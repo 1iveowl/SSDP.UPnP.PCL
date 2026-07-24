@@ -171,6 +171,18 @@ The [samples](samples/) folder contains a runnable control point and device; run
 - **7.0** — .NET 10, functional/record-based API, SimpleHttpListener.Rx 7, System.Reactive 7, real M-SEARCH responses, full UDA 2.0 advertisement matrix, xUnit test suite. Breaking.
 - **6.x** — .NET Standard 2.0. Use this if you need older platforms.
 
+## Why .NET 10?
+
+Version 7.0 requires .NET 10, and that is a deliberate choice rather than a convenience.
+
+.NET 10 is the current long-term-support release (supported until November 2028), and its official support matrix covers the hardware where SSDP actually lives: Windows, macOS and Linux on x64 and Arm64, and — notably for this library — 32-bit Arm Linux on current Debian, Ubuntu, Alpine and Fedora releases. That means the whole Raspberry Pi class of devices, down to a Pi Zero 2 W, is a first-class citizen.
+
+For small devices, modern .NET is not a compromise — it is the better option. Trimming and Native AOT produce small, self-contained, fast-starting binaries with a lower memory footprint than the Mono- and early-.NET-Core-era runtimes that used to be the default on that class of hardware. A discovery library that answers multicast searches on a headless box in someone's home benefits directly from all of that. And below the Pi class — microcontroller runtimes such as nanoFramework or Meadow — a sockets-and-Rx library was never able to run in the first place, so nothing is lost there.
+
+The platforms that genuinely cannot load a net10.0 assembly — .NET Framework and Unity — are served by version 6.1, which remains on NuGet and works as it always has.
+
+In short: .NET 10 is where the ecosystem is today, from servers to single-board computers. Combined with the UDA 2.0 compliance work and the more robust engine in 7.0, this release is a more capable library on a foundation we expect to carry it for years.
+
 ## License
 
 MIT — see [License.md](License.md).
