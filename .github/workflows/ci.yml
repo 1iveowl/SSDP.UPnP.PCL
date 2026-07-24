@@ -40,6 +40,11 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build-test
     runs-on: ubuntu-latest
+    permissions:
+      # Required for NuGet Trusted Publishing: the job exchanges the GitHub OIDC
+      # token for a short-lived nuget.org API key — no stored secrets.
+      id-token: write
+      contents: read
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -50,7 +55,13 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      # Requires a Trusted Publishing policy on nuget.org (profile → Trusted
+      # Publishing) for repository 1iveowl/SSDP.UPnP.PCL, workflow ci.yml.
+      - name: NuGet login (Trusted Publishing)
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: 1iveowl
+
       - name: Push to NuGet
-        run: dotnet nuget push "artifacts/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: dotnet nuget push "artifacts/*.nupkg" --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
