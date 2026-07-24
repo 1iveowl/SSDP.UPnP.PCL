@@ -183,6 +183,7 @@ Both samples accept an explicit IP address as the first argument. Notes for same
 
 ## Version history
 
+- **7.0.2** — docs: clarify that UPnP eventing is outside this library's scope (README and XML documentation). No code changes.
 - **7.0.1** — fix: multicast reception on Linux/macOS (SSDP sockets now bind the wildcard address; the group join scopes the interface). Control point sample gains a `tcp` response mode.
 - **7.0** — .NET 10, functional/record-based API, SimpleHttpListener.Rx 7, System.Reactive 7, real M-SEARCH responses, full UDA 2.0 advertisement matrix, xUnit test suite. Breaking.
 - **6.x** — .NET Standard 2.0. Use this if you need older platforms.
