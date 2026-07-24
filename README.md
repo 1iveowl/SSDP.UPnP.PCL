@@ -164,10 +164,26 @@ Because configurations are records, derived configurations are non-destructive: 
 
 ## Samples
 
-The [samples](samples/) folder contains a runnable control point and device; run them on two machines (or two terminals) on the same LAN and watch them discover each other.
+The [samples](samples/) folder contains a runnable control point and device. To watch them talk to each other on one machine, use two terminals and start the device first:
+
+```shell
+# terminal 1 — device: advertises and answers searches
+dotnet run --project samples/Sample.Device
+
+# terminal 2 — control point: shows the device's NOTIFYs and search responses
+dotnet run --project samples/Sample.ControlPoint
+```
+
+Both samples accept an explicit IP address as the first argument. Notes for same-host testing:
+
+- **Start the device first.** Both processes share the SSDP UDP port on one host, and unicast search responses are delivered to the most recently bound socket — starting the control point last makes UDP responses land in the right process.
+- **Or use TCP responses**: `dotnet run --project samples/Sample.ControlPoint -- tcp` asks devices to answer over a reliable TCP connection (`TCPPORT.UPNP.ORG`), which side-steps the shared-port ambiguity entirely.
+- Across two machines on the same LAN, no precautions are needed — start them in any order.
+- On Windows, stop the built-in *SSDP Discovery* service first; it intercepts the multicasts.
 
 ## Version history
 
+- **7.0.1** — fix: multicast reception on Linux/macOS (SSDP sockets now bind the wildcard address; the group join scopes the interface). Control point sample gains a `tcp` response mode.
 - **7.0** — .NET 10, functional/record-based API, SimpleHttpListener.Rx 7, System.Reactive 7, real M-SEARCH responses, full UDA 2.0 advertisement matrix, xUnit test suite. Breaking.
 - **6.x** — .NET Standard 2.0. Use this if you need older platforms.
 

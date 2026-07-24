@@ -133,7 +133,15 @@ public class Device : IDevice
 
         multicastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         multicastClient.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, multicastTtl);
-        multicastClient.Client.Bind(new IPEndPoint(rootDeviceConfiguration.IpEndPoint.Address, Constants.UdpSSDPMulticastPort));
+
+        // On Windows a socket bound to the interface address receives multicast for
+        // groups it joined; on Linux/macOS multicast is only delivered to sockets
+        // bound to the wildcard address — the group join (below) scopes the interface.
+        var bindAddress = OperatingSystem.IsWindows()
+            ? rootDeviceConfiguration.IpEndPoint.Address
+            : IPAddress.Any;
+
+        multicastClient.Client.Bind(new IPEndPoint(bindAddress, Constants.UdpSSDPMulticastPort));
         multicastClient.JoinMulticastGroup(IPAddress.Parse(Constants.UdpSSDPMultiCastAddress), rootDeviceConfiguration.IpEndPoint.Address);
 
         UdpClient unicastClient;

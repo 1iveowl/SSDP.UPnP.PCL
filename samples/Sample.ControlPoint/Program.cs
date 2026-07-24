@@ -6,12 +6,19 @@ using SSDP.UPnP.PCL.Model;
 // SSDP control point sample: listens for M-SEARCH responses and NOTIFY
 // advertisements, and multicasts an ssdp:all discovery request.
 //
+// Usage: Sample.ControlPoint [ip-address] [tcp]
+//   "tcp" asks devices to answer over TCP (TCPPORT.UPNP.ORG) instead of UDP —
+//   useful when device and control point run on the same host, where UDP
+//   responses to the shared SSDP port can be delivered to either process.
+//
 // On Windows, stop the "SSDP Discovery" service first — it intercepts the UPnP
 // multicasts, and nothing will show up in the console while it runs.
 
-var ipAddress = args.Length > 0 && IPAddress.TryParse(args[0], out var parsed)
-    ? parsed
-    : Constants.GetBestGuessLocalIPAddress();
+var useTcpResponses = args.Any(arg => arg.Equals("tcp", StringComparison.OrdinalIgnoreCase));
+
+var ipAddress = args.Select(arg => IPAddress.TryParse(arg, out var parsed) ? parsed : null)
+                    .FirstOrDefault(parsed => parsed is not null)
+                ?? Constants.GetBestGuessLocalIPAddress();
 
 if (ipAddress is null)
 {
@@ -45,12 +52,18 @@ using var responseSubscription = controlPoint.MSearchResponseObservable()
         Console.WriteLine();
     });
 
+if (useTcpResponses)
+{
+    Console.WriteLine($"Requesting TCP responses on port {Constants.TcpResponseListenerPort}.");
+}
+
 await controlPoint.SendMSearchAsync(
     new MSearchRequest
     {
         TransportType = TransportType.Multicast,
         MX = TimeSpan.FromSeconds(5),
         ST = new ST { StSearchType = STType.All },
+        TCPPORT = useTcpResponses ? Constants.TcpResponseListenerPort : null,
         CPFN = "SSDP.UPnP.PCL Sample Control Point",
         UserAgent = new UserAgent
         {
