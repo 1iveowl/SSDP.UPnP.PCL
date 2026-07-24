@@ -15,12 +15,15 @@ namespace SSDP.UPnP.PCL;
 /// An SSDP device: advertises a root device (and its embedded devices and
 /// services) with NOTIFY messages and answers M-SEARCH requests with unicast
 /// responses, following the UDA 2.0 advertisement matrix (three messages for the
-/// root device, two per embedded device, one per service). Supports multi-homed
-/// operation by advertising on several interfaces at once.
+/// root device, two per embedded device, one per distinct service type per
+/// device). Supports multi-homed operation by advertising on several interfaces
+/// at once.
 /// </summary>
 /// <remarks>
 /// Advertisement sending is best-effort: a failed send is logged (see
-/// <see cref="Logger"/>) and does not stop the device or abort the batch. Call
+/// <see cref="Logger"/>) and does not stop the device or abort the batch. While
+/// started, the device re-sends its alive advertisements periodically before they
+/// expire, as UDA 2.0 requires (see <see cref="AutoReAdvertise"/>). Call
 /// <see cref="ByeByeAsync"/> before disposing for a clean exit — <see cref="Dispose"/>
 /// only closes resources and does not notify the network.
 /// </remarks>
@@ -29,6 +32,8 @@ public class Device : IDevice
     // Per UDA 2.0 the response delay must be spread over the M-SEARCH MX value,
     // and MX must be treated as at most 5 seconds.
     private static readonly TimeSpan MaxResponseDelay = TimeSpan.FromSeconds(5);
+
+    private static readonly TimeSpan RecommendedMinCacheControl = TimeSpan.FromSeconds(1800);
 
     private readonly BehaviorSubject<DeviceActivity> _deviceActivitySubject = new(DeviceActivity.Initialized);
 
@@ -40,7 +45,7 @@ public class Device : IDevice
 
     private IDisposable? _requestSubscription;
 
-    private CancellationToken _listenerCt;
+    private CancellationTokenSource? _lifetimeCts;
 
     private bool _skipAlive;
 
@@ -52,6 +57,16 @@ public class Device : IDevice
     /// replace with a fake in tests.
     /// </summary>
     public TimeProvider TimeProvider { get; set; } = TimeProvider.System;
+
+    /// <summary>
+    /// Whether the device automatically re-sends its alive advertisements at a
+    /// randomly-distributed interval between one quarter and one half of the
+    /// CACHE-CONTROL max-age, per UDA 2.0 section 1.2.2 ("the device shall re-send
+    /// its advertisements periodically prior to expiration"). Defaults to
+    /// <see langword="true"/>; set to <see langword="false"/> before starting to
+    /// manage re-advertisement yourself.
+    /// </summary>
+    public bool AutoReAdvertise { get; set; } = true;
 
     /// <inheritdoc />
     public IObservable<DeviceActivity> DeviceActivityObservable { get; }
@@ -70,30 +85,45 @@ public class Device : IDevice
     /// Creates a device advertising <paramref name="rootDeviceConfiguration"/>, binding
     /// UDP clients on the configuration's <see cref="RootDeviceConfiguration.IpEndPoint"/>.
     /// </summary>
-    /// <exception cref="SSDPException">The configuration has no endpoint.</exception>
-    public Device(RootDeviceConfiguration rootDeviceConfiguration)
-        : this(CreateInterfaces(rootDeviceConfiguration), isClientsProvided: false)
+    /// <param name="rootDeviceConfiguration">The root device to advertise.</param>
+    /// <param name="multicastTtl">
+    /// Time-to-live for multicast packets; UDA 2.0 recommends the default of 2.
+    /// </param>
+    /// <exception cref="SSDPException">
+    /// The configuration has no endpoint, a device UUID is missing, CONFIGID or
+    /// BOOTID is out of range, or the endpoint port is neither 1900 nor in the
+    /// 49152–65535 range UDA 2.0 allows for SEARCHPORT.
+    /// </exception>
+    public Device(RootDeviceConfiguration rootDeviceConfiguration, int multicastTtl = Constants.DefaultMulticastTtl)
+        : this(CreateInterfaces(rootDeviceConfiguration, multicastTtl), isClientsProvided: false)
     {
     }
 
     /// <summary>
     /// Creates a device from prepared interfaces — for advanced scenarios where the
-    /// caller configures the sockets. The caller keeps ownership of the sockets;
-    /// <see cref="Dispose"/> will not close them. Each configuration's endpoint is
-    /// derived from its unicast client.
+    /// caller configures the sockets (including their multicast TTL). The caller
+    /// keeps ownership of the sockets; <see cref="Dispose"/> will not close them.
+    /// Each configuration's endpoint is derived from its unicast client.
     /// </summary>
-    /// <exception cref="SSDPException">No interface was given.</exception>
+    /// <exception cref="SSDPException">
+    /// No interface was given, a device UUID is missing, CONFIGID or BOOTID is out
+    /// of range, or a unicast client is bound to a port that is neither 1900 nor in
+    /// the 49152–65535 range UDA 2.0 allows for SEARCHPORT.
+    /// </exception>
     public Device(params RootDeviceInterface[] rootDeviceInterfaces)
         : this(DeriveEndPoints(rootDeviceInterfaces), isClientsProvided: true)
     {
     }
 
-    private static RootDeviceInterface[] CreateInterfaces(RootDeviceConfiguration rootDeviceConfiguration)
+    private static RootDeviceInterface[] CreateInterfaces(RootDeviceConfiguration rootDeviceConfiguration, int multicastTtl)
     {
         if (rootDeviceConfiguration?.IpEndPoint is null)
         {
             throw new SSDPException("At least one Root Device must be fully specified.");
         }
+
+        ValidateConfiguration(rootDeviceConfiguration);
+        ValidateUnicastPort(rootDeviceConfiguration.IpEndPoint.Port);
 
         var multicastClient = new UdpClient
         {
@@ -102,6 +132,7 @@ public class Device : IDevice
         };
 
         multicastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+        multicastClient.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, multicastTtl);
         multicastClient.Client.Bind(new IPEndPoint(rootDeviceConfiguration.IpEndPoint.Address, Constants.UdpSSDPMulticastPort));
         multicastClient.JoinMulticastGroup(IPAddress.Parse(Constants.UdpSSDPMultiCastAddress), rootDeviceConfiguration.IpEndPoint.Address);
 
@@ -140,6 +171,16 @@ public class Device : IDevice
             throw new SSDPException("At least one Root Device Interface must be specified.");
         }
 
+        foreach (var rootDeviceInterface in rootDeviceInterfaces)
+        {
+            ValidateConfiguration(rootDeviceInterface.RootDeviceConfiguration);
+
+            if (rootDeviceInterface.UdpUnicastClient.Client.LocalEndPoint is IPEndPoint unicastEndPoint)
+            {
+                ValidateUnicastPort(unicastEndPoint.Port);
+            }
+        }
+
         return rootDeviceInterfaces
             .Select(rootDeviceInterface => rootDeviceInterface with
             {
@@ -149,6 +190,40 @@ public class Device : IDevice
                 }
             })
             .ToArray();
+    }
+
+    private static void ValidateConfiguration(RootDeviceConfiguration root)
+    {
+        foreach (var device in SearchMatcher.AllDevices(root))
+        {
+            if (string.IsNullOrEmpty(device.DeviceUUID))
+            {
+                throw new SSDPException("Every root and embedded device must specify a DeviceUUID.");
+            }
+
+            if (device.BOOTID > int.MaxValue)
+            {
+                throw new SSDPException("BOOTID must fit a non-negative 31-bit integer (UDA 2.0 section 1.2.2).");
+            }
+        }
+
+        if (root.CONFIGID is < 0 or > 16777215)
+        {
+            throw new SSDPException("CONFIGID must be in the range 0-16777215 (UDA 2.0 section 1.2.2).");
+        }
+    }
+
+    // UDA 2.0 section 1.2.2: a device answers unicast searches on port 1900 unless
+    // that port is unavailable; an advertised SEARCHPORT must be in 49152-65535.
+    private static void ValidateUnicastPort(int port)
+    {
+        if (port != Constants.UdpSSDPMulticastPort
+            && port is < Constants.MinDynamicPort or > Constants.MaxDynamicPort)
+        {
+            throw new SSDPException(
+                $"The unicast search port must be {Constants.UdpSSDPMulticastPort} or in the range " +
+                $"{Constants.MinDynamicPort}-{Constants.MaxDynamicPort} (UDA 2.0 section 1.2.2, SEARCHPORT.UPNP.ORG).");
+        }
     }
 
     internal Task HotStartAsync(IObservable<HttpRequestResponse> httpListenerObservable, bool skipAlive)
@@ -193,11 +268,11 @@ public class Device : IDevice
             throw new SSDPException("Device is already started.");
         }
 
-        _listenerCt = ct;
+        _lifetimeCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
         // Stamp unset BOOTIDs (0) with the current Unix time, per UDA 2.0
         // section 1.2.2. Explicitly configured values are preserved.
-        var now = (uint)TimeProvider.GetUtcNow().ToUnixTimeSeconds();
+        var now = CurrentBootId();
 
         _rootDeviceInterfaces = _rootDeviceInterfaces
             .Select(rootDeviceInterface => rootDeviceInterface with
@@ -205,6 +280,8 @@ public class Device : IDevice
                 RootDeviceConfiguration = WithStampedBootIds(rootDeviceInterface.RootDeviceConfiguration, now)
             })
             .ToArray();
+
+        LogConfigurationAdvisories();
 
         _requestSubscription = httpListenerObservable
             .Where(x => x.MessageType == MessageType.Request)
@@ -221,9 +298,19 @@ public class Device : IDevice
 
         if (!_skipAlive)
         {
-            await SendAliveAsync(ct);
+            await SendAliveAsync(_lifetimeCts.Token);
+        }
+
+        if (AutoReAdvertise)
+        {
+            _ = ReAdvertiseLoopAsync(_lifetimeCts.Token);
         }
     }
+
+    // BOOTID values are Unix seconds capped to the non-negative 31-bit range the
+    // spec mandates.
+    private uint CurrentBootId() =>
+        (uint)Math.Min(TimeProvider.GetUtcNow().ToUnixTimeSeconds(), int.MaxValue);
 
     private static RootDeviceConfiguration WithStampedBootIds(RootDeviceConfiguration root, uint now) =>
         root with
@@ -233,6 +320,66 @@ public class Device : IDevice
                 .Select(device => device with { BOOTID = device.BOOTID == 0 ? now : device.BOOTID })
                 .ToList()
         };
+
+    private void LogConfigurationAdvisories()
+    {
+        foreach (var rootDeviceInterface in _rootDeviceInterfaces)
+        {
+            var root = rootDeviceInterface.RootDeviceConfiguration;
+
+            if (root.CacheControl < RecommendedMinCacheControl)
+            {
+                Logger?.LogWarning(
+                    "CACHE-CONTROL max-age of {MaxAge}s is below the 1800s UDA 2.0 recommends.",
+                    (int)root.CacheControl.TotalSeconds);
+            }
+
+            foreach (var device in SearchMatcher.AllDevices(root))
+            {
+                if (!Guid.TryParse(device.DeviceUUID, out _))
+                {
+                    Logger?.LogWarning(
+                        "DeviceUUID '{DeviceUUID}' is not in the RFC 4122 format UDA 2.0 mandates.",
+                        device.DeviceUUID);
+                }
+            }
+        }
+    }
+
+    // Re-sends alive advertisements at a randomly-distributed interval in
+    // [max-age/4, max-age/2), per UDA 2.0 section 1.2.2.
+    private async Task ReAdvertiseLoopAsync(CancellationToken ct)
+    {
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                var interfaces = _rootDeviceInterfaces;
+
+                var maxAge = interfaces
+                    .Select(i => i.RootDeviceConfiguration.CacheControl)
+                    .Min();
+
+                if (maxAge <= TimeSpan.Zero)
+                {
+                    maxAge = RecommendedMinCacheControl;
+                }
+
+                var interval = maxAge * (0.25 + (Random.Shared.NextDouble() * 0.25));
+
+                await Task.Delay(interval, TimeProvider, ct);
+
+                await SendAliveAsync(ct);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            Logger?.LogError(ex, "The SSDP re-advertisement loop terminated unexpectedly.");
+        }
+    }
 
     // Answers one M-SEARCH request. Never throws: request handling failures are
     // logged and must not terminate the listener pipeline (a dead pipeline would
@@ -261,6 +408,18 @@ public class Device : IDevice
                 TimeProvider.GetUtcNow(),
                 searchPort);
 
+            // UDA 2.0 section 1.3.3: when the search carries TCPPORT.UPNP.ORG the
+            // responses go to that TCP port over a reliable connection, without the
+            // MX spreading.
+            if (request.TCPPORT is { } tcpPort)
+            {
+                await SendResponsesOverTcpAsync(
+                    new IPEndPoint(request.RemoteIpEndPoint.Address, tcpPort),
+                    responses);
+
+                return request;
+            }
+
             // Each response message is delayed independently over the MX window
             // (UDA 2.0 section 1.3.3) and sent concurrently.
             await Task.WhenAll(responses.Select(response =>
@@ -281,6 +440,8 @@ public class Device : IDevice
     {
         try
         {
+            var ct = _lifetimeCts?.Token ?? CancellationToken.None;
+
             // Unicast requests carry no MX and are answered immediately.
             if (mx > TimeSpan.Zero)
             {
@@ -289,12 +450,12 @@ public class Device : IDevice
                 await Task.Delay(
                     TimeSpan.FromMilliseconds(Random.Shared.NextDouble() * window.TotalMilliseconds),
                     TimeProvider,
-                    _listenerCt);
+                    ct);
             }
 
             var datagram = DatagramComposer.ComposeMSearchResponse(response);
 
-            await rootDeviceInterface.UdpUnicastClient.SendAsync(datagram, response.RemoteIpEndPoint, _listenerCt);
+            await rootDeviceInterface.UdpUnicastClient.SendAsync(datagram, response.RemoteIpEndPoint, ct);
         }
         catch (OperationCanceledException)
         {
@@ -306,15 +467,45 @@ public class Device : IDevice
         }
     }
 
+    private async Task SendResponsesOverTcpAsync(IPEndPoint target, IEnumerable<MSearchResponse> responses)
+    {
+        try
+        {
+            var ct = _lifetimeCts?.Token ?? CancellationToken.None;
+
+            using var tcpClient = new TcpClient();
+
+            await tcpClient.ConnectAsync(target.Address, target.Port, ct);
+
+            var stream = tcpClient.GetStream();
+
+            foreach (var response in responses)
+            {
+                await stream.WriteAsync(DatagramComposer.ComposeMSearchResponse(response), ct);
+            }
+
+            await stream.FlushAsync(ct);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            Logger?.LogError(ex, "Failed to send M-SEARCH responses over TCP to {Target}.", target);
+        }
+    }
+
     /// <inheritdoc />
     /// <remarks>
     /// Sends are best-effort: individual failures are logged and the BOOTID advance
-    /// still takes effect, so the device's state stays consistent.
+    /// still takes effect, so the device's state stays consistent. Per UDA 2.0
+    /// section 1.2.3, the update set is followed by alive advertisements carrying
+    /// the new BOOTID.
     /// </remarks>
     public async Task UpdateAsync(CancellationToken ct = default)
     {
         var interfaces = _rootDeviceInterfaces;
-        var nextBootId = (uint)TimeProvider.GetUtcNow().ToUnixTimeSeconds();
+        var nextBootId = CurrentBootId();
 
         var updated = new RootDeviceInterface[interfaces.Length];
 
@@ -355,6 +546,11 @@ public class Device : IDevice
         }
 
         _rootDeviceInterfaces = updated;
+
+        // UDA 2.0 section 1.2.3: "After all the update messages have been sent, it
+        // shall multicast a number of discovery messages ... with the new
+        // BOOTID.UPNP.ORG field value."
+        await SendAliveAsync(ct);
     }
 
     /// <inheritdoc />
@@ -479,14 +675,17 @@ public class Device : IDevice
     }
 
     /// <summary>
-    /// Stops listening and closes the sockets this device created. Sockets supplied
-    /// through the prepared-interface constructor are left open, since the caller
-    /// owns them. Does not send <c>ssdp:byebye</c> — call <see cref="ByeByeAsync"/>
-    /// first for a clean exit.
+    /// Stops listening and the re-advertisement loop, and closes the sockets this
+    /// device created. Sockets supplied through the prepared-interface constructor
+    /// are left open, since the caller owns them. Does not send <c>ssdp:byebye</c> —
+    /// call <see cref="ByeByeAsync"/> first for a clean exit.
     /// </summary>
     public void Dispose()
     {
         GC.SuppressFinalize(this);
+
+        _lifetimeCts?.Cancel();
+        _lifetimeCts?.Dispose();
 
         _requestSubscription?.Dispose();
 

@@ -24,8 +24,13 @@ public sealed record RootDeviceConfiguration : DeviceConfiguration
     /// <summary>The HTTPS URL of the device description document (<c>SECURELOCATION.UPNP.ORG</c>), if any.</summary>
     public Uri? SecureLocation { get; init; }
 
-    /// <summary>The configuration number sent as <c>CONFIGID.UPNP.ORG</c>, if any.</summary>
-    public int? CONFIGID { get; init; }
+    /// <summary>
+    /// The configuration number sent as <c>CONFIGID.UPNP.ORG</c>. Required by
+    /// UDA 2.0 in all announcements; freely assignable values are 0–16777215
+    /// (2^24−1) and the value must change whenever the description changes.
+    /// Defaults to 0.
+    /// </summary>
+    public int CONFIGID { get; init; }
 
     /// <summary>Advertisement validity (<c>CACHE-CONTROL: max-age</c>).</summary>
     public TimeSpan CacheControl { get; init; } = TimeSpan.FromSeconds(1800);

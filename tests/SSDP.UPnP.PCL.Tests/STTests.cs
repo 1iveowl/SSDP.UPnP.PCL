@@ -90,6 +90,8 @@ public class STTests
     [InlineData("uuid:")]
     [InlineData("urn:schemas-upnp-org:device:TooShort")]
     [InlineData("urn:schemas-upnp-org:gadget:Name:1")]
+    [InlineData("urn:schemas-upnp-org:device:Name:0")]
+    [InlineData("urn:schemas-upnp-org:device:Name:abc")]
     [InlineData("gibberish")]
     public void Parse_InvalidValues_Fail(string? searchTarget)
     {

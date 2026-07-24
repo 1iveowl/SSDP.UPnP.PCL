@@ -14,7 +14,11 @@ public static class DatagramComposer
     /// Composes an M-SEARCH request datagram.
     /// </summary>
     /// <param name="request">The request to compose; its <see cref="MSearchRequest.ST"/> must be fully specified.</param>
-    /// <exception cref="SSDPException">The search target is not fully specified.</exception>
+    /// <exception cref="SSDPException">
+    /// The search target is not fully specified, or a multicast request has an MX
+    /// below 1 second (UDA 2.0 requires <c>MX &gt;= 1</c>; compliant devices
+    /// silently discard such requests).
+    /// </exception>
     public static byte[] ComposeMSearchRequest(MSearchRequest request)
     {
         var builder = new StringBuilder();
@@ -29,6 +33,11 @@ public static class DatagramComposer
 
         if (request.TransportType == TransportType.Multicast)
         {
+            if (request.MX < TimeSpan.FromSeconds(1))
+            {
+                throw new SSDPException("A multicast M-SEARCH requires an MX of at least 1 second (UDA 2.0 section 1.3.2).");
+            }
+
             builder.Append($"MX: {(int)request.MX.TotalSeconds}\r\n");
         }
 
@@ -40,7 +49,7 @@ public static class DatagramComposer
             builder.Append($"CPFN.UPNP.ORG: {request.CPFN}\r\n");
 
             AppendOptional(builder, "CPUUID.UPNP.ORG", request.CPUUID);
-            AppendOptional(builder, "TCPPORT.UPNP.ORG", request.TCPPORT);
+            AppendOptional(builder, "TCPPORT.UPNP.ORG", request.TCPPORT?.ToString());
 
             foreach (var header in request.Headers)
             {

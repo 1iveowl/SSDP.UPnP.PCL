@@ -42,8 +42,18 @@ public static class SsdpMessageParser
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Parses a received M-SEARCH request message.
+    /// Parses a received M-SEARCH request message, applying the UDA 2.0 validation
+    /// rules a device must enforce: the <c>MAN</c> header must be
+    /// <c>"ssdp:discover"</c>, a multicast search must carry an integer
+    /// <c>MX &gt;= 1</c>, and a <c>TCPPORT.UPNP.ORG</c> value, when present, must be
+    /// in 49152–65535. Invalid requests fail so callers can silently discard them
+    /// (UDA 2.0 §1.3.3 — error responses are prohibited).
     /// </summary>
+    /// <remarks>
+    /// Multicast vs unicast is classified by the <c>HOST</c> header (the SSDP group
+    /// address means multicast; a device address means a targeted unicast search),
+    /// since both arrive on the same UDP socket.
+    /// </remarks>
     /// <param name="request">A message with <see cref="MessageType.Request"/> and method <c>M-SEARCH</c>.</param>
     /// <returns>The parsed request, or a failure describing the problem.</returns>
     public static ParseResult<MSearchRequest> ParseMSearchRequest(HttpRequestResponse request)
@@ -55,21 +65,82 @@ public static class SsdpMessageParser
             return ParseResult<MSearchRequest>.Failure(stResult.Error);
         }
 
+        var host = GetHeaderValue(request.Headers, "HOST");
+
+        if (string.IsNullOrEmpty(host))
+        {
+            return ParseResult<MSearchRequest>.Failure("M-SEARCH is missing the required HOST header.");
+        }
+
+        if (TrimQuotes(GetHeaderValue(request.Headers, "MAN")) != "ssdp:discover")
+        {
+            return ParseResult<MSearchRequest>.Failure(
+                "M-SEARCH MAN header must be \"ssdp:discover\".");
+        }
+
+        var transportType = request.Transport == HttpTransport.Tcp || !IsMulticastHost(host)
+            ? TransportType.Unicast
+            : TransportType.Multicast;
+
+        var mx = TimeSpan.Zero;
+
+        if (transportType == TransportType.Multicast)
+        {
+            // UDA 2.0 §1.3.3: a multicast search without a valid MX (>= 1) must be
+            // silently discarded. Unicast searches carry no MX and are answered
+            // immediately.
+            if (!int.TryParse(GetHeaderValue(request.Headers, "MX"), out var mxSeconds) || mxSeconds < 1)
+            {
+                return ParseResult<MSearchRequest>.Failure(
+                    "Multicast M-SEARCH requires an integer MX header of 1 or greater.");
+            }
+
+            mx = TimeSpan.FromSeconds(mxSeconds);
+        }
+
+        int? tcpPort = null;
+        var tcpPortValue = GetHeaderValue(request.Headers, "TCPPORT.UPNP.ORG");
+
+        if (tcpPortValue is not null)
+        {
+            if (!int.TryParse(tcpPortValue, out var parsedTcpPort)
+                || parsedTcpPort is < Constants.MinDynamicPort or > Constants.MaxDynamicPort)
+            {
+                return ParseResult<MSearchRequest>.Failure(
+                    $"TCPPORT.UPNP.ORG must be an integer in the range {Constants.MinDynamicPort}-{Constants.MaxDynamicPort}.");
+            }
+
+            tcpPort = parsedTcpPort;
+        }
+
         return ParseResult<MSearchRequest>.Success(new MSearchRequest
         {
-            TransportType = ToTransportType(request.Transport),
-            HOST = GetHeaderValue(request.Headers, "HOST"),
-            MX = TimeSpan.FromSeconds(ParseIntOr(GetHeaderValue(request.Headers, "MX"), 0)),
+            TransportType = transportType,
+            HOST = host,
+            MX = mx,
             ST = stResult.Value,
             UserAgent = ParseDeviceInfo<UserAgent>(GetHeaderValue(request.Headers, "USER-AGENT")),
             CPFN = GetHeaderValue(request.Headers, "CPFN.UPNP.ORG"),
             CPUUID = GetHeaderValue(request.Headers, "CPUUID.UPNP.ORG"),
-            TCPPORT = GetHeaderValue(request.Headers, "TCPPORT.UPNP.ORG"),
+            TCPPORT = tcpPort,
             Headers = AdditionalHeaders(request.Headers, MSearchRequestStandardHeaders),
             LocalIpEndPoint = request.LocalEndPoint,
             RemoteIpEndPoint = request.RemoteEndPoint,
             HasParsingError = request.HasParsingErrors
         });
+    }
+
+    private static bool IsMulticastHost(string host) =>
+        host == Constants.UdpSSDPMultiCastAddress
+        || host.StartsWith($"{Constants.UdpSSDPMultiCastAddress}:", StringComparison.Ordinal);
+
+    private static string? TrimQuotes(string? value)
+    {
+        var trimmed = value?.Trim();
+
+        return trimmed is { Length: >= 2 } && trimmed[0] == '"' && trimmed[^1] == '"'
+            ? trimmed[1..^1]
+            : trimmed;
     }
 
     /// <summary>
@@ -257,9 +328,6 @@ public static class SsdpMessageParser
             ? FrozenDictionary<string, string>.Empty
             : new Dictionary<string, string>(extras, StringComparer.OrdinalIgnoreCase);
     }
-
-    private static int ParseIntOr(string? value, int fallback) =>
-        int.TryParse(value, out var result) ? result : fallback;
 
     private static uint ParseUIntOr(string? value, uint fallback) =>
         uint.TryParse(value, out var result) ? result : fallback;

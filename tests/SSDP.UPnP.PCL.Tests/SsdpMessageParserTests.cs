@@ -70,6 +70,102 @@ public class SsdpMessageParserTests
         Assert.False(result.IsSuccess);
     }
 
+    [Theory]
+    [InlineData("\"ssdp:discover\"", true)]
+    [InlineData("ssdp:discover", true)] // tolerated unquoted form
+    [InlineData("\"ssdp:wrong\"", false)]
+    [InlineData("", false)]
+    public void ParseMSearchRequest_ValidatesMan(string man, bool expectSuccess)
+    {
+        var headers = new Dictionary<string, string>
+        {
+            ["HOST"] = "239.255.255.250:1900",
+            ["MX"] = "2",
+            ["ST"] = "ssdp:all"
+        };
+
+        if (man.Length > 0)
+        {
+            headers["MAN"] = man;
+        }
+
+        var result = SsdpMessageParser.ParseMSearchRequest(Message(MessageType.Request, headers, method: "M-SEARCH"));
+
+        Assert.Equal(expectSuccess, result.IsSuccess);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("0")]
+    [InlineData("-1")]
+    [InlineData("abc")]
+    public void ParseMSearchRequest_MulticastWithoutValidMx_Fails(string? mx)
+    {
+        var headers = new Dictionary<string, string>
+        {
+            ["HOST"] = "239.255.255.250:1900",
+            ["MAN"] = "\"ssdp:discover\"",
+            ["ST"] = "ssdp:all"
+        };
+
+        if (mx is not null)
+        {
+            headers["MX"] = mx;
+        }
+
+        var result = SsdpMessageParser.ParseMSearchRequest(Message(MessageType.Request, headers, method: "M-SEARCH"));
+
+        Assert.False(result.IsSuccess);
+    }
+
+    [Fact]
+    public void ParseMSearchRequest_UnicastHost_NeedsNoMx()
+    {
+        var message = Message(MessageType.Request, new Dictionary<string, string>
+        {
+            ["HOST"] = "192.168.0.10:1900",
+            ["MAN"] = "\"ssdp:discover\"",
+            ["ST"] = "upnp:rootdevice"
+        }, method: "M-SEARCH");
+
+        var result = SsdpMessageParser.ParseMSearchRequest(message);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(TransportType.Unicast, result.Value.TransportType);
+        Assert.Equal(TimeSpan.Zero, result.Value.MX);
+    }
+
+    [Theory]
+    [InlineData("51000", true)]
+    [InlineData("49152", true)]
+    [InlineData("65535", true)]
+    [InlineData("1234", false)]  // below the RFC 4340 dynamic range
+    [InlineData("65536", false)]
+    [InlineData("abc", false)]
+    public void ParseMSearchRequest_ValidatesTcpPort(string tcpPort, bool expectSuccess)
+    {
+        var message = Message(MessageType.Request, new Dictionary<string, string>
+        {
+            ["HOST"] = "239.255.255.250:1900",
+            ["MAN"] = "\"ssdp:discover\"",
+            ["MX"] = "2",
+            ["ST"] = "ssdp:all",
+            ["TCPPORT.UPNP.ORG"] = tcpPort
+        }, method: "M-SEARCH");
+
+        var result = SsdpMessageParser.ParseMSearchRequest(message);
+
+        if (expectSuccess)
+        {
+            Assert.True(result.IsSuccess);
+            Assert.Equal(int.Parse(tcpPort), result.Value.TCPPORT);
+        }
+        else
+        {
+            Assert.False(result.IsSuccess);
+        }
+    }
+
     [Fact]
     public void ParseMSearchResponse_ReadsAllStandardHeaders()
     {

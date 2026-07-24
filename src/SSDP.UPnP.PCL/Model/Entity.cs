@@ -15,7 +15,11 @@ public record Entity
     /// <summary>Type version; UPnP versions start at 1.</summary>
     public int Version { get; init; }
 
-    /// <summary>Vendor domain for domain-qualified types; <see langword="null"/> for standard types.</summary>
+    /// <summary>
+    /// Vendor domain for domain-qualified types; <see langword="null"/> for standard
+    /// types. Per UDA 2.0, period characters in the domain name must be replaced
+    /// with hyphens (e.g. <c>acme-com</c>, not <c>acme.com</c>).
+    /// </summary>
     public string? Domain { get; init; }
 
     /// <summary>UUID of the device (or of the device owning the service).</summary>

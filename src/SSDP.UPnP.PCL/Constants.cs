@@ -16,8 +16,23 @@ public static class Constants
     /// <summary>The SSDP multicast port.</summary>
     public const int UdpSSDPMulticastPort = 1900;
 
-    /// <summary>The default local TCP port a control point listens on for unicast responses.</summary>
-    public const int TcpResponseListenerPort = 8321;
+    /// <summary>
+    /// The default local TCP port a control point listens on for unicast responses;
+    /// inside the 49152–65535 range UDA 2.0 mandates for <c>TCPPORT.UPNP.ORG</c>.
+    /// </summary>
+    public const int TcpResponseListenerPort = 51900;
+
+    /// <summary>Lowest port UDA 2.0 allows for SEARCHPORT.UPNP.ORG / TCPPORT.UPNP.ORG (RFC 4340 dynamic range).</summary>
+    public const int MinDynamicPort = 49152;
+
+    /// <summary>Highest port UDA 2.0 allows for SEARCHPORT.UPNP.ORG / TCPPORT.UPNP.ORG.</summary>
+    public const int MaxDynamicPort = 65535;
+
+    /// <summary>
+    /// The default multicast time-to-live. UDA 2.0 recommends a TTL of 2 so
+    /// discovery can cross one router while limiting congestion.
+    /// </summary>
+    public const int DefaultMulticastTtl = 2;
 
     /// <summary>
     /// Best-effort guess of the local IPv4 address to use for SSDP: the first

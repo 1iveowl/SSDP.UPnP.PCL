@@ -43,13 +43,18 @@ Version 7.0 also fixes significant defects found in 6.x — most notably: **devi
 
 Further behavior notes for 7.0:
 
-- **Full UDA 2.0 advertisement matrix.** Devices advertise (and answer searches with) the complete message set from UDA 2.0 §1.2.2: three messages for the root device (`upnp:rootdevice`, `uuid:...`, device type), two per embedded device, and one per service. The standard vs vendor-domain URI form is derived from each configuration's `Domain` — you no longer set `EntityType` on configurations.
-- **Advertisement sends are best-effort and concurrent.** Each NOTIFY keeps its own spec-mandated jitter and triple-send cadence, but messages are no longer serialized against each other, so a full alive/byebye burst completes in about a second. Individual send failures are logged (set `Device.Logger`) and never stop the device or abort a batch; `UpdateAsync` always advances BOOTID.
+- **Full UDA 2.0 advertisement matrix.** Devices advertise (and answer searches with) the complete message set from UDA 2.0 §1.2.2: three messages for the root device (`upnp:rootdevice`, `uuid:...`, device type), two per embedded device, and one per distinct service type per device. The standard vs vendor-domain URI form is derived from each configuration's `Domain` — you no longer set `EntityType` on configurations.
+- **Periodic re-advertisement.** As UDA 2.0 requires, a started device automatically re-sends its alive advertisements at a random interval between ¼ and ½ of `CacheControl` before they expire. Opt out with `device.AutoReAdvertise = false`.
+- **Strict search validation.** As UDA 2.0 requires, the device silently discards multicast M-SEARCH requests without a valid `MAN: "ssdp:discover"` or an integer `MX ≥ 1`; unicast searches (HOST names the device) need no MX and are answered immediately. Responses to type searches echo the *requested* version in `ST` while `USN` keeps the advertised identity.
+- **TCP search responses (`TCPPORT.UPNP.ORG`).** When a multicast search carries a `TCPPORT` (49152–65535), the device replies over one reliable TCP connection instead of UDP, skipping the MX spread. Set `MSearchRequest.TCPPORT` to your control point's TCP port to use it.
+- **Value rules enforced.** Device construction validates UDA 2.0 constraints: every device needs a `DeviceUUID` (non-RFC-4122 values are logged as warnings), `CONFIGID` is required (default 0, range 0–16 777 215), BOOTID fits 31 bits, and the unicast endpoint port must be 1900 (default) or in 49152–65535 (the legal `SEARCHPORT` range). Multicast TTL defaults to 2 per the spec and is configurable via constructor parameters.
+- **M-SEARCH repeats.** `SendMSearchAsync` transmits multicast searches twice by default (UDP is unreliable; UDA 2.0 recommends repeats) — tune with `MSearchRequest.SendCount`.
+- **Advertisement sends are best-effort and concurrent.** Each NOTIFY keeps its own spec-mandated jitter and triple-send cadence, but messages are no longer serialized against each other, so a full alive/byebye burst completes in about a second. Individual send failures are logged (set `Device.Logger`) and never stop the device or abort a batch; `UpdateAsync` always advances BOOTID and, per UDA 2.0, follows the update set with alive advertisements carrying the new BOOTID.
 - **Say goodbye explicitly.** `Dispose` only closes resources — call `await device.ByeByeAsync()` before disposing for a clean exit.
 - **BOOTID stamping.** Leave `BOOTID` at 0 and the device stamps it with the Unix timestamp at start (from its `TimeProvider`, replaceable in tests); set it explicitly to control it yourself.
 - **Single-use start.** `Start`/`StartAsync`/`HotStart(Async)` may only be called once per instance.
 - **Cancellation.** All public async methods accept an optional `CancellationToken`.
-- **Parsing policy.** Requests are parsed strictly; responses and notifications leniently (unparsable fields are left unset), except a response where neither ST nor USN parses is dropped. The control point's observables are shared streams — each message is parsed once no matter how many subscribers.
+- **Parsing policy.** Requests are parsed strictly (including the UDA validation rules above); responses and notifications leniently (unparsable fields are left unset), except a response where neither ST nor USN parses is dropped. The control point's observables are shared streams — each message is parsed once no matter how many subscribers.
 
 ## Control point
 
@@ -92,7 +97,7 @@ await controlPoint.SendMSearchAsync(
     ipAddress);
 ```
 
-Passing several IP addresses to the `ControlPoint` constructor creates a multi-homed control point that listens on all of them. To run several control points on one host, give each its own TCP response port: `new ControlPoint([ipAddress], tcpResponsePort: 8322)`.
+Passing several IP addresses to the `ControlPoint` constructor creates a multi-homed control point that listens on all of them. To run several control points on one host, give each its own TCP response port: `new ControlPoint([ipAddress], tcpResponsePort: 51901)`.
 
 ## Device
 
@@ -109,7 +114,7 @@ var rootDeviceConfiguration = new RootDeviceConfiguration
     Version = 1,
     CacheControl = TimeSpan.FromSeconds(1800),
     Location = new Uri("http://192.168.0.10/description.xml"),
-    IpEndPoint = new IPEndPoint(IPAddress.Parse("192.168.0.10"), 1901),
+    IpEndPoint = new IPEndPoint(IPAddress.Parse("192.168.0.10"), 1900),
     CONFIGID = 1,
     Server = new Server
     {

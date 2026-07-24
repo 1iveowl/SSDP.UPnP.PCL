@@ -139,9 +139,10 @@ public sealed record ST : Entity
 
         var isStandardDomain = parts[1].Equals("schemas-upnp-org", StringComparison.OrdinalIgnoreCase);
 
-        if (!int.TryParse(parts[4], out var version))
+        if (!int.TryParse(parts[4], out var version) || version < 1)
         {
-            version = -1;
+            return ParseResult<ST>.Failure(
+                $"Search Target (ST) version must be a positive integer. The value '{searchTarget}' is invalid.");
         }
 
         return parts[2].ToLowerInvariant() switch

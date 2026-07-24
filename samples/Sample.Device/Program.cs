@@ -27,7 +27,7 @@ var rootDeviceConfiguration = new RootDeviceConfiguration
     Version = 1,
     CacheControl = TimeSpan.FromSeconds(1800),
     Location = new Uri($"http://{ipAddress}/device"),
-    IpEndPoint = new IPEndPoint(ipAddress, 1901),
+    IpEndPoint = new IPEndPoint(ipAddress, 1900),
     CONFIGID = 100,
     Server = new Server
     {

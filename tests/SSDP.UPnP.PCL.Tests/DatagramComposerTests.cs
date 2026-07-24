@@ -49,6 +49,19 @@ public class DatagramComposerTests
     }
 
     [Fact]
+    public void ComposeMSearchRequest_MulticastWithMxBelowOne_Throws()
+    {
+        var request = new MSearchRequest
+        {
+            TransportType = TransportType.Multicast,
+            MX = TimeSpan.Zero,
+            ST = new ST { StSearchType = STType.All }
+        };
+
+        Assert.Throws<SSDPException>(() => DatagramComposer.ComposeMSearchRequest(request));
+    }
+
+    [Fact]
     public void ComposeMSearchRequest_Unicast_OmitsMulticastHeaders()
     {
         var request = new MSearchRequest

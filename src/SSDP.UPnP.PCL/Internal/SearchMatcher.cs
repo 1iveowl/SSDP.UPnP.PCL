@@ -43,9 +43,19 @@ internal static class SearchMatcher
 
         foreach (var device in AllDevices(root))
         {
+            // UDA 2.0 §1.2.2: multiple instances of the same service type within one
+            // device are advertised once; the same type on different devices is
+            // advertised separately per device.
+            var seenServiceTypes = new HashSet<string>(StringComparer.Ordinal);
+
             foreach (var service in device.Services)
             {
-                yield return (device, ServiceTypeEntity(device, service));
+                var entity = ServiceTypeEntity(device, service);
+
+                if (seenServiceTypes.Add(entity.ToUriString()))
+                {
+                    yield return (device, entity);
+                }
             }
         }
     }
@@ -138,6 +148,13 @@ internal static class SearchMatcher
         DateTimeOffset date,
         int? searchPort)
     {
+        // UDA 2.0 §1.3.3: for type searches the response ST must echo the version
+        // from the request (a device supporting v2 answers a v1 search with v1);
+        // the USN keeps the advertised (actual) version.
+        var isTypeSearch = request.ST.StSearchType
+            is STType.DeviceTypeSearch or STType.ServiceTypeSearch
+            or STType.DomainDeviceSearch or STType.DomainServiceSearch;
+
         return new MSearchResponse
         {
             TransportType = TransportType.Unicast,
@@ -154,7 +171,7 @@ internal static class SearchMatcher
                 EntityType = entity.EntityType,
                 TypeName = entity.TypeName,
                 Domain = entity.Domain,
-                Version = entity.Version,
+                Version = isTypeSearch ? request.ST.Version : entity.Version,
                 DeviceUUID = owner.DeviceUUID
             },
             USN = new USN

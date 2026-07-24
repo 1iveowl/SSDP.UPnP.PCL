@@ -9,6 +9,12 @@ namespace SSDP.UPnP.PCL.Model;
 /// traffic. The record itself is immutable; the sockets it references are live
 /// resources owned by the creator.
 /// </summary>
+/// <remarks>
+/// Use a separate <see cref="RootDeviceConfiguration"/> per interface: UDA 2.0
+/// requires the <c>LOCATION</c> URL of each advertisement to be reachable on the
+/// interface it is sent from, so multi-homed devices need per-interface
+/// configurations (differing at least in <see cref="RootDeviceConfiguration.Location"/>).
+/// </remarks>
 public sealed record RootDeviceInterface
 {
     /// <summary>The root device advertised on this interface.</summary>

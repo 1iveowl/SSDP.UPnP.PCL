@@ -26,6 +26,12 @@ public class ControlPoint : IControlPoint
 
     private IObservable<Notify>? _notifyObservable;
 
+    /// <summary>
+    /// The time source used for the delay between repeated M-SEARCH transmissions;
+    /// replace with a fake in tests.
+    /// </summary>
+    public TimeProvider TimeProvider { get; set; } = TimeProvider.System;
+
     /// <inheritdoc />
     public bool IsStarted { get; private set; }
 
@@ -49,9 +55,15 @@ public class ControlPoint : IControlPoint
     /// listener — use distinct ports to run several control points on one host.
     /// </summary>
     /// <param name="ipAddresses">One or more local IPv4 addresses to bind.</param>
-    /// <param name="tcpResponsePort">The local TCP port to listen on for unicast responses.</param>
+    /// <param name="tcpResponsePort">
+    /// The local TCP port to listen on for TCP responses; must be in 49152–65535 to
+    /// be usable as <c>TCPPORT.UPNP.ORG</c>.
+    /// </param>
+    /// <param name="multicastTtl">
+    /// Time-to-live for multicast packets; UDA 2.0 recommends the default of 2.
+    /// </param>
     /// <exception cref="SSDPException">No address was given, or an address could not be tied to a network interface.</exception>
-    public ControlPoint(IEnumerable<IPAddress> ipAddresses, int tcpResponsePort)
+    public ControlPoint(IEnumerable<IPAddress> ipAddresses, int tcpResponsePort, int multicastTtl = Constants.DefaultMulticastTtl)
     {
         var addresses = ipAddresses?.ToList();
 
@@ -61,7 +73,7 @@ public class ControlPoint : IControlPoint
         }
 
         _controlPointInterfaces = addresses
-            .Select(ipAddress => CreateInterface(ipAddress, tcpResponsePort))
+            .Select(ipAddress => CreateInterface(ipAddress, tcpResponsePort, multicastTtl))
             .ToList();
     }
 
@@ -84,7 +96,7 @@ public class ControlPoint : IControlPoint
         _isClientsProvided = true;
     }
 
-    private static ControlPointInterface CreateInterface(IPAddress ipAddress, int tcpResponsePort)
+    private static ControlPointInterface CreateInterface(IPAddress ipAddress, int tcpResponsePort, int multicastTtl)
     {
         var udpClient = new UdpClient();
 
@@ -102,6 +114,7 @@ public class ControlPoint : IControlPoint
         var optionValue = IPAddress.NetworkToHostOrder(networkInterface.GetIPProperties().GetIPv4Properties().Index);
 
         udpClient.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastInterface, optionValue);
+        udpClient.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, multicastTtl);
         udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         udpClient.Client.Bind(new IPEndPoint(ipAddress, Constants.UdpSSDPMulticastPort));
         udpClient.JoinMulticastGroup(IPAddress.Parse(Constants.UdpSSDPMultiCastAddress), ipAddress);
@@ -236,10 +249,23 @@ public class ControlPoint : IControlPoint
         switch (mSearch.TransportType)
         {
             case TransportType.Multicast:
-                await cp.UdpClient.SendAsync(
-                    dataGram,
-                    new IPEndPoint(IPAddress.Parse(Constants.UdpSSDPMultiCastAddress), Constants.UdpSSDPMulticastPort),
-                    ct);
+                // UDA 2.0 section 1.3.2: control points should send each M-SEARCH
+                // more than once, since UDP is unreliable.
+                var sendCount = Math.Max(1, mSearch.SendCount);
+
+                for (var i = 0; i < sendCount; i++)
+                {
+                    if (i > 0)
+                    {
+                        await Task.Delay(TimeSpan.FromMilliseconds(100), TimeProvider, ct);
+                    }
+
+                    await cp.UdpClient.SendAsync(
+                        dataGram,
+                        new IPEndPoint(IPAddress.Parse(Constants.UdpSSDPMultiCastAddress), Constants.UdpSSDPMulticastPort),
+                        ct);
+                }
+
                 break;
             case TransportType.Unicast when mSearch.RemoteIpEndPoint is not null:
                 await SendOnTcpAsync(mSearch.RemoteIpEndPoint, dataGram, ct);

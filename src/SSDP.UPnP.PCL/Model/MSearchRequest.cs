@@ -31,10 +31,25 @@ public sealed record MSearchRequest
     /// <summary>UUID of the control point (<c>CPUUID.UPNP.ORG</c>), if any.</summary>
     public string? CPUUID { get; init; }
 
-    /// <summary>The <c>TCPPORT.UPNP.ORG</c> header, if any.</summary>
-    public string? TCPPORT { get; init; }
+    /// <summary>
+    /// The TCP port for reliable search responses (<c>TCPPORT.UPNP.ORG</c>), if any.
+    /// Per UDA 2.0 the value must be in the range 49152–65535; when set on a
+    /// multicast search, devices reply over TCP to this port instead of UDP.
+    /// </summary>
+    public int? TCPPORT { get; init; }
 
-    /// <summary>Additional vendor-specific headers to send, or the non-standard headers received.</summary>
+    /// <summary>
+    /// How many times <see cref="IControlPoint.SendMSearchAsync"/> transmits a
+    /// multicast search. UDA 2.0 recommends sending each M-SEARCH more than once
+    /// (UDP is unreliable); defaults to 2. Unicast searches are sent once.
+    /// </summary>
+    public int SendCount { get; init; } = 2;
+
+    /// <summary>
+    /// Additional vendor-specific headers to send, or the non-standard headers
+    /// received. Note that each SSDP message must fit in a single UDP packet
+    /// (UDA 2.0 §1.2.2) — keep vendor headers small.
+    /// </summary>
     public IReadOnlyDictionary<string, string> Headers { get; init; } =
         FrozenDictionary<string, string>.Empty;
 

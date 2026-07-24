@@ -219,6 +219,53 @@ public class SearchMatcherTests
     }
 
     [Fact]
+    public void BuildResponses_EchoTheRequestedVersionInSt_ButKeepAdvertisedVersionInUsn()
+    {
+        // UDA 2.0 §1.3.3: a device supporting v3 answers a v1 search with ST v1,
+        // while the USN carries the advertised (actual) identity.
+        var request = new MSearchRequest
+        {
+            ST = Search(STType.DeviceTypeSearch, "EmbeddedDevice", 1),
+            RemoteIpEndPoint = new IPEndPoint(IPAddress.Parse("192.168.0.20"), 41000)
+        };
+
+        var response = Assert.Single(
+            SearchMatcher.BuildResponses(Root, request, DateTimeOffset.UnixEpoch, searchPort: 1900));
+
+        Assert.Equal(1, response.ST?.Version);
+        Assert.Equal("urn:schemas-upnp-org:device:EmbeddedDevice:1", response.ST?.ToSearchTargetString());
+        Assert.Equal("uuid:embedded-uuid::urn:schemas-upnp-org:device:EmbeddedDevice:3", response.USN?.ToUsnString());
+    }
+
+    [Fact]
+    public void AdvertisementMessages_DedupeServiceTypesWithinOneDevice()
+    {
+        // UDA 2.0 §1.2.2: multiple instances of the same service type within one
+        // device are advertised once; a different version is a different type URI.
+        var root = Root with
+        {
+            Services =
+            [
+                new ServiceConfiguration { TypeName = "Twin", Version = 1 },
+                new ServiceConfiguration { TypeName = "Twin", Version = 1 },
+                new ServiceConfiguration { TypeName = "Twin", Version = 2 }
+            ],
+            EmbeddedDevices = []
+        };
+
+        var serviceUris = SearchMatcher.AdvertisementMessages(root)
+            .Where(message => message.Entity.EntityType == EntityType.ServiceType)
+            .Select(message => message.Entity.ToUriString())
+            .ToList();
+
+        Assert.Equal(
+        [
+            "urn:schemas-upnp-org:service:Twin:1",
+            "urn:schemas-upnp-org:service:Twin:2"
+        ], serviceUris);
+    }
+
+    [Fact]
     public void BuildResponses_OnDefaultPort_OmitsSearchPort()
     {
         var request = new MSearchRequest
