@@ -152,7 +152,7 @@ Because configurations are records, derived configurations are non-destructive: 
 
 ## Advanced
 
-**Hot start.** Both `ControlPoint.HotStart(...)` and `Device.HotStartAsync(...)` accept an externally created `IObservable<HttpRequestResponse>` (from [SimpleHttpListener.Rx](https://github.com/1iveowl/SimpleHttpListener.Rx)) instead of creating their own listeners — useful when the same socket stream is shared with other services such as UPnP eventing.
+**Hot start.** Both `ControlPoint.HotStart(...)` and `Device.HotStartAsync(...)` accept an externally created `IObservable<HttpRequestResponse>` (from [SimpleHttpListener.Rx](https://github.com/1iveowl/SimpleHttpListener.Rx)) instead of creating their own listeners — useful when you share one socket stream with other services you build on the same listener (UPnP eventing, for example — eventing itself is outside this library's scope; this library implements SSDP discovery only, UDA 2.0 clause 1).
 
 **Prepared interfaces.** The `ControlPoint(params ControlPointInterface[])` and `Device(params RootDeviceInterface[])` constructors accept caller-configured sockets. The caller keeps ownership: `Dispose` will not close them.
 

@@ -23,7 +23,9 @@ public interface IControlPoint : IDisposable
     /// <summary>
     /// Starts the control point on an externally created message stream instead of
     /// its own listeners — for advanced scenarios where the stream is shared with
-    /// other services (e.g. UPnP eventing). A control point can only be started once.
+    /// other services built on the same listener (UPnP eventing, for example, which
+    /// is itself outside this library's scope). A control point can only be started
+    /// once.
     /// </summary>
     void HotStart(IObservable<HttpRequestResponse> httpListenerObservable);
 
