@@ -1,8 +1,9 @@
 {
 	"name": "C# (.NET)",
 	"image": "mcr.microsoft.com/devcontainers/dotnet:2-10.0-noble",
-	// Run as root so AI tools have full access
-	"remoteUser": "root",
+	// Claude's VS Code extension only supports bypassPermissions from a non-root account.
+	// The standard developer account has passwordless sudo when elevated access is needed.
+	"remoteUser": "vscode",
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 	"features": {
 		"ghcr.io/devcontainers/features/dotnet:2": {},
@@ -12,16 +13,15 @@
 	},
 	// Named volumes so AI tool state (auth, config, history) survives container rebuilds
 	"mounts": [
-		"source=vscode-server-${localWorkspaceFolderBasename},target=/root/.vscode-server,type=volume",
-		"source=codex-home-${localWorkspaceFolderBasename},target=/root/.codex,type=volume",
-		"source=claude-home-${localWorkspaceFolderBasename},target=/root/.claude,type=volume",
-		"source=copilot-home-${localWorkspaceFolderBasename},target=/root/.copilot,type=volume"
+		"source=codex-home-${localWorkspaceFolderBasename},target=/home/vscode/.codex,type=volume",
+		"source=claude-home-${localWorkspaceFolderBasename},target=/home/vscode/.claude,type=volume",
+		"source=copilot-home-${localWorkspaceFolderBasename},target=/home/vscode/.copilot,type=volume"
 	],
 	// Static paths inside the container (containerEnv does not support ${localEnv:...})
 	"containerEnv": {
-		"CODEX_HOME": "/root/.codex",
-		"CLAUDE_CONFIG_DIR": "/root/.claude",
-		"COPILOT_HOME": "/root/.copilot"
+		"CODEX_HOME": "/home/vscode/.codex",
+		"CLAUDE_CONFIG_DIR": "/home/vscode/.claude",
+		"COPILOT_HOME": "/home/vscode/.copilot"
 	},
 	// API keys pulled from your host shell environment at connect time
 	"remoteEnv": {
@@ -51,6 +51,8 @@
 				"GitHub.copilot-chat"
 			],
 			"settings": {
+				// Required by the Claude extension before bypassPermissions can be selected.
+				"claudeCode.allowDangerouslySkipPermissions": true,
 				"claudeCode.initialPermissionMode": "bypassPermissions",
 				"claudeCode.preferredLocation": "sidebar",
 				"github.copilot.enable": {

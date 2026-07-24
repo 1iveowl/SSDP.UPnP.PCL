@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SSDP.UPnP.PCL/SSDP.UPnP.PCL.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SSDP.UPnP.PCL.Tests/SSDP.UPnP.PCL.Tests.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Sample.ControlPoint/Sample.ControlPoint.csproj" />
+    <Project Path="samples/Sample.Device/Sample.Device.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, "releases/**"]
+    tags: ["v*"]
+  pull_request:
+
+env:
+  CI: "true"
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore SSDP.UPnP.PCL.slnx
+
+      - name: Build
+        run: dotnet build SSDP.UPnP.PCL.slnx -c Release --no-restore -warnaserror
+
+      - name: Test
+        run: dotnet test tests/SSDP.UPnP.PCL.Tests/SSDP.UPnP.PCL.Tests.csproj -c Release --no-build
+
+      - name: Pack
+        run: dotnet pack src/SSDP.UPnP.PCL/SSDP.UPnP.PCL.csproj -c Release --no-build -o artifacts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: artifacts/*.*nupkg
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: artifacts
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Push to NuGet
+        run: dotnet nuget push "artifacts/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
