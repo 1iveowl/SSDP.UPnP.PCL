@@ -26,7 +26,8 @@ public interface IDevice : IDisposable
     /// <summary>
     /// Starts the device on an externally created message stream instead of its own
     /// listeners — for advanced scenarios where the stream is shared with other
-    /// services (e.g. UPnP eventing). A device can only be started once.
+    /// services built on the same listener (UPnP eventing, for example, which is
+    /// itself outside this library's scope). A device can only be started once.
     /// </summary>
     Task HotStartAsync(IObservable<HttpRequestResponse> httpListenerObservable);
 
