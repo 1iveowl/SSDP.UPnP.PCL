@@ -103,8 +103,9 @@ public class ControlPoint : IControlPoint
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             udpClient.ExclusiveAddressUse = false;
-            udpClient.MulticastLoopback = true;
         }
+
+        udpClient.MulticastLoopback = true;
 
         var networkInterface = NetworkInterface.GetAllNetworkInterfaces()
             .FirstOrDefault(nic =>
@@ -116,7 +117,13 @@ public class ControlPoint : IControlPoint
         udpClient.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastInterface, optionValue);
         udpClient.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, multicastTtl);
         udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-        udpClient.Client.Bind(new IPEndPoint(ipAddress, Constants.UdpSSDPMulticastPort));
+
+        // On Windows a socket bound to the interface address receives multicast for
+        // groups it joined; on Linux/macOS multicast is only delivered to sockets
+        // bound to the wildcard address — the group join (below) scopes the interface.
+        var bindAddress = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ipAddress : IPAddress.Any;
+
+        udpClient.Client.Bind(new IPEndPoint(bindAddress, Constants.UdpSSDPMulticastPort));
         udpClient.JoinMulticastGroup(IPAddress.Parse(Constants.UdpSSDPMultiCastAddress), ipAddress);
 
         return new ControlPointInterface
