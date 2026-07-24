@@ -177,7 +177,7 @@ dotnet run --project samples/Sample.ControlPoint
 Both samples accept an explicit IP address as the first argument. Notes for same-host testing:
 
 - **Start the device first.** Both processes share the SSDP UDP port on one host, and unicast search responses are delivered to the most recently bound socket — starting the control point last makes UDP responses land in the right process.
-- **Or use TCP responses**: `dotnet run --project Sample.ControlPoint -- tcp` asks devices to answer over a reliable TCP connection (`TCPPORT.UPNP.ORG`), which side-steps the shared-port ambiguity entirely.
+- **Or use TCP responses**: `dotnet run --project samples/Sample.ControlPoint -- tcp` asks devices to answer over a reliable TCP connection (`TCPPORT.UPNP.ORG`), which side-steps the shared-port ambiguity entirely.
 - Across two machines on the same LAN, no precautions are needed — start them in any order.
 - On Windows, stop the built-in *SSDP Discovery* service first; it intercepts the multicasts.
 
