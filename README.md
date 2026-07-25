@@ -24,6 +24,40 @@ The library is written in a functional style: all message and configuration type
 dotnet add package SSDP.UPnP.PCL
 ```
 
+## Version 8.0 — breaking changes
+
+Version 8.0 removes the control point's explicit start step. `ControlPoint` observables are now cold until subscribed, in the ordinary Rx way:
+
+| Area | v7 | v8 |
+|---|---|---|
+| Starting | `controlPoint.Start(ct)` before subscribing | Nothing — the first subscription starts listening |
+| `IControlPoint.Start` / `IsStarted` | Present | **Removed** |
+| Using an observable too early | Threw `SSDPException("Control Point not started")` | Impossible — there is no "too early" |
+| Stopping | Cancel the token passed to `Start` | Dispose the subscription (or the control point) |
+| Socket binding | In the constructor | On first use (first subscription or first `SendMSearchAsync`) |
+| Dependency | SimpleHttpListener.Rx 7.0.x | **7.3.0** (required: listening now stops and restarts routinely) |
+
+Why: `Start` was neither idempotent nor thread-safe (an unsynchronized `IsStarted` flag that threw on a second call), so every consumer needed its own "ensure started once" lock, and the observables' "not started" exception was a temporal-coupling trap. Rx already models this lifecycle correctly.
+
+Migrating: delete the `Start(ct)` call and any surrounding start-once locking. If you relied on the token passed to `Start` to stop listening, dispose the subscription instead (or the control point, which stops everything and closes the sockets). `HotStart` is unchanged. `Device` is unaffected — its `StartAsync` remains, because a device must advertise itself whether or not anyone is subscribed.
+
+```csharp
+// v7
+controlPoint.Start(cts.Token);
+using var s = controlPoint.NotifyObservable().Subscribe(...);
+
+// v8 — the subscription is the start
+using var s = controlPoint.NotifyObservable().Subscribe(...);
+```
+
+Also fixed in 8.0: **devices answer multicast searches again on Linux and macOS.** SimpleHttpListener.Rx 7.3.0 reports the interface a datagram actually arrived on, rather than the socket's wildcard bind address; the device's interface matching now understands both, which additionally makes multi-homed matching work properly on those platforms.
+
+Lifecycle details:
+
+- **First subscription binds the sockets and starts listening; the last disposal stops listening.** Subscribing again restarts it on the same sockets. Concurrent first subscribers are safe — the sockets are set up exactly once.
+- **Sockets live until `Dispose`.** They are created on first use and reused across start/stop cycles, so `SendMSearchAsync` works whether or not anything is subscribed — but responses are only observed while a subscription exists, so subscribe before searching.
+- **Construction binds nothing.** A misconfigured address (one not tied to a network interface) therefore surfaces on first use rather than from the constructor.
+
 ## Version 7.0 — breaking changes
 
 Version 7.0 is a major modernization and includes breaking changes throughout:
@@ -52,7 +86,7 @@ Further behavior notes for 7.0:
 - **Advertisement sends are best-effort and concurrent.** Each NOTIFY keeps its own spec-mandated jitter and triple-send cadence, but messages are no longer serialized against each other, so a full alive/byebye burst completes in about a second. Individual send failures are logged (set `Device.Logger`) and never stop the device or abort a batch; `UpdateAsync` always advances BOOTID and, per UDA 2.0, follows the update set with alive advertisements carrying the new BOOTID.
 - **Say goodbye explicitly.** `Dispose` only closes resources — call `await device.ByeByeAsync()` before disposing for a clean exit.
 - **BOOTID stamping.** Leave `BOOTID` at 0 and the device stamps it with the Unix timestamp at start (from its `TimeProvider`, replaceable in tests); set it explicitly to control it yourself.
-- **Single-use start.** `Start`/`StartAsync`/`HotStart(Async)` may only be called once per instance.
+- **Single-use start (devices).** `Device.StartAsync`/`HotStartAsync` may only be called once per instance. (The control point's start step was removed in 8.0 — see above.)
 - **Cancellation.** All public async methods accept an optional `CancellationToken`.
 - **Parsing policy.** Requests are parsed strictly (including the UDA validation rules above); responses and notifications leniently (unparsable fields are left unset), except a response where neither ST nor USN parses is dropped. The control point's observables are shared streams — each message is parsed once no matter how many subscribers.
 
@@ -71,8 +105,7 @@ var ipAddress = Constants.GetBestGuessLocalIPAddress();
 using var cts = new CancellationTokenSource();
 using var controlPoint = new ControlPoint(ipAddress);
 
-controlPoint.Start(cts.Token);
-
+// No start step: the first subscription starts listening.
 using var notifies = controlPoint.NotifyObservable()
     .Subscribe(notify => Console.WriteLine($"NOTIFY {notify.NTS}: {notify.NT} from {notify.RemoteIpEndPoint}"));
 
@@ -152,7 +185,9 @@ Because configurations are records, derived configurations are non-destructive: 
 
 ## Advanced
 
-**Hot start.** Both `ControlPoint.HotStart(...)` and `Device.HotStartAsync(...)` accept an externally created `IObservable<HttpRequestResponse>` (from [SimpleHttpListener.Rx](https://github.com/1iveowl/SimpleHttpListener.Rx)) instead of creating their own listeners — useful when you share one socket stream with other services you build on the same listener (UPnP eventing, for example — eventing itself is outside this library's scope; this library implements SSDP discovery only, UDA 2.0 clause 1).
+**Bring your own message stream.** Both `ControlPoint.HotStart(...)` and `Device.HotStartAsync(...)` accept an externally created `IObservable<HttpRequestResponse>` (from [SimpleHttpListener.Rx](https://github.com/1iveowl/SimpleHttpListener.Rx)) instead of creating their own listeners — useful when you share one socket stream with other services you build on the same listener (UPnP eventing, for example — eventing itself is outside this library's scope; this library implements SSDP discovery only, UDA 2.0 clause 1). It is also how you drive either type from a `Subject` in tests, with no sockets at all.
+
+For the device, `HotStartAsync` genuinely starts it (it advertises immediately). For the control point, `HotStart` only supplies the stream — since 8.0 nothing starts until you subscribe, so call it before the first subscription. The name is kept for compatibility.
 
 **Prepared interfaces.** The `ControlPoint(params ControlPointInterface[])` and `Device(params RootDeviceInterface[])` constructors accept caller-configured sockets. The caller keeps ownership: `Dispose` will not close them.
 
@@ -183,6 +218,7 @@ Both samples accept an explicit IP address as the first argument. Notes for same
 
 ## Version history
 
+- **8.0.0** — breaking: the control point's `Start(ct)`/`IsStarted` are removed; its observables start listening on first subscription and stop on last disposal. Requires SimpleHttpListener.Rx 7.3.0, and fixes device interface matching for the per-datagram local endpoint that release reports.
 - **7.0.2** — docs: clarify that UPnP eventing is outside this library's scope (README and XML documentation). No code changes.
 - **7.0.1** — fix: multicast reception on Linux/macOS (SSDP sockets now bind the wildcard address; the group join scopes the interface). Control point sample gains a `tcp` response mode.
 - **7.0** — .NET 10, functional/record-based API, SimpleHttpListener.Rx 7, System.Reactive 7, real M-SEARCH responses, full UDA 2.0 advertisement matrix, xUnit test suite. Breaking.

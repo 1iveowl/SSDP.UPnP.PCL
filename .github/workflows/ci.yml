@@ -19,6 +19,22 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      # On a v* tag the tag is the single source of truth for the package
+      # version, so the release version cannot drift from the tag: v8.0.0
+      # packs 8.0.0. Off a tag, the csproj <Version> is used as-is.
+      - name: Resolve package version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="${GITHUB_REF#refs/tags/v}"
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+            echo "pack_args=-p:Version=$version" >> "$GITHUB_OUTPUT"
+            echo "Packing tagged release $version"
+          else
+            echo "pack_args=" >> "$GITHUB_OUTPUT"
+            echo "Packing csproj version (untagged build)"
+          fi
+
       - name: Restore
         run: dotnet restore SSDP.UPnP.PCL.slnx
 
@@ -29,7 +45,7 @@ jobs:
         run: dotnet test tests/SSDP.UPnP.PCL.Tests/SSDP.UPnP.PCL.Tests.csproj -c Release --no-build
 
       - name: Pack
-        run: dotnet pack src/SSDP.UPnP.PCL/SSDP.UPnP.PCL.csproj -c Release --no-build -o artifacts
+        run: dotnet pack src/SSDP.UPnP.PCL/SSDP.UPnP.PCL.csproj -c Release --no-build -o artifacts ${{ steps.version.outputs.pack_args }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -41,11 +57,14 @@ jobs:
     needs: build-test
     runs-on: ubuntu-latest
     permissions:
-      # Required for NuGet Trusted Publishing: the job exchanges the GitHub OIDC
-      # token for a short-lived nuget.org API key — no stored secrets.
+      # id-token: NuGet Trusted Publishing exchanges the GitHub OIDC token for a
+      # short-lived nuget.org API key — no stored secrets.
+      # contents: write — needed to create the GitHub Release for the tag.
       id-token: write
-      contents: read
+      contents: write
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           name: packages
@@ -65,3 +84,16 @@ jobs:
 
       - name: Push to NuGet
         run: dotnet nuget push "artifacts/*.nupkg" --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      # Publishing the package and cutting the GitHub Release happen together, so
+      # the two can never disagree about what shipped.
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF#refs/tags/v}"
+          gh release create "${GITHUB_REF#refs/tags/}" \
+            --title "SSDP.UPnP.PCL $version" \
+            --generate-notes \
+            --verify-tag \
+            artifacts/*.nupkg

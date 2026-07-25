@@ -16,24 +16,46 @@ namespace SSDP.UPnP.PCL;
 /// multi-homed operation by listening on several interfaces at once.
 /// IPv4 only.
 /// </summary>
+/// <remarks>
+/// <para>
+/// The control point has no start step. Its observables are cold until
+/// subscribed: the first subscription binds the sockets (if they are not bound
+/// already) and begins listening; disposing the last subscription stops
+/// listening. Subscribing again restarts listening on the same sockets.
+/// </para>
+/// <para>
+/// Sockets are created once, on first use — the first subscription or the first
+/// <see cref="SendMSearchAsync"/> — and live until <see cref="Dispose"/>, which
+/// is what closes them. Construction itself binds nothing.
+/// </para>
+/// </remarks>
 public class ControlPoint : IControlPoint
 {
-    private readonly IReadOnlyList<ControlPointInterface> _controlPointInterfaces;
+    // Created once on first use (subscription or send) and reused for the object's
+    // lifetime, so that listening can stop and restart without rebinding, and so
+    // that sending works independently of whether anyone is subscribed.
+    private readonly Lazy<IReadOnlyList<ControlPointInterface>> _controlPointInterfaces;
 
     private readonly bool _isClientsProvided;
 
-    private IObservable<MSearchResponse>? _mSearchResponseObservable;
+    // Stops any live listening when the control point itself is disposed — the
+    // sockets outlive individual subscriptions, so their teardown needs its own
+    // signal. Individual subscriptions stop by being disposed.
+    private readonly CancellationTokenSource _lifetimeCts = new();
 
-    private IObservable<Notify>? _notifyObservable;
+    private readonly IObservable<MSearchResponse> _mSearchResponseObservable;
+
+    private readonly IObservable<Notify> _notifyObservable;
+
+    private IObservable<HttpRequestResponse>? _hotSource;
+
+    private bool _disposed;
 
     /// <summary>
     /// The time source used for the delay between repeated M-SEARCH transmissions;
     /// replace with a fake in tests.
     /// </summary>
     public TimeProvider TimeProvider { get; set; } = TimeProvider.System;
-
-    /// <inheritdoc />
-    public bool IsStarted { get; private set; }
 
     /// <summary>
     /// Creates a control point that listens on the given local IP addresses, with
@@ -42,8 +64,13 @@ public class ControlPoint : IControlPoint
     /// listener for unicast responses; more than one address creates a multi-homed
     /// control point.
     /// </summary>
+    /// <remarks>
+    /// The sockets are bound on first use, not here; an address that cannot be tied
+    /// to a network interface therefore surfaces as an error on the first
+    /// subscription or send, not from the constructor.
+    /// </remarks>
     /// <param name="ipAddressParam">One or more local IPv4 addresses to bind.</param>
-    /// <exception cref="SSDPException">No address was given, or an address could not be tied to a network interface.</exception>
+    /// <exception cref="SSDPException">No address was given.</exception>
     public ControlPoint(params IPAddress[] ipAddressParam)
         : this(ipAddressParam, Constants.TcpResponseListenerPort)
     {
@@ -62,19 +89,10 @@ public class ControlPoint : IControlPoint
     /// <param name="multicastTtl">
     /// Time-to-live for multicast packets; UDA 2.0 recommends the default of 2.
     /// </param>
-    /// <exception cref="SSDPException">No address was given, or an address could not be tied to a network interface.</exception>
+    /// <exception cref="SSDPException">No address was given.</exception>
     public ControlPoint(IEnumerable<IPAddress> ipAddresses, int tcpResponsePort, int multicastTtl = Constants.DefaultMulticastTtl)
+        : this(CreateInterfaceFactory(ipAddresses, tcpResponsePort, multicastTtl), isClientsProvided: false)
     {
-        var addresses = ipAddresses?.ToList();
-
-        if (addresses is null || addresses.Count == 0)
-        {
-            throw new SSDPException("At least one IP Address must be specified");
-        }
-
-        _controlPointInterfaces = addresses
-            .Select(ipAddress => CreateInterface(ipAddress, tcpResponsePort, multicastTtl))
-            .ToList();
     }
 
     /// <summary>
@@ -85,15 +103,76 @@ public class ControlPoint : IControlPoint
     /// <param name="controlPointInterfaceParams">One or more prepared interfaces.</param>
     /// <exception cref="SSDPException">No interface was given.</exception>
     public ControlPoint(params ControlPointInterface[] controlPointInterfaceParams)
+        : this(
+            ValidatedFactory(controlPointInterfaceParams),
+            isClientsProvided: true)
+    {
+    }
+
+    // Test seam: lets tests count how often (and when) the sockets are materialized.
+    internal ControlPoint(Func<IReadOnlyList<ControlPointInterface>> interfaceFactory, bool isClientsProvided)
+    {
+        _controlPointInterfaces = new Lazy<IReadOnlyList<ControlPointInterface>>(interfaceFactory);
+        _isClientsProvided = isClientsProvided;
+
+        // One shared message source for both parsed streams: the first parsed
+        // stream to be subscribed brings the listeners up, the last one to go
+        // takes them down, and both see the same messages in between.
+        var messageSource = Observable
+            .Defer(CreateMessageSource)
+            .Publish()
+            .RefCount();
+
+        // Each parsed stream is shared too, so any number of subscribers to it
+        // cause each message to be parsed exactly once.
+        _mSearchResponseObservable = messageSource
+            .Where(x => x.MessageType == MessageType.Response)
+            .Select(SsdpMessageParser.ParseMSearchResponse)
+            .Where(result => result.IsSuccess)
+            .Select(result => result.Value!)
+            .Publish()
+            .RefCount();
+
+        _notifyObservable = messageSource
+            .Where(x => x.MessageType == MessageType.Request)
+            .Where(req => req.Method == "NOTIFY")
+            .Select(SsdpMessageParser.ParseNotify)
+            .Where(result => result.IsSuccess)
+            .Select(result => result.Value!)
+            .Where(notify => notify.NTS is NTS.Alive or NTS.ByeBye or NTS.Update)
+            .Publish()
+            .RefCount();
+    }
+
+    /// <summary>Whether the sockets have been materialized (test diagnostics).</summary>
+    internal bool InterfacesMaterialized => _controlPointInterfaces.IsValueCreated;
+
+    private static Func<IReadOnlyList<ControlPointInterface>> ValidatedFactory(
+        ControlPointInterface[] controlPointInterfaceParams)
     {
         if (controlPointInterfaceParams is null || controlPointInterfaceParams.Length == 0)
         {
             throw new SSDPException("At least one Control Point Interface must be specified.");
         }
 
-        _controlPointInterfaces = controlPointInterfaceParams;
+        return () => controlPointInterfaceParams;
+    }
 
-        _isClientsProvided = true;
+    private static Func<IReadOnlyList<ControlPointInterface>> CreateInterfaceFactory(
+        IEnumerable<IPAddress> ipAddresses,
+        int tcpResponsePort,
+        int multicastTtl)
+    {
+        var addresses = ipAddresses?.ToList();
+
+        if (addresses is null || addresses.Count == 0)
+        {
+            throw new SSDPException("At least one IP Address must be specified");
+        }
+
+        return () => addresses
+            .Select(ipAddress => CreateInterface(ipAddress, tcpResponsePort, multicastTtl))
+            .ToList();
     }
 
     private static ControlPointInterface CreateInterface(IPAddress ipAddress, int tcpResponsePort, int multicastTtl)
@@ -137,21 +216,24 @@ public class ControlPoint : IControlPoint
         };
     }
 
-    /// <inheritdoc />
-    /// <exception cref="SSDPException">
-    /// The control point is already started, or an interface has neither a UDP
-    /// client nor a TCP listener.
-    /// </exception>
-    public void Start(CancellationToken ct)
+    // Invoked on every 0 -> 1 subscriber transition: materializes the sockets on
+    // the first one, then builds fresh listener observables over them. Listening
+    // restarts cleanly on re-subscription (requires SimpleHttpListener.Rx 7.3.0
+    // or later, which tolerates dispose-then-resubscribe).
+    private IObservable<HttpRequestResponse> CreateMessageSource()
     {
-        if (IsStarted)
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (_hotSource is not null)
         {
-            throw new SSDPException("Control Point is already started.");
+            return _hotSource;
         }
+
+        var ct = _lifetimeCts.Token;
 
         var listenerObservables = new List<IObservable<HttpRequestResponse>>();
 
-        foreach (var node in _controlPointInterfaces)
+        foreach (var node in _controlPointInterfaces.Value)
         {
             if (node.UdpClient is null && node.TcpListener is null)
             {
@@ -171,44 +253,21 @@ public class ControlPoint : IControlPoint
             }
         }
 
-        BuildParsedStreams(listenerObservables.Merge().Publish().RefCount());
+        return listenerObservables.Merge();
     }
 
     /// <inheritdoc />
-    /// <exception cref="SSDPException">The control point is already started.</exception>
+    /// <exception cref="SSDPException">A message stream has already been supplied.</exception>
     public void HotStart(IObservable<HttpRequestResponse> httpListenerObservable)
     {
-        if (IsStarted)
+        ArgumentNullException.ThrowIfNull(httpListenerObservable);
+
+        if (_hotSource is not null)
         {
-            throw new SSDPException("Control Point is already started.");
+            throw new SSDPException("A message stream has already been supplied to this Control Point.");
         }
 
-        BuildParsedStreams(httpListenerObservable);
-    }
-
-    // The parsed streams are built once and shared (Publish/RefCount), so any
-    // number of subscribers cause each message to be parsed exactly once.
-    private void BuildParsedStreams(IObservable<HttpRequestResponse> source)
-    {
-        _mSearchResponseObservable = source
-            .Where(x => x.MessageType == MessageType.Response)
-            .Select(SsdpMessageParser.ParseMSearchResponse)
-            .Where(result => result.IsSuccess)
-            .Select(result => result.Value!)
-            .Publish()
-            .RefCount();
-
-        _notifyObservable = source
-            .Where(x => x.MessageType == MessageType.Request)
-            .Where(req => req.Method == "NOTIFY")
-            .Select(SsdpMessageParser.ParseNotify)
-            .Where(result => result.IsSuccess)
-            .Select(result => result.Value!)
-            .Where(notify => notify.NTS is NTS.Alive or NTS.ByeBye or NTS.Update)
-            .Publish()
-            .RefCount();
-
-        IsStarted = true;
+        _hotSource = httpListenerObservable;
     }
 
     /// <inheritdoc />
@@ -217,34 +276,31 @@ public class ControlPoint : IControlPoint
     /// failures, use <see cref="HotStart"/> with your own listener and
     /// <see cref="SsdpMessageParser"/>.
     /// </remarks>
-    /// <exception cref="SSDPException">The control point has not been started.</exception>
-    public IObservable<MSearchResponse> MSearchResponseObservable() =>
-        _mSearchResponseObservable ?? throw new SSDPException("Control Point not started.");
+    public IObservable<MSearchResponse> MSearchResponseObservable() => _mSearchResponseObservable;
 
     /// <inheritdoc />
     /// <remarks>
     /// Only <c>ssdp:alive</c>, <c>ssdp:byebye</c> and <c>ssdp:update</c>
     /// notifications are emitted; other or unparsable messages are dropped.
     /// </remarks>
-    /// <exception cref="SSDPException">The control point has not been started.</exception>
-    public IObservable<Notify> NotifyObservable() =>
-        _notifyObservable ?? throw new SSDPException("Control Point not started.");
+    public IObservable<Notify> NotifyObservable() => _notifyObservable;
 
     /// <inheritdoc />
     /// <exception cref="SSDPException">
-    /// The control point has not been started, <paramref name="ipAddress"/> is not
-    /// one of its interfaces, or the request is not fully specified.
+    /// <paramref name="ipAddress"/> is not one of this control point's interfaces,
+    /// or the request is not fully specified.
     /// </exception>
     public async Task SendMSearchAsync(MSearchRequest mSearch, IPAddress ipAddress, CancellationToken ct = default)
     {
-        if (!IsStarted)
-        {
-            throw new SSDPException("Control Point not started.");
-        }
-
+        ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(mSearch);
 
-        var cp = _controlPointInterfaces.FirstOrDefault(c => Equals(c.IpAddress, ipAddress));
+        // Sending materializes the sockets if nothing has yet: a search is useful
+        // on its own (responses can be observed by another control point, or the
+        // caller may subscribe afterwards), so there is no start to get wrong.
+        // Note that responses arriving before a subscription exists are not
+        // buffered — subscribe first if you want to see them.
+        var cp = _controlPointInterfaces.Value.FirstOrDefault(c => Equals(c.IpAddress, ipAddress));
 
         if (cp?.UdpClient is null)
         {
@@ -297,19 +353,30 @@ public class ControlPoint : IControlPoint
     }
 
     /// <summary>
-    /// Closes the sockets this control point created. Sockets supplied through the
-    /// prepared-interface constructor are left open, since the caller owns them.
+    /// Stops any live listening and closes the sockets this control point created.
+    /// Sockets supplied through the prepared-interface constructor are left open,
+    /// since the caller owns them.
     /// </summary>
     public void Dispose()
     {
         GC.SuppressFinalize(this);
 
-        if (_isClientsProvided)
+        if (_disposed)
         {
             return;
         }
 
-        foreach (var client in _controlPointInterfaces)
+        _disposed = true;
+
+        _lifetimeCts.Cancel();
+        _lifetimeCts.Dispose();
+
+        if (_isClientsProvided || !_controlPointInterfaces.IsValueCreated)
+        {
+            return;
+        }
+
+        foreach (var client in _controlPointInterfaces.Value)
         {
             client.UdpClient?.Dispose();
             client.TcpListener?.Dispose();

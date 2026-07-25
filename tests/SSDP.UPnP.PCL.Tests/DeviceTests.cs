@@ -53,6 +53,24 @@ public class DeviceTests
         }
     }
 
+    // Wildcard-bound, in the SEARCHPORT range: how multicast sockets are bound on
+    // Linux/macOS.
+    private static UdpClient BindWildcardDynamicRange()
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            var port = Random.Shared.Next(Constants.MinDynamicPort, Constants.MaxDynamicPort + 1);
+
+            try
+            {
+                return new UdpClient(new IPEndPoint(IPAddress.Any, port));
+            }
+            catch (SocketException) when (attempt < 20)
+            {
+            }
+        }
+    }
+
     private static TcpListener BindDynamicRangeTcp()
     {
         for (var attempt = 0; ; attempt++)
@@ -542,6 +560,75 @@ public class DeviceTests
         await Assert.ThrowsAsync<SSDPException>(() => device.HotStartAsync(subject, skipAlive: true));
 
         DisposeInterface(rootInterface);
+    }
+
+    [Fact]
+    public async Task Device_AnswersSearch_OnWildcardBoundSocket()
+    {
+        // Multicast is received on a wildcard-bound socket on Linux/macOS, and the
+        // listener reports the interface the datagram actually arrived on (not the
+        // socket's 0.0.0.0 bind address). Interface matching must accept that, or
+        // the device silently ignores every multicast M-SEARCH.
+        var multicastClient = BindWildcardDynamicRange();
+        var boundPort = ((IPEndPoint)multicastClient.Client.LocalEndPoint!).Port;
+
+        var configuration = Configuration() with
+        {
+            IpEndPoint = new IPEndPoint(IPAddress.Loopback, boundPort)
+        };
+
+        var rootInterface = new RootDeviceInterface
+        {
+            RootDeviceConfiguration = configuration,
+            UdpMulticastClient = multicastClient,
+            UdpUnicastClient = multicastClient
+        };
+
+        using var receiver = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+
+        var subject = new Subject<HttpRequestResponse>();
+        using var device = new Device(rootInterface) { AutoReAdvertise = false };
+
+        await device.HotStartAsync(subject, skipAlive: true);
+
+        // The datagram arrived on the loopback interface, port as bound.
+        var arrivedOn = new IPEndPoint(IPAddress.Loopback, boundPort);
+
+        subject.OnNext(MulticastMSearch(arrivedOn, ReceiverEndPoint(receiver), "upnp:rootdevice", mx: "1"));
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var text = await ReceiveTextAsync(receiver, cts.Token);
+
+        Assert.Contains("USN: uuid:root-uuid::upnp:rootdevice\r\n", text);
+
+        multicastClient.Dispose();
+    }
+
+    [Fact]
+    public void IsMatchingInterface_WildcardBound_RequiresMatchingConfiguredAddress()
+    {
+        var multicastClient = BindWildcardDynamicRange();
+        var boundPort = ((IPEndPoint)multicastClient.Client.LocalEndPoint!).Port;
+
+        var rootInterface = new RootDeviceInterface
+        {
+            RootDeviceConfiguration = Configuration() with
+            {
+                IpEndPoint = new IPEndPoint(IPAddress.Loopback, boundPort)
+            },
+            UdpMulticastClient = multicastClient,
+            UdpUnicastClient = multicastClient
+        };
+
+        // The configured interface address, on the bound port: ours.
+        Assert.True(rootInterface.IsMatchingInterface(new IPEndPoint(IPAddress.Loopback, boundPort)));
+
+        // A different interface, or a different port: not ours.
+        Assert.False(rootInterface.IsMatchingInterface(new IPEndPoint(IPAddress.Parse("10.1.2.3"), boundPort)));
+        Assert.False(rootInterface.IsMatchingInterface(new IPEndPoint(IPAddress.Loopback, boundPort + 1)));
+        Assert.False(rootInterface.IsMatchingInterface(null));
+
+        multicastClient.Dispose();
     }
 
     [Fact]

@@ -30,11 +30,46 @@ public sealed record RootDeviceInterface
     public required UdpClient UdpUnicastClient { get; init; }
 
     /// <summary>
-    /// Whether <paramref name="ipEndPoint"/> is one of this interface's local UDP
-    /// endpoints.
+    /// Whether a message that arrived on <paramref name="ipEndPoint"/> belongs to
+    /// this interface.
     /// </summary>
-    public bool IsMatchingInterface(IPEndPoint? ipEndPoint) =>
-        ipEndPoint is not null
-        && (Equals(UdpMulticastClient.Client.LocalEndPoint as IPEndPoint, ipEndPoint)
-            || Equals(UdpUnicastClient.Client.LocalEndPoint as IPEndPoint, ipEndPoint));
+    /// <remarks>
+    /// Two cases have to be covered. A socket bound to a concrete address reports
+    /// exactly that endpoint, so it can be compared directly. A socket bound to the
+    /// wildcard address — which is how multicast is received on Linux and macOS —
+    /// reports the address of the interface the datagram actually arrived on, which
+    /// is matched against this interface's configured address instead. The latter is
+    /// what makes multi-homed matching work on those platforms.
+    /// </remarks>
+    public bool IsMatchingInterface(IPEndPoint? ipEndPoint)
+    {
+        if (ipEndPoint is null)
+        {
+            return false;
+        }
+
+        return MatchesSocket(UdpMulticastClient, ipEndPoint)
+               || MatchesSocket(UdpUnicastClient, ipEndPoint);
+
+        bool MatchesSocket(UdpClient client, IPEndPoint arrivedOn)
+        {
+            if (client.Client.LocalEndPoint is not IPEndPoint local)
+            {
+                return false;
+            }
+
+            if (Equals(local, arrivedOn))
+            {
+                return true;
+            }
+
+            var isWildcardBound = Equals(local.Address, IPAddress.Any)
+                                  || Equals(local.Address, IPAddress.IPv6Any);
+
+            return isWildcardBound
+                   && local.Port == arrivedOn.Port
+                   && RootDeviceConfiguration.IpEndPoint is { } configured
+                   && Equals(configured.Address, arrivedOn.Address);
+        }
+    }
 }

@@ -194,10 +194,35 @@ public class Device : IDevice
             {
                 RootDeviceConfiguration = rootDeviceInterface.RootDeviceConfiguration with
                 {
-                    IpEndPoint = rootDeviceInterface.UdpUnicastClient.Client.LocalEndPoint as IPEndPoint
+                    IpEndPoint = DeriveEndPoint(rootDeviceInterface)
                 }
             })
             .ToArray();
+    }
+
+    // The endpoint a prepared interface answers on. A socket bound to a concrete
+    // address supplies it directly; a wildcard-bound socket (how multicast is
+    // received on Linux/macOS) does not identify an interface, so the caller's
+    // configured address is kept — interface matching needs it — with the port the
+    // socket actually bound.
+    private static IPEndPoint? DeriveEndPoint(RootDeviceInterface rootDeviceInterface)
+    {
+        if (rootDeviceInterface.UdpUnicastClient.Client.LocalEndPoint is not IPEndPoint local)
+        {
+            return rootDeviceInterface.RootDeviceConfiguration.IpEndPoint;
+        }
+
+        var isWildcardBound = Equals(local.Address, IPAddress.Any)
+                              || Equals(local.Address, IPAddress.IPv6Any);
+
+        if (!isWildcardBound)
+        {
+            return local;
+        }
+
+        return rootDeviceInterface.RootDeviceConfiguration.IpEndPoint is { } configured
+            ? new IPEndPoint(configured.Address, local.Port)
+            : local;
     }
 
     private static void ValidateConfiguration(RootDeviceConfiguration root)

@@ -31,8 +31,8 @@ Console.WriteLine($"IP Address: {ipAddress}");
 using var cts = new CancellationTokenSource();
 using var controlPoint = new ControlPoint(ipAddress);
 
-controlPoint.Start(cts.Token);
-
+// No start step: the first subscription below binds the sockets and starts
+// listening; disposing the subscriptions stops it.
 using var notifySubscription = controlPoint.NotifyObservable()
     .Subscribe(notify =>
     {

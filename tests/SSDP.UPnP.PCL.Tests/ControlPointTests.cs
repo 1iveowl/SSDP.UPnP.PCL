@@ -47,15 +47,6 @@ public class ControlPointTests
     }
 
     [Fact]
-    public void Observables_BeforeStart_Throw()
-    {
-        using var controlPoint = new ControlPoint(new ControlPointInterface { IpAddress = IPAddress.Loopback });
-
-        Assert.Throws<SSDPException>(() => controlPoint.NotifyObservable());
-        Assert.Throws<SSDPException>(() => controlPoint.MSearchResponseObservable());
-    }
-
-    [Fact]
     public void Constructors_WithoutArguments_Throw()
     {
         Assert.Throws<SSDPException>(() => new ControlPoint(Array.Empty<IPAddress>()));
@@ -69,6 +60,43 @@ public class ControlPointTests
         using var controlPoint = HotStartedControlPoint(subject);
 
         Assert.Throws<SSDPException>(() => controlPoint.HotStart(subject));
+    }
+
+    [Fact]
+    public void HotStartedStreams_NeedNoStart()
+    {
+        // The HotStart seam must keep working with no start step anywhere — this
+        // is the path downstream test suites drive from a Subject, without sockets.
+        var subject = new Subject<HttpRequestResponse>();
+        using var controlPoint = HotStartedControlPoint(subject);
+
+        var received = new List<Notify>();
+        using var subscription = controlPoint.NotifyObservable().Subscribe(received.Add);
+
+        subject.OnNext(NotifyMessage("ssdp:alive"));
+
+        Assert.Single(received);
+    }
+
+    [Fact]
+    public void HotStartedStream_Resubscribes()
+    {
+        var subject = new Subject<HttpRequestResponse>();
+        using var controlPoint = HotStartedControlPoint(subject);
+
+        var first = new List<Notify>();
+        var subscription = controlPoint.NotifyObservable().Subscribe(first.Add);
+
+        subject.OnNext(NotifyMessage("ssdp:alive"));
+        subscription.Dispose();
+
+        var second = new List<Notify>();
+        using var resubscription = controlPoint.NotifyObservable().Subscribe(second.Add);
+
+        subject.OnNext(NotifyMessage("ssdp:byebye"));
+
+        Assert.Equal(NTS.Alive, Assert.Single(first).NTS);
+        Assert.Equal(NTS.ByeBye, Assert.Single(second).NTS);
     }
 
     [Fact]
