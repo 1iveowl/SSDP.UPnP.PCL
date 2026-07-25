@@ -14,7 +14,9 @@ An Rx-based SSDP library for discovering and advertising UPnP Device Architectur
 
 ## Overview
 
-SSDP is an ongoing stream of discovery replies and notifications — a model that maps naturally to observables, which is why this library is built on [Reactive Extensions](https://reactivex.io/). It supports multi-homed control points and devices, and targets .NET 10. IPv4 only.
+SSDP is an ongoing stream of discovery replies and notifications — a model that maps naturally to observables, which is why this library is built on [Reactive Extensions](https://reactivex.io/). It supports multi-homed control points and devices, and targets .NET 10. IPv4 only ([why](#why-ipv4-only)).
+
+This package covers SSDP discovery and advertisement. For description, control, eventing and router port mapping, see [UPnP.Rx](https://github.com/1iveowl/UPnP.Rx), which builds on it.
 
 The library is written in a functional style: all message and configuration types are immutable records, parsing returns `ParseResult<T>` values instead of throwing or mutating, and datagram composition is done by pure functions you can call yourself.
 
@@ -196,6 +198,55 @@ For the device, `HotStartAsync` genuinely starts it (it advertises immediately).
 - `ST.Parse(string)` / `USN.Parse(string)` → `ParseResult<T>`
 - `SsdpMessageParser.ParseMSearchRequest/ParseMSearchResponse/ParseNotify(HttpRequestResponse)`
 - `DatagramComposer.ComposeMSearchRequest/ComposeMSearchResponse/ComposeNotify(...)` → `byte[]`
+
+## Going further: description, control and eventing
+
+This library implements SSDP discovery — UDA 2.0 clause 1 — and stops there, on purpose. Discovery hands you a device's `LOCATION` URL; everything after that is a different protocol layer.
+
+[**UPnP.Rx**](https://github.com/1iveowl/UPnP.Rx) is the layer above, built on this package:
+
+- **Description** — fetch and parse the device description document and each service's SCPD.
+- **Control** — invoke service actions over SOAP, with typed arguments and `UPnPError` faults.
+- **Eventing** — GENA subscriptions surfaced as observables of property changes.
+- **Port mapping** — an IGD client with auto-renewing leases, for opening a port on the router.
+
+```shell
+dotnet add package UPnP.Rx
+```
+
+Reach for this package directly when you want SSDP itself: discovering what is on the network, or advertising a device on it. Reach for UPnP.Rx when you want to *use* what you discovered.
+
+## Where SSDP.UPnP.PCL fits
+
+The .NET ecosystem has several SSDP and UPnP libraries, each with real strengths. [Rssdp](https://github.com/Yortw/RSSDP) is a focused SSDP implementation with device-side publishing, IPv6 support and far broader platform reach — .NET Framework 4.8, .NET Standard 2.0, .NET 6/8, Android and iOS. [Mono.Nat](https://github.com/alanmcgovern/Mono.Nat) and Open.NAT solve port mapping specifically, and Mono.Nat also speaks NAT-PMP. [Waher.Networking.UPnP](https://github.com/PeterWaher/IoTGateway) brings UPnP into a much broader IoT framework. If one of those matches your needs and target frameworks, it is a fine choice.
+
+This library's place is **the SSDP protocol itself, taken seriously, for modern .NET**:
+
+- **Spec-audited UDA 2.0 behavior**, reviewed clause by clause against the specification: the full advertisement matrix (three messages per root device, two per embedded device, one per distinct service type), `BOOTID`/`CONFIGID`/`NEXTBOOTID`/`SEARCHPORT` rules, `MAN`/`MX` validation with the mandated silent discard, periodic re-advertisement before expiry, version echo in search responses, and `TCPPORT` replies over TCP.
+- **Multi-homed as a first-class case**, not an afterthought — control points and devices listen on several interfaces at once, each answering from the interface a request arrived on, with per-interface `LOCATION` as the spec requires.
+- **Rx-native composition.** Filtering is `.Where(...)` on an observable rather than an API surface: no filter property to extend when you need a wildcard, a regex, or anything else.
+- **Immutable records and pure functions** — parsers return `ParseResult<T>` instead of throwing, composers read no ambient state, and one `TimeProvider` drives every delay, which is why the protocol timing is unit-testable at all.
+- **Verified on Linux and macOS**, where multicast socket semantics differ from Windows in ways that are easy to get subtly wrong.
+
+At a glance:
+
+| Library | Focus | SSDP.UPnP.PCL in comparison |
+|---|---|---|
+| **Rssdp** | SSDP discovery + publishing, broad platform reach | Narrower reach (`net10.0`, IPv4), deeper spec compliance, multi-homed by design, Rx-native API |
+| **Mono.Nat** / **Open.NAT** | Router port mapping | A different job — for port mapping on this stack, see [UPnP.Rx](https://github.com/1iveowl/UPnP.Rx) |
+| **Waher.Networking.UPnP** | UPnP within the Waher IoT framework | Standalone package, near-zero dependencies, `net10.0`-idiomatic |
+
+Known boundaries: SSDP only — description, control and eventing live in [UPnP.Rx](https://github.com/1iveowl/UPnP.Rx) — and IPv4 only, for the reasons below.
+
+## Why IPv4 only
+
+SSDP is defined over IPv6 too (UDA 2.0 Annex A, using the `FF0x::C` multicast groups), and some libraries support it. This one does not, deliberately.
+
+Practically all UPnP you can actually talk to is IPv4: routers, TVs, receivers, NAS boxes, media servers and the IGD port-mapping service that most consumers come for. IGD port mapping is an IPv4-NAT concept to begin with — IPv6 does not need it — and even IGD:2's IPv6 firewall control is discovered and invoked over IPv4 in practice. IPv6 SSDP shows up mainly on IPv6-only and enterprise networks, which is not where this library is used today.
+
+The cost is not a flag. IPv6 SSDP means scoped multicast groups and interface indices, a second socket per family (a dual-stack socket does not solve group joins), bracketed `HOST` and `LOCATION` formatting, and a doubled test matrix layered on top of the wildcard-bind and interface-matching logic that makes multicast work on Linux and macOS. It also cannot be validated in a container — it needs real dual-stack hardware, just as multicast does.
+
+So IPv4 only is a scope decision rather than an oversight, and it is demand-driven: if you need IPv6 SSDP, please [open an issue](https://github.com/1iveowl/SSDP.UPnP.PCL/issues) — a concrete use case is exactly what would justify doing it properly.
 
 ## Samples
 
