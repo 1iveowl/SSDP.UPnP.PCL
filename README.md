@@ -14,7 +14,7 @@ An Rx-based SSDP library for discovering and advertising UPnP Device Architectur
 
 ## Overview
 
-SSDP is an ongoing stream of discovery replies and notifications — a model that maps naturally to observables, which is why this library is built on [Reactive Extensions](https://reactivex.io/). It supports multi-homed control points and devices, and targets .NET 10. IPv4 only ([why](#why-ipv4-only)).
+SSDP is an ongoing stream of discovery replies and notifications - a model that maps naturally to observables, which is why this library is built on [Reactive Extensions](https://reactivex.io/). It supports multi-homed control points and devices, and targets .NET 10. IPv4 only ([why](#why-ipv4-only)).
 
 This package covers SSDP discovery and advertisement. For description, control, eventing and router port mapping, see [UPnP.Rx](https://github.com/1iveowl/UPnP.Rx), which builds on it.
 
@@ -26,29 +26,29 @@ The library is written in a functional style: all message and configuration type
 dotnet add package SSDP.UPnP.PCL
 ```
 
-## Version 8.0 — breaking changes
+## Version 8.0 - breaking changes
 
 Version 8.0 removes the control point's explicit start step. `ControlPoint` observables are now cold until subscribed, in the ordinary Rx way:
 
 | Area | v7 | v8 |
 |---|---|---|
-| Starting | `controlPoint.Start(ct)` before subscribing | Nothing — the first subscription starts listening |
+| Starting | `controlPoint.Start(ct)` before subscribing | Nothing - the first subscription starts listening |
 | `IControlPoint.Start` / `IsStarted` | Present | **Removed** |
-| Using an observable too early | Threw `SSDPException("Control Point not started")` | Impossible — there is no "too early" |
+| Using an observable too early | Threw `SSDPException("Control Point not started")` | Impossible - there is no "too early" |
 | Stopping | Cancel the token passed to `Start` | Dispose the subscription (or the control point) |
 | Socket binding | In the constructor | On first use (first subscription or first `SendMSearchAsync`) |
 | Dependency | SimpleHttpListener.Rx 7.0.x | **7.3.0** (required: listening now stops and restarts routinely) |
 
 Why: `Start` was neither idempotent nor thread-safe (an unsynchronized `IsStarted` flag that threw on a second call), so every consumer needed its own "ensure started once" lock, and the observables' "not started" exception was a temporal-coupling trap. Rx already models this lifecycle correctly.
 
-Migrating: delete the `Start(ct)` call and any surrounding start-once locking. If you relied on the token passed to `Start` to stop listening, dispose the subscription instead (or the control point, which stops everything and closes the sockets). `HotStart` is unchanged. `Device` is unaffected — its `StartAsync` remains, because a device must advertise itself whether or not anyone is subscribed.
+Migrating: delete the `Start(ct)` call and any surrounding start-once locking. If you relied on the token passed to `Start` to stop listening, dispose the subscription instead (or the control point, which stops everything and closes the sockets). `HotStart` is unchanged. `Device` is unaffected - its `StartAsync` remains, because a device must advertise itself whether or not anyone is subscribed.
 
 ```csharp
 // v7
 controlPoint.Start(cts.Token);
 using var s = controlPoint.NotifyObservable().Subscribe(...);
 
-// v8 — the subscription is the start
+// v8 - the subscription is the start
 using var s = controlPoint.NotifyObservable().Subscribe(...);
 ```
 
@@ -56,11 +56,11 @@ Also fixed in 8.0: **devices answer multicast searches again on Linux and macOS.
 
 Lifecycle details:
 
-- **First subscription binds the sockets and starts listening; the last disposal stops listening.** Subscribing again restarts it on the same sockets. Concurrent first subscribers are safe — the sockets are set up exactly once.
-- **Sockets live until `Dispose`.** They are created on first use and reused across start/stop cycles, so `SendMSearchAsync` works whether or not anything is subscribed — but responses are only observed while a subscription exists, so subscribe before searching.
+- **First subscription binds the sockets and starts listening; the last disposal stops listening.** Subscribing again restarts it on the same sockets. Concurrent first subscribers are safe - the sockets are set up exactly once.
+- **Sockets live until `Dispose`.** They are created on first use and reused across start/stop cycles, so `SendMSearchAsync` works whether or not anything is subscribed - but responses are only observed while a subscription exists, so subscribe before searching.
 - **Construction binds nothing.** A misconfigured address (one not tied to a network interface) therefore surfaces on first use rather than from the constructor.
 
-## Version 7.0 — breaking changes
+## Version 7.0 - breaking changes
 
 Version 7.0 is a major modernization and includes breaking changes throughout:
 
@@ -75,28 +75,28 @@ Version 7.0 is a major modernization and includes breaking changes throughout:
 | Dependencies | SimpleHttpListener.Rx 6.x, System.Reactive 5 | SimpleHttpListener.Rx 7.x, System.Reactive 7 |
 | `STType.UIIDSearch` | typo | renamed `STType.UuidSearch` |
 
-Version 7.0 also fixes significant defects found in 6.x — most notably: **devices now actually answer M-SEARCH requests** (unicast responses spread independently over the MX window), multi-homed control points listen on *all* their interfaces, UUID search targets are parsed correctly, and search matching follows the UDA 2.0 type/domain/version rules.
+Version 7.0 also fixes significant defects found in 6.x - most notably: **devices now actually answer M-SEARCH requests** (unicast responses spread independently over the MX window), multi-homed control points listen on *all* their interfaces, UUID search targets are parsed correctly, and search matching follows the UDA 2.0 type/domain/version rules.
 
 Further behavior notes for 7.0:
 
-- **Full UDA 2.0 advertisement matrix.** Devices advertise (and answer searches with) the complete message set from UDA 2.0 §1.2.2: three messages for the root device (`upnp:rootdevice`, `uuid:...`, device type), two per embedded device, and one per distinct service type per device. The standard vs vendor-domain URI form is derived from each configuration's `Domain` — you no longer set `EntityType` on configurations.
+- **Full UDA 2.0 advertisement matrix.** Devices advertise (and answer searches with) the complete message set from UDA 2.0 §1.2.2: three messages for the root device (`upnp:rootdevice`, `uuid:...`, device type), two per embedded device, and one per distinct service type per device. The standard vs vendor-domain URI form is derived from each configuration's `Domain` - you no longer set `EntityType` on configurations.
 - **Periodic re-advertisement.** As UDA 2.0 requires, a started device automatically re-sends its alive advertisements at a random interval between ¼ and ½ of `CacheControl` before they expire. Opt out with `device.AutoReAdvertise = false`.
 - **Strict search validation.** As UDA 2.0 requires, the device silently discards multicast M-SEARCH requests without a valid `MAN: "ssdp:discover"` or an integer `MX ≥ 1`; unicast searches (HOST names the device) need no MX and are answered immediately. Responses to type searches echo the *requested* version in `ST` while `USN` keeps the advertised identity.
-- **TCP search responses (`TCPPORT.UPNP.ORG`).** When a multicast search carries a `TCPPORT` (49152–65535), the device replies over one reliable TCP connection instead of UDP, skipping the MX spread. Set `MSearchRequest.TCPPORT` to your control point's TCP port to use it.
-- **Value rules enforced.** Device construction validates UDA 2.0 constraints: every device needs a `DeviceUUID` (non-RFC-4122 values are logged as warnings), `CONFIGID` is required (default 0, range 0–16 777 215), BOOTID fits 31 bits, and the unicast endpoint port must be 1900 (default) or in 49152–65535 (the legal `SEARCHPORT` range). Multicast TTL defaults to 2 per the spec and is configurable via constructor parameters.
-- **M-SEARCH repeats.** `SendMSearchAsync` transmits multicast searches twice by default (UDP is unreliable; UDA 2.0 recommends repeats) — tune with `MSearchRequest.SendCount`.
+- **TCP search responses (`TCPPORT.UPNP.ORG`).** When a multicast search carries a `TCPPORT` (49152-65535), the device replies over one reliable TCP connection instead of UDP, skipping the MX spread. Set `MSearchRequest.TCPPORT` to your control point's TCP port to use it.
+- **Value rules enforced.** Device construction validates UDA 2.0 constraints: every device needs a `DeviceUUID` (non-RFC-4122 values are logged as warnings), `CONFIGID` is required (default 0, range 0-16 777 215), BOOTID fits 31 bits, and the unicast endpoint port must be 1900 (default) or in 49152-65535 (the legal `SEARCHPORT` range). Multicast TTL defaults to 2 per the spec and is configurable via constructor parameters.
+- **M-SEARCH repeats.** `SendMSearchAsync` transmits multicast searches twice by default (UDP is unreliable; UDA 2.0 recommends repeats) - tune with `MSearchRequest.SendCount`.
 - **Advertisement sends are best-effort and concurrent.** Each NOTIFY keeps its own spec-mandated jitter and triple-send cadence, but messages are no longer serialized against each other, so a full alive/byebye burst completes in about a second. Individual send failures are logged (set `Device.Logger`) and never stop the device or abort a batch; `UpdateAsync` always advances BOOTID and, per UDA 2.0, follows the update set with alive advertisements carrying the new BOOTID.
-- **Say goodbye explicitly.** `Dispose` only closes resources — call `await device.ByeByeAsync()` before disposing for a clean exit.
+- **Say goodbye explicitly.** `Dispose` only closes resources - call `await device.ByeByeAsync()` before disposing for a clean exit.
 - **BOOTID stamping.** Leave `BOOTID` at 0 and the device stamps it with the Unix timestamp at start (from its `TimeProvider`, replaceable in tests); set it explicitly to control it yourself.
-- **Single-use start (devices).** `Device.StartAsync`/`HotStartAsync` may only be called once per instance. (The control point's start step was removed in 8.0 — see above.)
+- **Single-use start (devices).** `Device.StartAsync`/`HotStartAsync` may only be called once per instance. (The control point's start step was removed in 8.0 - see above.)
 - **Cancellation.** All public async methods accept an optional `CancellationToken`.
-- **Parsing policy.** Requests are parsed strictly (including the UDA validation rules above); responses and notifications leniently (unparsable fields are left unset), except a response where neither ST nor USN parses is dropped. The control point's observables are shared streams — each message is parsed once no matter how many subscribers.
+- **Parsing policy.** Requests are parsed strictly (including the UDA validation rules above); responses and notifications leniently (unparsable fields are left unset), except a response where neither ST nor USN parses is dropped. The control point's observables are shared streams - each message is parsed once no matter how many subscribers.
 
 ## Control point
 
 A control point discovers devices: it multicasts M-SEARCH requests and observes responses and NOTIFY advertisements.
 
-> **Windows note:** stop the built-in *SSDP Discovery* service while testing — it intercepts the UPnP multicasts, and nothing will show up in your application while it runs.
+> **Windows note:** stop the built-in *SSDP Discovery* service while testing - it intercepts the UPnP multicasts, and nothing will show up in your application while it runs.
 
 ```csharp
 using SSDP.UPnP.PCL;
@@ -136,7 +136,7 @@ Passing several IP addresses to the `ControlPoint` constructor creates a multi-h
 
 ## Device
 
-A device advertises a root device — its embedded devices and services included — with multicast NOTIFY messages, and answers matching M-SEARCH requests with unicast responses.
+A device advertises a root device - its embedded devices and services included - with multicast NOTIFY messages, and answers matching M-SEARCH requests with unicast responses.
 
 ```csharp
 using SSDP.UPnP.PCL;
@@ -187,9 +187,9 @@ Because configurations are records, derived configurations are non-destructive: 
 
 ## Advanced
 
-**Bring your own message stream.** Both `ControlPoint.HotStart(...)` and `Device.HotStartAsync(...)` accept an externally created `IObservable<HttpRequestResponse>` (from [SimpleHttpListener.Rx](https://github.com/1iveowl/SimpleHttpListener.Rx)) instead of creating their own listeners — useful when you share one socket stream with other services you build on the same listener (UPnP eventing, for example — eventing itself is outside this library's scope; this library implements SSDP discovery only, UDA 2.0 clause 1). It is also how you drive either type from a `Subject` in tests, with no sockets at all.
+**Bring your own message stream.** Both `ControlPoint.HotStart(...)` and `Device.HotStartAsync(...)` accept an externally created `IObservable<HttpRequestResponse>` (from [SimpleHttpListener.Rx](https://github.com/1iveowl/SimpleHttpListener.Rx)) instead of creating their own listeners - useful when you share one socket stream with other services you build on the same listener (UPnP eventing, for example - eventing itself is outside this library's scope; this library implements SSDP discovery only, UDA 2.0 clause 1). It is also how you drive either type from a `Subject` in tests, with no sockets at all.
 
-For the device, `HotStartAsync` genuinely starts it (it advertises immediately). For the control point, `HotStart` only supplies the stream — since 8.0 nothing starts until you subscribe, so call it before the first subscription. The name is kept for compatibility.
+For the device, `HotStartAsync` genuinely starts it (it advertises immediately). For the control point, `HotStart` only supplies the stream - since 8.0 nothing starts until you subscribe, so call it before the first subscription. The name is kept for compatibility.
 
 **Prepared interfaces.** The `ControlPoint(params ControlPointInterface[])` and `Device(params RootDeviceInterface[])` constructors accept caller-configured sockets. The caller keeps ownership: `Dispose` will not close them.
 
@@ -201,14 +201,14 @@ For the device, `HotStartAsync` genuinely starts it (it advertises immediately).
 
 ## Going further: description, control and eventing
 
-This library implements SSDP discovery — UDA 2.0 clause 1 — and stops there, on purpose. Discovery hands you a device's `LOCATION` URL; everything after that is a different protocol layer.
+This library implements SSDP discovery - UDA 2.0 clause 1 - and stops there, on purpose. Discovery hands you a device's `LOCATION` URL; everything after that is a different protocol layer.
 
 [**UPnP.Rx**](https://github.com/1iveowl/UPnP.Rx) is the layer above, built on this package:
 
-- **Description** — fetch and parse the device description document and each service's SCPD.
-- **Control** — invoke service actions over SOAP, with typed arguments and `UPnPError` faults.
-- **Eventing** — GENA subscriptions surfaced as observables of property changes.
-- **Port mapping** — an IGD client with auto-renewing leases, for opening a port on the router.
+- **Description** - fetch and parse the device description document and each service's SCPD.
+- **Control** - invoke service actions over SOAP, with typed arguments and `UPnPError` faults.
+- **Eventing** - GENA subscriptions surfaced as observables of property changes.
+- **Port mapping** - an IGD client with auto-renewing leases, for opening a port on the router.
 
 ```shell
 dotnet add package UPnP.Rx
@@ -218,75 +218,76 @@ Reach for this package directly when you want SSDP itself: discovering what is o
 
 ## Where SSDP.UPnP.PCL fits
 
-The .NET ecosystem has several SSDP and UPnP libraries, each with real strengths. [Rssdp](https://github.com/Yortw/RSSDP) is a focused SSDP implementation with device-side publishing, IPv6 support and far broader platform reach — .NET Framework 4.8, .NET Standard 2.0, .NET 6/8, Android and iOS. [Mono.Nat](https://github.com/alanmcgovern/Mono.Nat) and Open.NAT solve port mapping specifically, and Mono.Nat also speaks NAT-PMP. [Waher.Networking.UPnP](https://github.com/PeterWaher/IoTGateway) brings UPnP into a much broader IoT framework. If one of those matches your needs and target frameworks, it is a fine choice.
+The .NET ecosystem has several SSDP and UPnP libraries, each with real strengths. [Rssdp](https://github.com/Yortw/RSSDP) is a focused SSDP implementation with device-side publishing, IPv6 support and far broader platform reach - .NET Framework 4.8, .NET Standard 2.0, .NET 6/8, Android and iOS. [Mono.Nat](https://github.com/alanmcgovern/Mono.Nat) and Open.NAT solve port mapping specifically, and Mono.Nat also speaks NAT-PMP. [Waher.Networking.UPnP](https://github.com/PeterWaher/IoTGateway) brings UPnP into a much broader IoT framework. If one of those matches your needs and target frameworks, it is a fine choice.
 
 This library's place is **the SSDP protocol itself, taken seriously, for modern .NET**:
 
 - **Spec-audited UDA 2.0 behavior**, reviewed clause by clause against the specification: the full advertisement matrix (three messages per root device, two per embedded device, one per distinct service type), `BOOTID`/`CONFIGID`/`NEXTBOOTID`/`SEARCHPORT` rules, `MAN`/`MX` validation with the mandated silent discard, periodic re-advertisement before expiry, version echo in search responses, and `TCPPORT` replies over TCP.
-- **Multi-homed as a first-class case**, not an afterthought — control points and devices listen on several interfaces at once, each answering from the interface a request arrived on, with per-interface `LOCATION` as the spec requires.
+- **Multi-homed as a first-class case**, not an afterthought - control points and devices listen on several interfaces at once, each answering from the interface a request arrived on, with per-interface `LOCATION` as the spec requires.
 - **Rx-native composition.** Filtering is `.Where(...)` on an observable rather than an API surface: no filter property to extend when you need a wildcard, a regex, or anything else.
-- **Immutable records and pure functions** — parsers return `ParseResult<T>` instead of throwing, composers read no ambient state, and one `TimeProvider` drives every delay, which is why the protocol timing is unit-testable at all.
-- **Verified on Linux and macOS**, where multicast socket semantics differ from Windows in ways that are easy to get subtly wrong.
+- **Immutable records and pure functions** - parsers return `ParseResult<T>` instead of throwing, composers read no ambient state, and one `TimeProvider` drives every delay, which is why the protocol timing is unit-testable at all.
+- **Verified on Windows, Linux and macOS**, whose multicast socket semantics differ from one another in ways that are easy to get subtly wrong.
 
 At a glance:
 
 | Library | Focus | SSDP.UPnP.PCL in comparison |
 |---|---|---|
+| **SSDP.UPnP.PCL** | SSDP discovery + device advertisement, spec-audited and multi-homed, on `net10.0` | This library - the baseline for the rows below |
 | **Rssdp** | SSDP discovery + publishing, broad platform reach | Narrower reach (`net10.0`, IPv4), deeper spec compliance, multi-homed by design, Rx-native API |
-| **Mono.Nat** / **Open.NAT** | Router port mapping | A different job — for port mapping on this stack, see [UPnP.Rx](https://github.com/1iveowl/UPnP.Rx) |
+| **Mono.Nat** / **Open.NAT** | Router port mapping | A different job - for port mapping on this stack, see [UPnP.Rx](https://github.com/1iveowl/UPnP.Rx) |
 | **Waher.Networking.UPnP** | UPnP within the Waher IoT framework | Standalone package, near-zero dependencies, `net10.0`-idiomatic |
 
-Known boundaries: SSDP only — description, control and eventing live in [UPnP.Rx](https://github.com/1iveowl/UPnP.Rx) — and IPv4 only, for the reasons below.
+Known boundaries: SSDP only - description, control and eventing live in [UPnP.Rx](https://github.com/1iveowl/UPnP.Rx) - and IPv4 only, for the reasons below.
 
 ## Why IPv4 only
 
 SSDP is defined over IPv6 too (UDA 2.0 Annex A, using the `FF0x::C` multicast groups), and some libraries support it. This one does not, deliberately.
 
-Practically all UPnP you can actually talk to is IPv4: routers, TVs, receivers, NAS boxes, media servers and the IGD port-mapping service that most consumers come for. IGD port mapping is an IPv4-NAT concept to begin with — IPv6 does not need it — and even IGD:2's IPv6 firewall control is discovered and invoked over IPv4 in practice. IPv6 SSDP shows up mainly on IPv6-only and enterprise networks, which is not where this library is used today.
+Practically all UPnP you can actually talk to is IPv4: routers, TVs, receivers, NAS boxes, media servers and the IGD port-mapping service that most consumers come for. IGD port mapping is an IPv4-NAT concept to begin with - IPv6 does not need it - and even IGD:2's IPv6 firewall control is discovered and invoked over IPv4 in practice. IPv6 SSDP shows up mainly on IPv6-only and enterprise networks, which is not where this library is used today.
 
-The cost is not a flag. IPv6 SSDP means scoped multicast groups and interface indices, a second socket per family (a dual-stack socket does not solve group joins), bracketed `HOST` and `LOCATION` formatting, and a doubled test matrix layered on top of the wildcard-bind and interface-matching logic that makes multicast work on Linux and macOS. It also cannot be validated in a container — it needs real dual-stack hardware, just as multicast does.
+The cost is not a flag. IPv6 SSDP means scoped multicast groups and interface indices, a second socket per family (a dual-stack socket does not solve group joins), bracketed `HOST` and `LOCATION` formatting, and a doubled test matrix layered on top of the wildcard-bind and interface-matching logic that makes multicast work on Linux and macOS. It also cannot be validated in a container - it needs real dual-stack hardware, just as multicast does.
 
-So IPv4 only is a scope decision rather than an oversight, and it is demand-driven: if you need IPv6 SSDP, please [open an issue](https://github.com/1iveowl/SSDP.UPnP.PCL/issues) — a concrete use case is exactly what would justify doing it properly.
+So IPv4 only is a scope decision rather than an oversight, and it is demand-driven: if you need IPv6 SSDP, please [open an issue](https://github.com/1iveowl/SSDP.UPnP.PCL/issues) - a concrete use case is exactly what would justify doing it properly.
 
 ## Samples
 
 The [samples](samples/) folder contains a runnable control point and device. To watch them talk to each other on one machine, use two terminals and start the device first:
 
 ```shell
-# terminal 1 — device: advertises and answers searches
+# terminal 1 - device: advertises and answers searches
 dotnet run --project samples/Sample.Device
 
-# terminal 2 — control point: shows the device's NOTIFYs and search responses
+# terminal 2 - control point: shows the device's NOTIFYs and search responses
 dotnet run --project samples/Sample.ControlPoint
 ```
 
 Both samples accept an explicit IP address as the first argument. Notes for same-host testing:
 
-- **Start the device first.** Both processes share the SSDP UDP port on one host, and unicast search responses are delivered to the most recently bound socket — starting the control point last makes UDP responses land in the right process.
+- **Start the device first.** Both processes share the SSDP UDP port on one host, and unicast search responses are delivered to the most recently bound socket - starting the control point last makes UDP responses land in the right process.
 - **Or use TCP responses**: `dotnet run --project samples/Sample.ControlPoint -- tcp` asks devices to answer over a reliable TCP connection (`TCPPORT.UPNP.ORG`), which side-steps the shared-port ambiguity entirely.
-- Across two machines on the same LAN, no precautions are needed — start them in any order.
+- Across two machines on the same LAN, no precautions are needed - start them in any order.
 - On Windows, stop the built-in *SSDP Discovery* service first; it intercepts the multicasts.
 
 ## Version history
 
-- **8.0.0** — breaking: the control point's `Start(ct)`/`IsStarted` are removed; its observables start listening on first subscription and stop on last disposal. Requires SimpleHttpListener.Rx 7.3.0, and fixes device interface matching for the per-datagram local endpoint that release reports.
-- **7.0.2** — docs: clarify that UPnP eventing is outside this library's scope (README and XML documentation). No code changes.
-- **7.0.1** — fix: multicast reception on Linux/macOS (SSDP sockets now bind the wildcard address; the group join scopes the interface). Control point sample gains a `tcp` response mode.
-- **7.0** — .NET 10, functional/record-based API, SimpleHttpListener.Rx 7, System.Reactive 7, real M-SEARCH responses, full UDA 2.0 advertisement matrix, xUnit test suite. Breaking.
-- **6.x** — .NET Standard 2.0. Use this if you need older platforms.
+- **8.0.0** - breaking: the control point's `Start(ct)`/`IsStarted` are removed; its observables start listening on first subscription and stop on last disposal. Requires SimpleHttpListener.Rx 7.3.0, and fixes device interface matching for the per-datagram local endpoint that release reports.
+- **7.0.2** - docs: clarify that UPnP eventing is outside this library's scope (README and XML documentation). No code changes.
+- **7.0.1** - fix: multicast reception on Linux/macOS (SSDP sockets now bind the wildcard address; the group join scopes the interface). Control point sample gains a `tcp` response mode.
+- **7.0** - .NET 10, functional/record-based API, SimpleHttpListener.Rx 7, System.Reactive 7, real M-SEARCH responses, full UDA 2.0 advertisement matrix, xUnit test suite. Breaking.
+- **6.x** - .NET Standard 2.0. Use this if you need older platforms.
 
 ## Why .NET 10?
 
 Version 7.0 requires .NET 10, and that is a deliberate choice rather than a convenience.
 
-.NET 10 is the current long-term-support release (supported until November 2028), and its official support matrix covers the hardware where SSDP actually lives: Windows, macOS and Linux on x64 and Arm64, and — notably for this library — 32-bit Arm Linux on current Debian, Ubuntu, Alpine and Fedora releases. That means the whole Raspberry Pi class of devices, down to a Pi Zero 2 W, is a first-class citizen.
+.NET 10 is the current long-term-support release (supported until November 2028), and its official support matrix covers the hardware where SSDP actually lives: Windows, macOS and Linux on x64 and Arm64, and - notably for this library - 32-bit Arm Linux on current Debian, Ubuntu, Alpine and Fedora releases. That means the whole Raspberry Pi class of devices, down to a Pi Zero 2 W, is a first-class citizen.
 
-For small devices, modern .NET is not a compromise — it is the better option. Trimming and Native AOT produce small, self-contained, fast-starting binaries with a lower memory footprint than the Mono- and early-.NET-Core-era runtimes that used to be the default on that class of hardware. A discovery library that answers multicast searches on a headless box in someone's home benefits directly from all of that. And below the Pi class — microcontroller runtimes such as nanoFramework or Meadow — a sockets-and-Rx library was never able to run in the first place, so nothing is lost there.
+For small devices, modern .NET is not a compromise - it is the better option. Trimming and Native AOT produce small, self-contained, fast-starting binaries with a lower memory footprint than the Mono- and early-.NET-Core-era runtimes that used to be the default on that class of hardware. A discovery library that answers multicast searches on a headless box in someone's home benefits directly from all of that. And below the Pi class - microcontroller runtimes such as nanoFramework or Meadow - a sockets-and-Rx library was never able to run in the first place, so nothing is lost there.
 
-The platforms that genuinely cannot load a net10.0 assembly — .NET Framework and Unity — are served by version 6.1, which remains on NuGet and works as it always has.
+The platforms that genuinely cannot load a net10.0 assembly - .NET Framework and Unity - are served by version 6.1, which remains on NuGet and works as it always has.
 
 In short: .NET 10 is where the ecosystem is today, from servers to single-board computers. Combined with the UDA 2.0 compliance work and the more robust engine in 7.0, this release is a more capable library on a foundation we expect to carry it for years.
 
 ## License
 
-MIT — see [License.md](License.md).
+MIT - see [License.md](License.md).
