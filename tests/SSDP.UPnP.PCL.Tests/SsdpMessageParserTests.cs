@@ -201,14 +201,57 @@ public class SsdpMessageParserTests
     }
 
     [Theory]
+    // Values that parsed before the multi-directive fix must keep their value.
     [InlineData("max-age=30", 30)]
     [InlineData("max-age = 30", 30)]
+    [InlineData("max-age=1800", 1800)]
+    [InlineData("MAX-AGE=1800", 1800)]
+    [InlineData("no-cache, max-age=1800", 1800)]
+    // These returned 0 before: any second directive broke the parse.
+    [InlineData("max-age=1800, must-revalidate", 1800)]
+    [InlineData("public, max-age=1800, s-maxage=600", 1800)]
+    [InlineData("max-age=1800,must-revalidate", 1800)]
+    [InlineData("must-revalidate, MAX-AGE = 1800 , public", 1800)]
+    // s-maxage must not be mistaken for max-age.
+    [InlineData("s-maxage=600", 0)]
+    // Malformed but observed in the wild; lenient on receive.
+    [InlineData("max-age=\"1800\"", 1800)]
+    // Absent or unparsable.
+    [InlineData("no-cache", 0)]
+    [InlineData("max-age=", 0)]
     [InlineData("max-age=abc", 0)]
+    [InlineData("max-age=-1", 0)]
     [InlineData("", 0)]
+    [InlineData("   ", 0)]
     [InlineData(null, 0)]
     public void ParseMaxAge_Variants(string? cacheControl, int expectedSeconds)
     {
         Assert.Equal(expectedSeconds, SsdpMessageParser.ParseMaxAge(cacheControl));
+    }
+
+    [Theory]
+    [InlineData("max-age=99999999999")]
+    [InlineData("max-age=2147483648")]
+    [InlineData("max-age=999999999999999999999999999999")]
+    public void ParseMaxAge_ClampsOversizedDeltaSeconds(string cacheControl)
+    {
+        Assert.Equal(int.MaxValue, SsdpMessageParser.ParseMaxAge(cacheControl));
+    }
+
+    [Fact]
+    public void ParseMSearchResponse_MultiDirectiveCacheControl_KeepsTheDeviceLifetime()
+    {
+        var message = Message(MessageType.Response, new Dictionary<string, string>
+        {
+            ["CACHE-CONTROL"] = "max-age=1800, must-revalidate",
+            ["ST"] = "upnp:rootdevice",
+            ["USN"] = "uuid:device-1::upnp:rootdevice"
+        });
+
+        var result = SsdpMessageParser.ParseMSearchResponse(message);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(TimeSpan.FromSeconds(1800), result.Value.CacheControl);
     }
 
     [Theory]

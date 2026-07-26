@@ -275,20 +275,70 @@ public static class SsdpMessageParser
 
     /// <summary>
     /// Extracts the <c>max-age</c> value in seconds from a <c>CACHE-CONTROL</c>
-    /// header value; returns 0 when absent or malformed.
+    /// header value; returns 0 when the directive is absent or unparsable.
     /// </summary>
+    /// <remarks>
+    /// The header is a comma-separated directive list (RFC 9111 section 5.2), so
+    /// <c>max-age</c> may sit anywhere in it and alongside others. Directive names
+    /// are case-insensitive. Values above <see cref="int.MaxValue"/> are clamped
+    /// rather than rejected, per the delta-seconds guidance in RFC 9111 section
+    /// 1.2.2, and negative values are treated as unparsable because a negative
+    /// lifetime is meaningless downstream.
+    /// <para>
+    /// This is a directive walk, not a full HTTP tokenizer: a quoted directive
+    /// value containing a comma would be split incorrectly. SSDP
+    /// <c>CACHE-CONTROL</c> never carries one.
+    /// </para>
+    /// </remarks>
     public static int ParseMaxAge(string? cacheControl)
     {
-        if (string.IsNullOrEmpty(cacheControl))
+        if (string.IsNullOrWhiteSpace(cacheControl))
         {
             return 0;
         }
 
-        var parts = cacheControl.Split('=');
+        foreach (var directive in cacheControl.Split(','))
+        {
+            var separator = directive.IndexOf('=');
 
-        return parts.Length == 2 && int.TryParse(parts[1].Trim(), out var maxAge)
-            ? maxAge
-            : 0;
+            if (separator < 0)
+            {
+                continue;
+            }
+
+            var name = directive.AsSpan(0, separator).Trim();
+
+            if (!name.Equals("max-age", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var value = directive.AsSpan(separator + 1).Trim();
+
+            // Lenient on receive: max-age="1800" is malformed but observed.
+            if (value.Length >= 2 && value[0] == '"' && value[^1] == '"')
+            {
+                value = value[1..^1].Trim();
+            }
+
+            if (long.TryParse(value, out var seconds))
+            {
+                return seconds switch
+                {
+                    < 0 => 0,
+                    > int.MaxValue => int.MaxValue,
+                    _ => (int)seconds
+                };
+            }
+
+            // Too large for a long, but still a plain number: clamp rather than
+            // report the device said nothing.
+            return !value.IsEmpty && value.IndexOfAnyExceptInRange('0', '9') < 0
+                ? int.MaxValue
+                : 0;
+        }
+
+        return 0;
     }
 
     /// <summary>
