@@ -239,7 +239,7 @@ public static class SsdpMessageParser
 
         var (os, osVersion) = parts.Length > 0 ? SplitPair(parts[0]) : (null, null);
 
-        var (upnpMajor, upnpMinor, isUpnp2) = parts.Length > 1 ? ParseUpnpVersion(parts[1]) : ("1", "0", false);
+        var (upnpMajor, upnpMinor) = FindUpnpVersion(parts);
 
         var (product, productVersion) = parts.Length > 2 ? SplitPair(parts[2]) : (null, null);
 
@@ -250,7 +250,6 @@ public static class SsdpMessageParser
             OperatingSystemVersion = osVersion,
             UpnpMajorVersion = upnpMajor,
             UpnpMinorVersion = upnpMinor,
-            IsUpnp2 = isUpnp2,
             ProductName = product,
             ProductVersion = productVersion
         };
@@ -261,20 +260,38 @@ public static class SsdpMessageParser
             return pair.Length == 2 ? (pair[0], pair[1]) : (part, null);
         }
 
-        static (string, string, bool) ParseUpnpVersion(string part)
+        // UDA 2.0 section 1.1.2 puts the UPnP token second, and this library sends
+        // it there, but real devices reorder the product tokens
+        // ("UPnP/1.0, DLNADOC/1.50 Platinum/1.0.5.13"). Find the token by its name
+        // instead of its position, and report absence rather than guessing when
+        // there is none: an assumed version is worse than an unknown one.
+        static (int?, int?) FindUpnpVersion(string[] parts)
         {
-            var pair = part.Split('/');
-
-            if (pair.Length != 2)
+            foreach (var part in parts)
             {
-                return ("1", "0", false);
+                // Trailing commas are common in the reordered forms.
+                var token = part.TrimEnd(',');
+                var separator = token.IndexOf('/');
+
+                if (separator < 0
+                    || !token.AsSpan(0, separator).Equals("UPnP", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var version = token[(separator + 1)..].Split('.');
+
+                if (version.Length == 2
+                    && int.TryParse(version[0], out var major)
+                    && int.TryParse(version[1], out var minor))
+                {
+                    return (major, minor);
+                }
+
+                return (null, null);
             }
 
-            var version = pair[1].Split('.');
-
-            return version.Length == 2
-                ? (version[0], version[1], version[0] == "2")
-                : ("1", "0", false);
+            return (null, null);
         }
     }
 

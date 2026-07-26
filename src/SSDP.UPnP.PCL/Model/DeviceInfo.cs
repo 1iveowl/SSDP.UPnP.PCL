@@ -21,21 +21,59 @@ public record DeviceInfo
     /// <summary>Product version.</summary>
     public string? ProductVersion { get; init; }
 
-    /// <summary>UPnP architecture major version; defaults to <c>"2"</c>.</summary>
-    public string UpnpMajorVersion { get; init; } = "2";
+    /// <summary>
+    /// UPnP architecture major version, or <see langword="null"/> when the sender
+    /// declared no <c>UPnP/</c> token. Absence is reported rather than assumed:
+    /// a message that said nothing about its architecture version is not evidence
+    /// of any particular one.
+    /// </summary>
+    public int? UpnpMajorVersion { get; init; }
 
-    /// <summary>UPnP architecture minor version; defaults to <c>"0"</c>.</summary>
-    public string UpnpMinorVersion { get; init; } = "0";
+    /// <summary>
+    /// UPnP architecture minor version, or <see langword="null"/> when the sender
+    /// declared no <c>UPnP/</c> token.
+    /// </summary>
+    public int? UpnpMinorVersion { get; init; }
 
     /// <summary>Whether the sender declared UPnP 2.x support.</summary>
-    public bool IsUpnp2 { get; init; }
+    /// <remarks>
+    /// Misleading for version checks: it is false for UDA 1.1 devices, which are
+    /// not 1.0 and do send <c>BOOTID.UPNP.ORG</c>. Prefer
+    /// <see cref="SupportsAtLeast"/>, or compare
+    /// <see cref="UpnpMajorVersion"/>/<see cref="UpnpMinorVersion"/> directly.
+    /// </remarks>
+    [Obsolete("Use SupportsAtLeast, or compare UpnpMajorVersion/UpnpMinorVersion. " +
+              "IsUpnp2 is false for UDA 1.1 senders, which is rarely the question being asked.")]
+    public bool IsUpnp2 => UpnpMajorVersion >= 2;
+
+    /// <summary>
+    /// Whether the sender declared an architecture version of at least
+    /// <paramref name="major"/>.<paramref name="minor"/>. A sender that declared no
+    /// version at all returns <see langword="false"/>.
+    /// </summary>
+    /// <example>
+    /// <c>server.SupportsAtLeast(1, 1)</c> answers "does this sender speak UDA 1.1
+    /// or later", which is the question behind features such as
+    /// <c>BOOTID.UPNP.ORG</c>.
+    /// </example>
+    public bool SupportsAtLeast(int major, int minor = 0) =>
+        UpnpMajorVersion is { } declaredMajor
+        && (declaredMajor > major
+            || (declaredMajor == major && (UpnpMinorVersion ?? 0) >= minor));
 
     /// <summary>
     /// The SSDP wire representation:
     /// <c>OS/version UPnP/major.minor product/version</c>.
     /// </summary>
+    /// <remarks>
+    /// This library implements UDA 2.0, so an unset architecture version is sent
+    /// as <c>UPnP/2.0</c>: UDA 2.0 section 1.1.2 requires the token, and omitting
+    /// it would produce a non-conforming header.
+    /// </remarks>
     public string ToHeaderString() =>
-        $"{OperatingSystem}/{OperatingSystemVersion} UPnP/{UpnpMajorVersion}.{UpnpMinorVersion} {ProductName}/{ProductVersion}";
+        $"{OperatingSystem}/{OperatingSystemVersion} " +
+        $"UPnP/{UpnpMajorVersion ?? 2}.{UpnpMinorVersion ?? 0} " +
+        $"{ProductName}/{ProductVersion}";
 }
 
 /// <summary>

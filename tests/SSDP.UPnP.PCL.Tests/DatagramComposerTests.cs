@@ -30,8 +30,8 @@ public class DatagramComposerTests
             {
                 OperatingSystem = "Linux",
                 OperatingSystemVersion = "6.1",
-                UpnpMajorVersion = "2",
-                UpnpMinorVersion = "0",
+                UpnpMajorVersion = 2,
+                UpnpMinorVersion = 0,
                 ProductName = "Test",
                 ProductVersion = "1.0"
             }
@@ -92,8 +92,8 @@ public class DatagramComposerTests
             {
                 OperatingSystem = "Linux",
                 OperatingSystemVersion = "6.1",
-                UpnpMajorVersion = "2",
-                UpnpMinorVersion = "0",
+                UpnpMajorVersion = 2,
+                UpnpMinorVersion = 0,
                 ProductName = "Test",
                 ProductVersion = "1.0"
             },

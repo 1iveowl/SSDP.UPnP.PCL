@@ -49,7 +49,7 @@ public class SsdpMessageParserTests
         Assert.Equal("cp-uuid-1", request.CPUUID);
         Assert.Equal("Linux", request.UserAgent.OperatingSystem);
         Assert.Equal("TestProduct", request.UserAgent.ProductName);
-        Assert.True(request.UserAgent.IsUpnp2);
+        Assert.True(request.UserAgent.SupportsAtLeast(2));
         Assert.Equal(new IPEndPoint(IPAddress.Parse("192.168.0.20"), 40000), request.RemoteIpEndPoint);
 
         var (key, value) = Assert.Single(request.Headers);
@@ -312,29 +312,70 @@ public class SsdpMessageParserTests
     }
 
     [Theory]
-    [InlineData("Windows/10.0 UPnP/2.0 Product/1.5", "Windows", "10.0", "2", "0", "Product", "1.5", true)]
-    [InlineData("Linux/6.1 UPnP/1.1 Thing/2", "Linux", "6.1", "1", "1", "Thing", "2", false)]
-    [InlineData("BareOs", "BareOs", null, "1", "0", null, null, false)]
-    public void ParseDeviceInfo_Variants(
-        string value,
-        string os,
-        string? osVersion,
-        string upnpMajor,
-        string upnpMinor,
-        string? product,
-        string? productVersion,
-        bool isUpnp2)
+    // The spec's own example (UDA 2.0 section 1.1.2) and the ordinary forms.
+    [InlineData("unix/5.1 UPnP/2.0 MyProduct/1.0", 2, 0)]
+    [InlineData("Windows/10.0 UPnP/2.0 Product/1.5", 2, 0)]
+    [InlineData("Linux/4.4 UPnP/1.0 Sonos/81.1-56180", 1, 0)]
+    [InlineData("Linux/6.1 UPnP/1.1 Thing/2", 1, 1)]
+    // Reordered or short forms real devices send: the UPnP token is found by
+    // name, and a product token in second position is no longer mistaken for it.
+    [InlineData("UPnP/1.0, DLNADOC/1.50 Platinum/1.0.5.13", 1, 0)]
+    [InlineData("Windows NT/5.1, UPnP/1.0", 1, 0)]
+    [InlineData("UPnP/1.1", 1, 1)]
+    [InlineData("upnp/1.0 Something/2", 1, 0)]
+    // No UPnP token, or an unusable one: absence is reported, never assumed.
+    [InlineData("Windows/10.0 Product/1.5", null, null)]
+    [InlineData("BareOs", null, null)]
+    [InlineData("Linux/6.1 UPnP/notaversion Thing/2", null, null)]
+    [InlineData("Linux/6.1 UPnP/2 Thing/2", null, null)]
+    public void ParseDeviceInfo_FindsTheUpnpVersionByName(string value, int? major, int? minor)
+    {
+        var info = SsdpMessageParser.ParseDeviceInfo<Server>(value);
+
+        Assert.Equal(major, info.UpnpMajorVersion);
+        Assert.Equal(minor, info.UpnpMinorVersion);
+        Assert.Equal(value, info.FullString);
+    }
+
+    [Theory]
+    [InlineData("Windows/10.0 UPnP/2.0 Product/1.5", "Windows", "10.0", "Product", "1.5")]
+    [InlineData("Linux/6.1 UPnP/1.1 Thing/2", "Linux", "6.1", "Thing", "2")]
+    [InlineData("BareOs", "BareOs", null, null, null)]
+    public void ParseDeviceInfo_KeepsPositionalOsAndProduct(
+        string value, string os, string? osVersion, string? product, string? productVersion)
     {
         var info = SsdpMessageParser.ParseDeviceInfo<Server>(value);
 
         Assert.Equal(os, info.OperatingSystem);
         Assert.Equal(osVersion, info.OperatingSystemVersion);
-        Assert.Equal(upnpMajor, info.UpnpMajorVersion);
-        Assert.Equal(upnpMinor, info.UpnpMinorVersion);
         Assert.Equal(product, info.ProductName);
         Assert.Equal(productVersion, info.ProductVersion);
-        Assert.Equal(isUpnp2, info.IsUpnp2);
-        Assert.Equal(value, info.FullString);
+    }
+
+    [Fact]
+    public void ParseDeviceInfo_AbsentHeader_ClaimsNoVersion()
+    {
+        // Previously an empty Server reported UPnP 2.0, turning "said nothing"
+        // into the strongest possible claim.
+        var info = SsdpMessageParser.ParseDeviceInfo<Server>(null);
+
+        Assert.Null(info.UpnpMajorVersion);
+        Assert.Null(info.UpnpMinorVersion);
+        Assert.Null(info.FullString);
+        Assert.False(info.SupportsAtLeast(1));
+    }
+
+    [Theory]
+    [InlineData("Linux/4.4 UPnP/1.0 X/1", 1, 1, false)]
+    [InlineData("Linux/4.4 UPnP/1.1 X/1", 1, 1, true)]
+    [InlineData("Linux/4.4 UPnP/2.0 X/1", 1, 1, true)]
+    [InlineData("Linux/4.4 UPnP/2.0 X/1", 2, 0, true)]
+    [InlineData("Linux/4.4 UPnP/1.1 X/1", 2, 0, false)]
+    public void SupportsAtLeast_ComparesVersions(string value, int major, int minor, bool expected)
+    {
+        var info = SsdpMessageParser.ParseDeviceInfo<Server>(value);
+
+        Assert.Equal(expected, info.SupportsAtLeast(major, minor));
     }
 
     [Fact]

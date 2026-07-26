@@ -33,9 +33,8 @@ var rootDeviceConfiguration = new RootDeviceConfiguration
     {
         OperatingSystem = Environment.OSVersion.Platform.ToString(),
         OperatingSystemVersion = Environment.OSVersion.Version.ToString(2),
-        UpnpMajorVersion = "2",
-        UpnpMinorVersion = "0",
-        IsUpnp2 = true,
+        UpnpMajorVersion = 2,
+        UpnpMinorVersion = 0,
         ProductName = "SSDP.UPNP.PCL",
         ProductVersion = "7.0"
     },

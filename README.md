@@ -155,9 +155,8 @@ var rootDeviceConfiguration = new RootDeviceConfiguration
     {
         OperatingSystem = "Linux",
         OperatingSystemVersion = "6.1",
-        UpnpMajorVersion = "2",
-        UpnpMinorVersion = "0",
-        IsUpnp2 = true,
+        UpnpMajorVersion = 2,
+        UpnpMinorVersion = 0,
         ProductName = "MyProduct",
         ProductVersion = "1.0"
     },
