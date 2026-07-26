@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using SSDP.UPnP.PCL.Internal;
 
 namespace SSDP.UPnP.PCL.Model;
 
@@ -63,10 +64,7 @@ public sealed record RootDeviceInterface
                 return true;
             }
 
-            var isWildcardBound = Equals(local.Address, IPAddress.Any)
-                                  || Equals(local.Address, IPAddress.IPv6Any);
-
-            return isWildcardBound
+            return local.Address.IsWildcard()
                    && local.Port == arrivedOn.Port
                    && RootDeviceConfiguration.IpEndPoint is { } configured
                    && Equals(configured.Address, arrivedOn.Address);

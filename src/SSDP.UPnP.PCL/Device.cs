@@ -125,41 +125,16 @@ public class Device : IDevice
         ValidateConfiguration(rootDeviceConfiguration);
         ValidateUnicastPort(rootDeviceConfiguration.IpEndPoint.Port);
 
-        var multicastClient = new UdpClient
-        {
-            ExclusiveAddressUse = false,
-            MulticastLoopback = true
-        };
+        var multicastClient = MulticastSocket.CreateJoined(
+            rootDeviceConfiguration.IpEndPoint.Address,
+            Constants.UdpSSDPMulticastPort,
+            multicastTtl);
 
-        multicastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-        multicastClient.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, multicastTtl);
-
-        // On Windows a socket bound to the interface address receives multicast for
-        // groups it joined; on Linux/macOS multicast is only delivered to sockets
-        // bound to the wildcard address — the group join (below) scopes the interface.
-        var bindAddress = OperatingSystem.IsWindows()
-            ? rootDeviceConfiguration.IpEndPoint.Address
-            : IPAddress.Any;
-
-        multicastClient.Client.Bind(new IPEndPoint(bindAddress, Constants.UdpSSDPMulticastPort));
-        multicastClient.JoinMulticastGroup(IPAddress.Parse(Constants.UdpSSDPMultiCastAddress), rootDeviceConfiguration.IpEndPoint.Address);
-
-        UdpClient unicastClient;
-
-        if (rootDeviceConfiguration.IpEndPoint.Port != Constants.UdpSSDPMulticastPort)
-        {
-            unicastClient = new UdpClient
-            {
-                ExclusiveAddressUse = false
-            };
-
-            unicastClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            unicastClient.Client.Bind(rootDeviceConfiguration.IpEndPoint);
-        }
-        else
-        {
-            unicastClient = multicastClient;
-        }
+        // A device answering unicast searches on its own port needs a second
+        // socket; on 1900 it reuses the multicast one.
+        var unicastClient = rootDeviceConfiguration.IpEndPoint.Port != Constants.UdpSSDPMulticastPort
+            ? MulticastSocket.CreateUnicast(rootDeviceConfiguration.IpEndPoint)
+            : multicastClient;
 
         return
         [
@@ -212,10 +187,7 @@ public class Device : IDevice
             return rootDeviceInterface.RootDeviceConfiguration.IpEndPoint;
         }
 
-        var isWildcardBound = Equals(local.Address, IPAddress.Any)
-                              || Equals(local.Address, IPAddress.IPv6Any);
-
-        if (!isWildcardBound)
+        if (!local.Address.IsWildcard())
         {
             return local;
         }

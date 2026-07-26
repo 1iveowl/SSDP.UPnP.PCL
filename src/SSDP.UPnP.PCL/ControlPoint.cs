@@ -2,9 +2,9 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reactive.Linq;
-using System.Runtime.InteropServices;
 using SimpleHttpListener.Rx;
 using SimpleHttpListener.Rx.Model;
+using SSDP.UPnP.PCL.Internal;
 using SSDP.UPnP.PCL.Model;
 using SSDP.UPnP.PCL.Parsing;
 
@@ -177,33 +177,18 @@ public class ControlPoint : IControlPoint
 
     private static ControlPointInterface CreateInterface(IPAddress ipAddress, int tcpResponsePort, int multicastTtl)
     {
-        var udpClient = new UdpClient();
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            udpClient.ExclusiveAddressUse = false;
-        }
-
-        udpClient.MulticastLoopback = true;
-
         var networkInterface = NetworkInterface.GetAllNetworkInterfaces()
             .FirstOrDefault(nic =>
                 nic.GetIPProperties().UnicastAddresses.Any(addr => Equals(addr.Address, ipAddress)))
             ?? throw new SSDPException("Unable to tie IPAddress to network interface.");
 
+        var udpClient = MulticastSocket.CreateJoined(ipAddress, Constants.UdpSSDPMulticastPort, multicastTtl);
+
+        // Send multicast out of this interface specifically, so a multi-homed
+        // control point searches on the interface it was configured with.
         var optionValue = IPAddress.NetworkToHostOrder(networkInterface.GetIPProperties().GetIPv4Properties().Index);
 
         udpClient.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastInterface, optionValue);
-        udpClient.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, multicastTtl);
-        udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-
-        // On Windows a socket bound to the interface address receives multicast for
-        // groups it joined; on Linux/macOS multicast is only delivered to sockets
-        // bound to the wildcard address — the group join (below) scopes the interface.
-        var bindAddress = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ipAddress : IPAddress.Any;
-
-        udpClient.Client.Bind(new IPEndPoint(bindAddress, Constants.UdpSSDPMulticastPort));
-        udpClient.JoinMulticastGroup(IPAddress.Parse(Constants.UdpSSDPMultiCastAddress), ipAddress);
 
         return new ControlPointInterface
         {
