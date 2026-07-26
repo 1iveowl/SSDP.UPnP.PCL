@@ -23,7 +23,8 @@ public sealed record MSearchResponse
     public TimeSpan CacheControl { get; init; }
 
     /// <summary>The <c>DATE</c> header value.</summary>
-    public DateTimeOffset Date { get; init; }
+    /// <remarks><see langword="null"/> when the response carried no <c>DATE</c> header; it is Recommended rather than Required.</remarks>
+    public DateTimeOffset? Date { get; init; }
 
     /// <summary>The URL of the device description document (<c>LOCATION</c>).</summary>
     public Uri? Location { get; init; }
@@ -41,7 +42,12 @@ public sealed record MSearchResponse
     public USN? USN { get; init; }
 
     /// <summary>The responding device's boot instance (<c>BOOTID.UPNP.ORG</c>).</summary>
-    public uint BOOTID { get; init; }
+    /// <remarks>
+    /// <see langword="null"/> when the response carried no <c>BOOTID.UPNP.ORG</c>,
+    /// which UPnP 1.0 devices do not send. A device that sent <c>0</c> is a
+    /// different thing from one that sent nothing; see <see cref="NLS"/>.
+    /// </remarks>
+    public uint? BOOTID { get; init; }
 
     /// <summary>The responding device's configuration number (<c>CONFIGID.UPNP.ORG</c>), if any.</summary>
     public int? CONFIGID { get; init; }
@@ -51,6 +57,15 @@ public sealed record MSearchResponse
 
     /// <summary>The HTTPS description URL (<c>SECURELOCATION.UPNP.ORG</c>), if any.</summary>
     public string? SECURELOCATION { get; init; }
+
+    /// <summary>
+    /// The UPnP 1.0 Network Location Signature (<c>NLS</c>), when the responder
+    /// carried one. It serves the purpose <see cref="BOOTID"/> later took over:
+    /// the value changes when the device reboots. Opaque - implementations have
+    /// used both integers and GUID-shaped strings - and advisory only, since it
+    /// is not a UDA-normative header.
+    /// </summary>
+    public string? NLS { get; init; }
 
     /// <summary>The MX value of the search being answered; bounds the response delay.</summary>
     public TimeSpan MX { get; init; }

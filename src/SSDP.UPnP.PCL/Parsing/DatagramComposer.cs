@@ -74,13 +74,19 @@ public static class DatagramComposer
 
         builder.Append($"HTTP/1.1 {response.StatusCode} {response.ResponseReason}\r\n");
         builder.Append($"CACHE-CONTROL: max-age={(int)response.CacheControl.TotalSeconds}\r\n");
-        builder.Append($"DATE: {response.Date:r}\r\n");
+        // DATE is Recommended rather than Required (UDA 2.0 section 1.3.3), so a
+        // response without one omits the header instead of emitting a placeholder.
+        if (response.Date is { } date)
+        {
+            builder.Append($"DATE: {date:r}\r\n");
+        }
+
         builder.Append("EXT:\r\n");
         builder.Append($"LOCATION: {response.Location}\r\n");
         builder.Append($"SERVER: {response.Server.ToHeaderString()}\r\n");
         builder.Append($"ST: {(response.ST.StSearchType == STType.All ? response.ST.ToUriString() : response.ST.ToSearchTargetString())}\r\n");
         builder.Append($"USN: {response.USN.ToUsnString()}\r\n");
-        builder.Append($"BOOTID.UPNP.ORG: {response.BOOTID}\r\n");
+        builder.Append($"BOOTID.UPNP.ORG: {response.BOOTID ?? 0}\r\n");
 
         AppendOptional(builder, "CONFIGID.UPNP.ORG", response.CONFIGID?.ToString());
         AppendOptional(builder, "SEARCHPORT.UPNP.ORG", response.SEARCHPORT?.ToString());
@@ -132,7 +138,7 @@ public static class DatagramComposer
         }
 
         builder.Append($"USN: {notify.USN.ToUsnString()}\r\n");
-        builder.Append($"BOOTID.UPNP.ORG: {notify.BOOTID}\r\n");
+        builder.Append($"BOOTID.UPNP.ORG: {notify.BOOTID ?? 0}\r\n");
 
         AppendOptional(builder, "CONFIGID.UPNP.ORG", notify.CONFIGID?.ToString());
 

@@ -35,7 +35,13 @@ public sealed record Notify
     public USN? USN { get; init; }
 
     /// <summary>The advertising device's boot instance (<c>BOOTID.UPNP.ORG</c>).</summary>
-    public uint BOOTID { get; init; }
+    /// <remarks>
+    /// <see langword="null"/> when the message carried none - UPnP 1.0 devices
+    /// predate the header. A device that sent <c>0</c> is a different thing from
+    /// one that sent nothing, so this is not defaulted; see <see cref="NLS"/> for
+    /// the 1.0 equivalent.
+    /// </remarks>
+    public uint? BOOTID { get; init; }
 
     /// <summary>The advertising device's configuration number (<c>CONFIGID.UPNP.ORG</c>), if any.</summary>
     public int? CONFIGID { get; init; }
@@ -48,6 +54,15 @@ public sealed record Notify
 
     /// <summary>The HTTPS description URL (<c>SECURELOCATION.UPNP.ORG</c>), if any.</summary>
     public string? SECURELOCATION { get; init; }
+
+    /// <summary>
+    /// The UPnP 1.0 Network Location Signature (<c>NLS</c>), when the sender
+    /// carried one. It serves the purpose <see cref="BOOTID"/> later took over:
+    /// the value changes when the device reboots. Opaque - implementations have
+    /// used both integers and GUID-shaped strings - and advisory only, since it
+    /// is not a UDA-normative header.
+    /// </summary>
+    public string? NLS { get; init; }
 
     /// <summary>Whether the USN device UUID is a well-formed GUID as UDA 2.0 requires.</summary>
     public bool IsUuidUpnp2Compliant { get; init; }

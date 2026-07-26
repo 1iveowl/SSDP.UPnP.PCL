@@ -338,10 +338,150 @@ public class SsdpMessageParserTests
     }
 
     [Fact]
-    public void ParseRfc1123Date_Invalid_ReturnsMinValue()
+    public void ParseRfc1123Date_Invalid_ReturnsNull()
     {
-        Assert.Equal(DateTimeOffset.MinValue, SsdpMessageParser.ParseRfc1123Date("not a date"));
-        Assert.Equal(DateTimeOffset.MinValue, SsdpMessageParser.ParseRfc1123Date(null));
+        Assert.Null(SsdpMessageParser.ParseRfc1123Date("not a date"));
+        Assert.Null(SsdpMessageParser.ParseRfc1123Date(null));
+    }
+
+    // A real M-SEARCH response captured from a Platinum/1.0.5.13 renderer: a
+    // UPnP 1.0 device, so no BOOTID, and the boot signature arrives as an
+    // RFC 2774 namespaced NLS header. Mixed-case header names are as captured.
+    private static HttpRequestResponse PlatinumResponse() => new()
+    {
+        MessageType = MessageType.Response,
+        StatusCode = 200,
+        ReasonPhrase = "OK",
+        Transport = HttpTransport.Udp,
+        Headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Location"] = "http://192.168.0.217:16422",
+            ["Cache-Control"] = "max-age=66",
+            ["Server"] = "UPnP/1.0, DLNADOC/1.50 Platinum/1.0.5.13",
+            ["EXT"] = "",
+            ["OPT"] = "\"http://schemas.upnp.org/upnp/1/0/\"; ns=01",
+            ["01-NLS"] = "1785066224",
+            ["USN"] = "uuid:bf3f7ffd-777e-4f76-bfb8-b7ff6be2befe::upnp:rootdevice",
+            ["ST"] = "upnp:rootdevice",
+            ["Date"] = "Sun, 26 Jul 2026 14:40:08 GMT"
+        }
+    };
+
+    [Fact]
+    public void ParseMSearchResponse_Upnp10Device_ReportsNoBootIdAndAnNls()
+    {
+        var result = SsdpMessageParser.ParseMSearchResponse(PlatinumResponse());
+
+        Assert.True(result.IsSuccess);
+
+        var response = result.Value;
+        Assert.Null(response.BOOTID);
+        Assert.Equal("1785066224", response.NLS);
+        Assert.Equal(TimeSpan.FromSeconds(66), response.CacheControl);
+        Assert.Equal(new Uri("http://192.168.0.217:16422"), response.Location);
+        Assert.Equal("bf3f7ffd-777e-4f76-bfb8-b7ff6be2befe", response.USN?.DeviceUUID);
+        Assert.False(response.HasParsingError);
+    }
+
+    [Fact]
+    public void ParseMSearchResponse_Uda20DeviceWithBootIdZero_IsDistinctFromAbsent()
+    {
+        // The whole point of the nullable change: "sent 0" and "sent nothing" are
+        // different states, and only the former carries a BOOTID.
+        var message = Message(MessageType.Response, new Dictionary<string, string>
+        {
+            ["ST"] = "upnp:rootdevice",
+            ["USN"] = "uuid:device-1::upnp:rootdevice",
+            ["BOOTID.UPNP.ORG"] = "0"
+        });
+
+        var result = SsdpMessageParser.ParseMSearchResponse(message);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(0u, result.Value.BOOTID);
+        Assert.Null(result.Value.NLS);
+    }
+
+    [Fact]
+    public void ParseNotify_CarriesNlsAndAbsentBootId()
+    {
+        var message = Message(MessageType.Request, new Dictionary<string, string>
+        {
+            ["NT"] = "upnp:rootdevice",
+            ["NTS"] = "ssdp:alive",
+            ["USN"] = "uuid:device-1::upnp:rootdevice",
+            ["OPT"] = "\"http://schemas.upnp.org/upnp/1/0/\"; ns=01",
+            ["01-NLS"] = "d1b6a3f0-0c5e-4d0a-9a3e-4b5f6c7d8e9f"
+        }, method: "NOTIFY");
+
+        var result = SsdpMessageParser.ParseNotify(message);
+
+        Assert.True(result.IsSuccess);
+        Assert.Null(result.Value.BOOTID);
+        // Opaque: GUID-shaped values must survive intact, not be coerced.
+        Assert.Equal("d1b6a3f0-0c5e-4d0a-9a3e-4b5f6c7d8e9f", result.Value.NLS);
+    }
+
+    [Fact]
+    public void ParseNls_HonoursTheDeclaredNamespacePrefix()
+    {
+        var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["OPT"] = "\"http://schemas.upnp.org/upnp/1/0/\"; ns=02",
+            ["01-NLS"] = "wrong",
+            ["02-NLS"] = "right"
+        };
+
+        Assert.Equal("right", SsdpMessageParser.ParseNls(headers));
+    }
+
+    [Fact]
+    public void ParseNls_WithoutOpt_FallsBackToAnyNamespacedHeader()
+    {
+        var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["01-NLS"] = "1785066224"
+        };
+
+        Assert.Equal("1785066224", SsdpMessageParser.ParseNls(headers));
+    }
+
+    [Fact]
+    public void ParseNls_ForeignNamespaceOpt_IsNotTrustedForTheMapping()
+    {
+        // The OPT belongs to some other extension, so its ns= must not be used to
+        // resolve NLS. The header name itself is still a valid signal, so the
+        // lenient fallback applies.
+        var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["OPT"] = "\"http://example.com/other-extension/\"; ns=02",
+            ["02-NLS"] = "from-fallback"
+        };
+
+        Assert.Equal("from-fallback", SsdpMessageParser.ParseNls(headers));
+    }
+
+    [Fact]
+    public void ParseNls_AbsentIsNull()
+    {
+        var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["ST"] = "upnp:rootdevice"
+        };
+
+        Assert.Null(SsdpMessageParser.ParseNls(headers));
+    }
+
+    [Fact]
+    public void ParseMSearchResponse_LeavesOptAndNlsInTheExtraHeaders()
+    {
+        // Dynamically named headers cannot live in the standard-header filter set,
+        // so consumers keep reaching them through Headers.
+        var result = SsdpMessageParser.ParseMSearchResponse(PlatinumResponse());
+
+        Assert.True(result.IsSuccess);
+        Assert.Contains("OPT", result.Value.Headers.Keys);
+        Assert.Contains("01-NLS", result.Value.Headers.Keys);
     }
 
     [Fact]

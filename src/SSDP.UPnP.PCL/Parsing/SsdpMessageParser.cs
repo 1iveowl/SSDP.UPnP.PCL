@@ -22,6 +22,9 @@ namespace SSDP.UPnP.PCL.Parsing;
 /// </remarks>
 public static class SsdpMessageParser
 {
+    // RFC 2774 namespace declared by UPnP 1.0 devices carrying the NLS header.
+    private const string UpnpExtensionNamespace = "http://schemas.upnp.org/upnp/1/0/";
+
     private static readonly FrozenSet<string> MSearchRequestStandardHeaders = new[]
     {
         "HOST", "CACHE-CONTROL", "MAN", "MX", "ST", "USER-AGENT",
@@ -168,12 +171,13 @@ public static class SsdpMessageParser
             ResponseReason = response.ReasonPhrase ?? string.Empty,
             CacheControl = TimeSpan.FromSeconds(ParseMaxAge(GetHeaderValue(response.Headers, "CACHE-CONTROL"))),
             Date = ParseRfc1123Date(GetHeaderValue(response.Headers, "DATE")),
+            NLS = ParseNls(response.Headers),
             Location = ParseUri(GetHeaderValue(response.Headers, "LOCATION")),
             Ext = response.Headers.ContainsKey("EXT"),
             Server = ParseDeviceInfo<Server>(GetHeaderValue(response.Headers, "SERVER")),
             ST = st.Value,
             USN = usn.Value,
-            BOOTID = ParseUIntOr(GetHeaderValue(response.Headers, "BOOTID.UPNP.ORG"), 0),
+            BOOTID = ParseNullableUInt(GetHeaderValue(response.Headers, "BOOTID.UPNP.ORG")),
             CONFIGID = ParseNullableInt(GetHeaderValue(response.Headers, "CONFIGID.UPNP.ORG")),
             SEARCHPORT = ParseNullableInt(GetHeaderValue(response.Headers, "SEARCHPORT.UPNP.ORG")),
             SECURELOCATION = GetHeaderValue(response.Headers, "SECURELOCATION.UPNP.ORG"),
@@ -204,7 +208,8 @@ public static class SsdpMessageParser
             NTS = NTSExtensions.ToNTS(GetHeaderValue(request.Headers, "NTS")),
             Server = ParseDeviceInfo<Server>(GetHeaderValue(request.Headers, "SERVER")),
             USN = usn.Value,
-            BOOTID = ParseUIntOr(GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG"), 0),
+            BOOTID = ParseNullableUInt(GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG")),
+            NLS = ParseNls(request.Headers),
             CONFIGID = ParseNullableInt(GetHeaderValue(request.Headers, "CONFIGID.UPNP.ORG")),
             SEARCHPORT = ParseNullableInt(GetHeaderValue(request.Headers, "SEARCHPORT.UPNP.ORG")),
             NEXTBOOTID = ParseNullableUInt(GetHeaderValue(request.Headers, "NEXTBOOTID.UPNP.ORG")),
@@ -343,12 +348,65 @@ public static class SsdpMessageParser
 
     /// <summary>
     /// Parses an RFC 1123 (RFC 9110) date header value; returns
-    /// <see cref="DateTimeOffset.MinValue"/> when absent or malformed.
+    /// <see langword="null"/> when absent or malformed.
     /// </summary>
-    public static DateTimeOffset ParseRfc1123Date(string? value) =>
+    public static DateTimeOffset? ParseRfc1123Date(string? value) =>
         DateTimeOffset.TryParseExact(value, "r", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)
             ? date
-            : DateTimeOffset.MinValue;
+            : null;
+
+    /// <summary>
+    /// Resolves the UPnP 1.0 Network Location Signature from a message's headers.
+    /// </summary>
+    /// <remarks>
+    /// The header is namespaced through RFC 2774's HTTP Extension Framework: the
+    /// sender declares <c>OPT: "http://schemas.upnp.org/upnp/1/0/"; ns=01</c> and
+    /// then sends <c>01-NLS</c>. The declared prefix is honoured only when the OPT
+    /// names the UPnP namespace; otherwise, and when there is no usable OPT at
+    /// all, any <c>NN-NLS</c> header is accepted, because some stacks emit the
+    /// prefixed header without declaring it. Absence is never an error.
+    /// </remarks>
+    public static string? ParseNls(IReadOnlyDictionary<string, string> headers)
+    {
+        var opt = GetHeaderValue(headers, "OPT");
+
+        if (opt is not null)
+        {
+            var parts = opt.Split(';');
+
+            if (string.Equals(TrimQuotes(parts[0]), UpnpExtensionNamespace, StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var part in parts.Skip(1))
+                {
+                    var trimmed = part.Trim();
+
+                    if (trimmed.StartsWith("ns=", StringComparison.OrdinalIgnoreCase)
+                        && headers.TryGetValue($"{trimmed[3..].Trim()}-NLS", out var declared))
+                    {
+                        return declared;
+                    }
+                }
+            }
+        }
+
+        foreach (var header in headers)
+        {
+            if (IsNamespacedNlsHeader(header.Key))
+            {
+                return header.Value;
+            }
+        }
+
+        return null;
+    }
+
+    // Matches the "NN-NLS" shape, e.g. "01-NLS".
+    private static bool IsNamespacedNlsHeader(string name) =>
+        name.Length == 6
+        && char.IsAsciiDigit(name[0])
+        && char.IsAsciiDigit(name[1])
+        && name[2] == '-'
+        && name.AsSpan(3).Equals("NLS", StringComparison.OrdinalIgnoreCase);
 
     internal static string? GetHeaderValue(IReadOnlyDictionary<string, string> headers, string key) =>
         headers.TryGetValue(key, out var value) ? value : null;
