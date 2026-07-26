@@ -71,6 +71,18 @@ public sealed record Notify
     public IReadOnlyDictionary<string, string> Headers { get; init; } =
         FrozenDictionary<string, string>.Empty;
 
+    /// <summary>
+    /// The message exactly as it arrived, before parsing or header normalization,
+    /// when raw capture is enabled on the receiving control point or device. Empty
+    /// otherwise, and always empty for messages received over TCP.
+    /// </summary>
+    /// <remarks>
+    /// Useful when a device's own formatting matters: <see cref="Headers"/> is
+    /// normalized to uppercase names with repeated fields comma-joined, while this
+    /// preserves what the sender actually wrote.
+    /// </remarks>
+    public ReadOnlyMemory<byte> RawMessage { get; init; }
+
     /// <summary>For received notifications: the local endpoint the message arrived on.</summary>
     public IPEndPoint? LocalIpEndPoint { get; init; }
 

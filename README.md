@@ -37,6 +37,7 @@ Version 9.0 fixes what the parser reports about received messages. Three defects
 | `DeviceInfo.UpnpMajorVersion` / `UpnpMinorVersion` | `string`, defaulting to `"2"` / `"0"` | `int?` |
 | `DeviceInfo.IsUpnp2` | property | `[Obsolete]` - use `SupportsAtLeast(1, 1)` |
 | *(new)* `Notify.NLS`, `MSearchResponse.NLS` | - | `string?` |
+| *(new)* `RawMessage` on received messages, `ParseFailures()` / `ParseFailureObservable` | - | opt-in wire capture and drop diagnostics |
 
 What was wrong, and why it mattered:
 
@@ -45,6 +46,18 @@ What was wrong, and why it mattered:
 - **The UPnP version from `SERVER`/`USER-AGENT` was frequently wrong.** The second whitespace token was assumed to *be* the UPnP token, so a device announcing `UPnP/1.0, DLNADOC/1.50 Platinum/1.0.5.13` was read as UPnP 1.50, and `Windows NT/5.1, UPnP/1.0` as 5.1. Missing or unparsable tokens fabricated 1.0, and an absent header claimed 2.0 - turning silence into the strongest possible claim. The token is now located by its name, and absence is reported instead of guessed.
 
 Migrating: treat a null `BOOTID` as "unknown" and fall back to `NLS`; treat a null version as "the sender did not say". `IsUpnp2` still works but warns - it answers `major == 2`, which is false for UDA 1.1 devices that are not 1.0, so `SupportsAtLeast(1, 1)` is usually the question you meant.
+
+9.0 also makes the silent drops visible. Both the control point and the device discard messages they cannot parse - a device is required to discard a malformed search without replying (UDA 2.0 section 1.3.3), and a control point that threw on every odd datagram would be useless on a real network. That silence is impossible to debug from the outside, so it is now observable:
+
+```csharp
+using var controlPoint = new ControlPoint(ipAddress) { CaptureRawMessages = true };
+
+using var failures = controlPoint.ParseFailures().Subscribe(failure =>
+    Console.WriteLine($"dropped from {failure.RemoteIpEndPoint}: {failure.Error}\n{failure.RawMessageText()}"));
+```
+
+- **`ParseFailures()`** on the control point, and **`ParseFailureObservable`** on the device, report what was dropped and why. Subscribing to either is enough to start listening, like any other stream.
+- **`CaptureRawMessages`** (off by default, requires SimpleHttpListener.Rx 7.4.0) additionally carries the bytes exactly as the sender wrote them, on `SsdpParseFailure.RawMessage` and on the `RawMessage` of every received message. The parsed `Headers` are normalized to uppercase names with repeated fields comma-joined, so original casing, field order and duplicates are only visible there. It copies every message, so leave it off in normal operation; UDP only.
 
 9.0 also adopts two house rules from the sibling libraries:
 
@@ -295,7 +308,7 @@ Both samples accept an explicit IP address as the first argument. Notes for same
 
 ## Version history
 
-- **9.0.0** - breaking: received `BOOTID` and `Date` are nullable, and the UPnP version from `SERVER`/`USER-AGENT` is an `int?` located by token name, so absence is reported rather than fabricated; adds the UPnP 1.0 `NLS` header; fixes `CACHE-CONTROL` with multiple directives parsing to `max-age` 0. Nothing changes on the wire.
+- **9.0.0** - breaking: received `BOOTID` and `Date` are nullable, and the UPnP version from `SERVER`/`USER-AGENT` is an `int?` located by token name, so absence is reported rather than fabricated; adds the UPnP 1.0 `NLS` header, opt-in raw wire capture and parse-failure diagnostics, `IAsyncDisposable` with an automatic `ssdp:byebye`, and `ConfigureAwait(false)` throughout; fixes `CACHE-CONTROL` with multiple directives parsing to `max-age` 0. Nothing changes on the wire.
 - **8.0.0** - breaking: the control point's `Start(ct)`/`IsStarted` are removed; its observables start listening on first subscription and stop on last disposal. Requires SimpleHttpListener.Rx 7.3.0, and fixes device interface matching for the per-datagram local endpoint that release reports.
 - **7.0.2** - docs: clarify that UPnP eventing is outside this library's scope (README and XML documentation). No code changes.
 - **7.0.1** - fix: multicast reception on Linux/macOS (SSDP sockets now bind the wildcard address; the group join scopes the interface). Control point sample gains a `tcp` response mode.

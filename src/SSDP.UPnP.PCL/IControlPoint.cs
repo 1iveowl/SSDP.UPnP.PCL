@@ -42,6 +42,18 @@ public interface IControlPoint : IDisposable, IAsyncDisposable
     IObservable<MSearchResponse> MSearchResponseObservable();
 
     /// <summary>
+    /// The messages that arrived but could not be parsed as SSDP, with the reason.
+    /// Diagnostic: these are the messages the streams above silently drop, which is
+    /// otherwise invisible from the outside.
+    /// </summary>
+    /// <remarks>
+    /// Enable raw capture on the control point to have the offending bytes carried
+    /// on <see cref="SsdpParseFailure.RawMessage"/> as well. Subscribing to this
+    /// alone starts listening, like any other stream here.
+    /// </remarks>
+    IObservable<SsdpParseFailure> ParseFailures();
+
+    /// <summary>
     /// Sends an M-SEARCH request from the interface bound to
     /// <paramref name="ipAddress"/>: multicast to the SSDP group, or unicast to
     /// <see cref="MSearchRequest.RemoteIpEndPoint"/>.

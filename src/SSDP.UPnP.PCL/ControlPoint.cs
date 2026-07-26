@@ -47,6 +47,8 @@ public class ControlPoint : IControlPoint
 
     private readonly IObservable<Notify> _notifyObservable;
 
+    private readonly IObservable<SsdpParseFailure> _parseFailureObservable;
+
     private IObservable<HttpRequestResponse>? _hotSource;
 
     private bool _disposed;
@@ -56,6 +58,22 @@ public class ControlPoint : IControlPoint
     /// replace with a fake in tests.
     /// </summary>
     public TimeProvider TimeProvider { get; set; } = TimeProvider.System;
+
+    /// <summary>
+    /// Whether each received datagram's bytes are captured as sent, into
+    /// <see cref="Model.Notify.RawMessage"/>, <see cref="MSearchResponse.RawMessage"/>
+    /// and <see cref="SsdpParseFailure.RawMessage"/>. Off by default; set it before
+    /// the first subscription, since that is when listening starts.
+    /// </summary>
+    /// <remarks>
+    /// A diagnostic aid, for answering "what did that device actually send?" - the
+    /// parsed <c>Headers</c> are normalized, so original casing, field order and
+    /// repeated fields are only visible here. It copies every message, so leave it
+    /// off in normal operation, and do not retain the messages indefinitely on a
+    /// chatty network. Applies to UDP only; messages received over TCP never carry
+    /// raw bytes.
+    /// </remarks>
+    public bool CaptureRawMessages { get; set; }
 
     /// <summary>
     /// Creates a control point that listens on the given local IP addresses, with
@@ -142,6 +160,39 @@ public class ControlPoint : IControlPoint
             .Where(notify => notify.NTS is NTS.Alive or NTS.ByeBye or NTS.Update)
             .Publish()
             .RefCount();
+
+        // Its own pipeline rather than a tee off the two above: subscribing to
+        // failures alone is enough to start listening, and the happy paths stay
+        // free of diagnostic plumbing. The cost is parsing a message twice while
+        // both are subscribed, which is acceptable for an opt-in diagnostic.
+        _parseFailureObservable = messageSource
+            .Select(ParseFailureOrNull)
+            .Where(failure => failure is not null)
+            .Select(failure => failure!)
+            .Publish()
+            .RefCount();
+    }
+
+    // Only messages this control point would otherwise have consumed count as
+    // failures: a response it cannot parse, or a NOTIFY it cannot parse. Requests
+    // addressed to devices (M-SEARCH) are not its business and are not reported.
+    private static SsdpParseFailure? ParseFailureOrNull(HttpRequestResponse message)
+    {
+        if (message.MessageType == MessageType.Response)
+        {
+            var response = SsdpMessageParser.ParseMSearchResponse(message);
+
+            return response.IsSuccess ? null : SsdpParseFailure.From(message, response.Error);
+        }
+
+        if (message.Method != "NOTIFY")
+        {
+            return null;
+        }
+
+        var notify = SsdpMessageParser.ParseNotify(message);
+
+        return notify.IsSuccess ? null : SsdpParseFailure.From(message, notify.Error);
     }
 
     /// <summary>Whether the sockets have been materialized (test diagnostics).</summary>
@@ -216,6 +267,8 @@ public class ControlPoint : IControlPoint
 
         var ct = _lifetimeCts.Token;
 
+        var options = new HttpListenerOptions { CaptureRawMessage = CaptureRawMessages };
+
         var listenerObservables = new List<IObservable<HttpRequestResponse>>();
 
         foreach (var node in _controlPointInterfaces.Value)
@@ -228,13 +281,13 @@ public class ControlPoint : IControlPoint
             if (node.UdpClient is not null)
             {
                 listenerObservables.Add(
-                    node.UdpClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError));
+                    node.UdpClient.ToHttpListenerObservable(options, ct, ErrorCorrection.HeaderCompletionError));
             }
 
             if (node.TcpListener is not null)
             {
                 listenerObservables.Add(
-                    node.TcpListener.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError));
+                    node.TcpListener.ToHttpListenerObservable(options, ct, ErrorCorrection.HeaderCompletionError));
             }
         }
 
@@ -269,6 +322,9 @@ public class ControlPoint : IControlPoint
     /// notifications are emitted; other or unparsable messages are dropped.
     /// </remarks>
     public IObservable<Notify> NotifyObservable() => _notifyObservable;
+
+    /// <inheritdoc />
+    public IObservable<SsdpParseFailure> ParseFailures() => _parseFailureObservable;
 
     /// <inheritdoc />
     /// <exception cref="SSDPException">

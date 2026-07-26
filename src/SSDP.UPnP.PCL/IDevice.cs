@@ -25,6 +25,17 @@ public interface IDevice : IDisposable, IAsyncDisposable
     IObservable<DeviceActivity> DeviceActivityObservable { get; }
 
     /// <summary>
+    /// The M-SEARCH requests that arrived but could not be parsed, with the reason.
+    /// </summary>
+    /// <remarks>
+    /// UDA 2.0 section 1.3.3 requires a device to discard a malformed search in
+    /// silence, so this is the only way to see that it happened - and the answer to
+    /// "why does my device ignore that control point?". Enable raw capture to have
+    /// the offending bytes carried on <see cref="SsdpParseFailure.RawMessage"/>.
+    /// </remarks>
+    IObservable<SsdpParseFailure> ParseFailureObservable { get; }
+
+    /// <summary>
     /// Starts listening for M-SEARCH requests on the configured interfaces and
     /// multicasts the initial <c>ssdp:alive</c> advertisements. Cancel
     /// <paramref name="ct"/> to stop listening. A device can only be started once.

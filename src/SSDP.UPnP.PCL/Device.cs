@@ -23,9 +23,9 @@ namespace SSDP.UPnP.PCL;
 /// Advertisement sending is best-effort: a failed send is logged (see
 /// <see cref="Logger"/>) and does not stop the device or abort the batch. While
 /// started, the device re-sends its alive advertisements periodically before they
-/// expire, as UDA 2.0 requires (see <see cref="AutoReAdvertise"/>). Call
-/// <see cref="ByeByeAsync"/> before disposing for a clean exit — <see cref="Dispose"/>
-/// only closes resources and does not notify the network.
+/// expire, as UDA 2.0 requires (see <see cref="AutoReAdvertise"/>). Prefer
+/// <c>await using</c>: <see cref="DisposeAsync"/> says goodbye with
+/// <c>ssdp:byebye</c> before releasing, where <see cref="Dispose"/> only releases.
 /// </remarks>
 public class Device : IDevice
 {
@@ -36,6 +36,8 @@ public class Device : IDevice
     private static readonly TimeSpan RecommendedMinCacheControl = TimeSpan.FromSeconds(1800);
 
     private readonly BehaviorSubject<DeviceActivity> _deviceActivitySubject = new(DeviceActivity.Initialized);
+
+    private readonly Subject<SsdpParseFailure> _parseFailureSubject = new();
 
     // Snapshot-swapped, never mutated in place: readers take a local copy, and
     // UpdateAsync/start stamping publish a fresh array (see UpdateAsync).
@@ -77,8 +79,23 @@ public class Device : IDevice
     /// </summary>
     public TimeSpan ByeByeTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
+    /// <summary>
+    /// Whether each received datagram's bytes are captured as sent, into
+    /// <see cref="MSearchRequest.RawMessage"/> and
+    /// <see cref="SsdpParseFailure.RawMessage"/>. Off by default; set it before
+    /// starting, since that is when listening begins.
+    /// </summary>
+    /// <remarks>
+    /// A diagnostic aid: it copies every message, so leave it off in normal
+    /// operation. Applies to UDP only.
+    /// </remarks>
+    public bool CaptureRawMessages { get; set; }
+
     /// <inheritdoc />
     public IObservable<DeviceActivity> DeviceActivityObservable { get; }
+
+    /// <inheritdoc />
+    public IObservable<SsdpParseFailure> ParseFailureObservable { get; }
 
     /// <inheritdoc />
     public bool IsStarted { get; private set; }
@@ -88,6 +105,7 @@ public class Device : IDevice
         _rootDeviceInterfaces = rootDeviceInterfaces;
         _isClientsProvided = isClientsProvided;
         DeviceActivityObservable = _deviceActivitySubject.AsObservable();
+        ParseFailureObservable = _parseFailureSubject.AsObservable();
     }
 
     /// <summary>
@@ -258,17 +276,19 @@ public class Device : IDevice
     {
         var interfaces = _rootDeviceInterfaces;
 
+        var options = new HttpListenerOptions { CaptureRawMessage = CaptureRawMessages };
+
         var listenerObservables = new List<IObservable<HttpRequestResponse>>();
 
         foreach (var rootDevice in interfaces)
         {
             listenerObservables.Add(
-                rootDevice.UdpMulticastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError));
+                rootDevice.UdpMulticastClient.ToHttpListenerObservable(options, ct, ErrorCorrection.HeaderCompletionError));
 
             if (rootDevice.UdpUnicastClient != rootDevice.UdpMulticastClient)
             {
                 listenerObservables.Add(
-                    rootDevice.UdpUnicastClient.ToHttpListenerObservable(ct, ErrorCorrection.HeaderCompletionError));
+                    rootDevice.UdpUnicastClient.ToHttpListenerObservable(options, ct, ErrorCorrection.HeaderCompletionError));
             }
         }
 
@@ -302,9 +322,10 @@ public class Device : IDevice
         _requestSubscription = httpListenerObservable
             .Where(x => x.MessageType == MessageType.Request)
             .Where(req => req.Method == "M-SEARCH")
-            .Select(SsdpMessageParser.ParseMSearchRequest)
-            .Where(result => result.IsSuccess)
-            .Select(result => result.Value!)
+            .Select(message => (Message: message, Result: SsdpMessageParser.ParseMSearchRequest(message)))
+            .Do(ReportParseFailure)
+            .Where(x => x.Result.IsSuccess)
+            .Select(x => x.Result.Value!)
             .SelectMany(RespondAsync)
             .Subscribe(
                 _ => { },
@@ -326,6 +347,16 @@ public class Device : IDevice
     // Cancelled when the device is disposed, so work started by a message that is
     // still in flight stops with it.
     private CancellationToken LifetimeToken => _lifetimeCts?.Token ?? CancellationToken.None;
+
+    // A malformed search must be discarded in silence (UDA 2.0 section 1.3.3), so
+    // reporting it here is the only way a consumer can find out it happened.
+    private void ReportParseFailure((HttpRequestResponse Message, ParseResult<MSearchRequest> Result) parsed)
+    {
+        if (!parsed.Result.IsSuccess)
+        {
+            _parseFailureSubject.OnNext(SsdpParseFailure.From(parsed.Message, parsed.Result.Error));
+        }
+    }
 
     // BOOTID values are Unix seconds capped to the non-negative 31-bit range the
     // spec mandates.
@@ -747,6 +778,9 @@ public class Device : IDevice
 
         _deviceActivitySubject.OnCompleted();
         _deviceActivitySubject.Dispose();
+
+        _parseFailureSubject.OnCompleted();
+        _parseFailureSubject.Dispose();
 
         if (_isClientsProvided)
         {

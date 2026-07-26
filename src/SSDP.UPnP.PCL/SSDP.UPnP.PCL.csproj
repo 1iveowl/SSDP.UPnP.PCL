@@ -26,7 +26,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
-    <PackageReference Include="SimpleHttpListener.Rx" Version="7.3.0" />
+    <PackageReference Include="SimpleHttpListener.Rx" Version="7.4.0" />
     <PackageReference Include="System.Reactive" Version="7.0.0" />
   </ItemGroup>
 

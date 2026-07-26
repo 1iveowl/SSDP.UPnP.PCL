@@ -127,6 +127,7 @@ public static class SsdpMessageParser
             CPUUID = GetHeaderValue(request.Headers, "CPUUID.UPNP.ORG"),
             TCPPORT = tcpPort,
             Headers = AdditionalHeaders(request.Headers, MSearchRequestStandardHeaders),
+            RawMessage = request.RawMessage,
             LocalIpEndPoint = request.LocalEndPoint,
             RemoteIpEndPoint = request.RemoteEndPoint,
             HasParsingError = request.HasParsingErrors
@@ -182,6 +183,7 @@ public static class SsdpMessageParser
             SEARCHPORT = ParseNullableInt(GetHeaderValue(response.Headers, "SEARCHPORT.UPNP.ORG")),
             SECURELOCATION = GetHeaderValue(response.Headers, "SECURELOCATION.UPNP.ORG"),
             Headers = AdditionalHeaders(response.Headers, MSearchResponseStandardHeaders),
+            RawMessage = response.RawMessage,
             LocalIpEndPoint = response.LocalEndPoint,
             RemoteIpEndPoint = response.RemoteEndPoint,
             HasParsingError = response.HasParsingErrors
@@ -216,6 +218,7 @@ public static class SsdpMessageParser
             SECURELOCATION = GetHeaderValue(request.Headers, "SECURELOCATION.UPNP.ORG"),
             IsUuidUpnp2Compliant = Guid.TryParse(usn.Value?.DeviceUUID, out _),
             Headers = AdditionalHeaders(request.Headers, NotifyStandardHeaders),
+            RawMessage = request.RawMessage,
             LocalIpEndPoint = request.LocalEndPoint,
             RemoteIpEndPoint = request.RemoteEndPoint,
             HasParsingError = request.HasParsingErrors
