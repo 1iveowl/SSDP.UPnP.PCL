@@ -4,7 +4,7 @@
     <PackageId>SSDP.UPnP.PCL</PackageId>
     <AssemblyName>SSDP.UPnP.PCL</AssemblyName>
     <RootNamespace>SSDP.UPnP.PCL</RootNamespace>
-    <Version>8.0.0</Version>
+    <Version>9.0.0</Version>
     <Description>An Rx-based SSDP library for discovering and advertising UPnP Device Architecture 2.0 devices and services.</Description>
     <PackageTags>ssdp;upnp;discovery;rx;reactive;observable;multicast;iot</PackageTags>
     <PackageIcon>1iveowl-logo.png</PackageIcon>

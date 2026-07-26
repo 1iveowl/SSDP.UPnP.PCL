@@ -406,15 +406,13 @@ public static class SsdpMessageParser
             }
         }
 
-        foreach (var header in headers)
-        {
-            if (IsNamespacedNlsHeader(header.Key))
-            {
-                return header.Value;
-            }
-        }
-
-        return null;
+        // Lowest prefix wins, so a message carrying more than one NN-NLS header
+        // resolves the same way every time rather than by dictionary order.
+        return headers
+            .Where(header => IsNamespacedNlsHeader(header.Key))
+            .OrderBy(header => header.Key, StringComparer.Ordinal)
+            .Select(header => header.Value)
+            .FirstOrDefault();
     }
 
     // Matches the "NN-NLS" shape, e.g. "01-NLS".

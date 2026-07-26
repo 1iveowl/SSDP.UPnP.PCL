@@ -26,6 +26,28 @@ The library is written in a functional style: all message and configuration type
 dotnet add package SSDP.UPnP.PCL
 ```
 
+## Version 9.0 - breaking changes
+
+Version 9.0 fixes what the parser reports about received messages. Three defects made it claim things devices never said, so the affected properties now express absence:
+
+| Property | v8 | v9 |
+|---|---|---|
+| `Notify.BOOTID`, `MSearchResponse.BOOTID` | `uint`, absent read as `0` | `uint?` |
+| `MSearchResponse.Date` | `DateTimeOffset`, absent read as `MinValue` | `DateTimeOffset?` |
+| `DeviceInfo.UpnpMajorVersion` / `UpnpMinorVersion` | `string`, defaulting to `"2"` / `"0"` | `int?` |
+| `DeviceInfo.IsUpnp2` | property | `[Obsolete]` - use `SupportsAtLeast(1, 1)` |
+| *(new)* `Notify.NLS`, `MSearchResponse.NLS` | - | `string?` |
+
+What was wrong, and why it mattered:
+
+- **`CACHE-CONTROL` with more than one directive parsed to `max-age` 0.** The header was split on `=` and required exactly two parts, so `max-age=1800, must-revalidate` - entirely ordinary under RFC 9111 - reported no lifetime at all, expiring a device that had just said it would live for half an hour. Now the directive list is walked properly, `max-age` is matched case-insensitively anywhere in it, quoted values are tolerated, oversized delta-seconds are clamped and negatives rejected. **This one is not breaking**: the signature and the 0-for-absent return are unchanged, and every input that produced a value before produces the same value now.
+- **`BOOTID` collapsed three states into one.** "The device sent no BOOTID" (legitimate - UPnP 1.0 predates it), "the device sent 0" (legal, the field ranges 0 to 2^31-1) and "unparsable" were all `0`, so reboot detection could never work for a 1.0 device: every announcement compared 0 to 0. UPnP 1.0 devices signal the same thing with an `NLS` header carried under an RFC 2774 `OPT` namespace declaration, which is now read into `NLS` - opaque and advisory, since it is not UDA-normative. Report both and decide for yourself; nothing is synthesised from the other.
+- **The UPnP version from `SERVER`/`USER-AGENT` was frequently wrong.** The second whitespace token was assumed to *be* the UPnP token, so a device announcing `UPnP/1.0, DLNADOC/1.50 Platinum/1.0.5.13` was read as UPnP 1.50, and `Windows NT/5.1, UPnP/1.0` as 5.1. Missing or unparsable tokens fabricated 1.0, and an absent header claimed 2.0 - turning silence into the strongest possible claim. The token is now located by its name, and absence is reported instead of guessed.
+
+Migrating: treat a null `BOOTID` as "unknown" and fall back to `NLS`; treat a null version as "the sender did not say". `IsUpnp2` still works but warns - it answers `major == 2`, which is false for UDA 1.1 devices that are not 1.0, so `SupportsAtLeast(1, 1)` is usually the question you meant.
+
+Unchanged on the wire: everything this library sends is byte-identical to 8.0, verified by composing every message kind in both versions and diffing. Configurations keep non-nullable `BOOTID`, `SERVER` and `USER-AGENT` still carry `UPnP/2.0`, and nothing emits `NLS`.
+
 ## Version 8.0 - breaking changes
 
 Version 8.0 removes the control point's explicit start step. `ControlPoint` observables are now cold until subscribed, in the ordinary Rx way:
@@ -269,6 +291,7 @@ Both samples accept an explicit IP address as the first argument. Notes for same
 
 ## Version history
 
+- **9.0.0** - breaking: received `BOOTID` and `Date` are nullable, and the UPnP version from `SERVER`/`USER-AGENT` is an `int?` located by token name, so absence is reported rather than fabricated; adds the UPnP 1.0 `NLS` header; fixes `CACHE-CONTROL` with multiple directives parsing to `max-age` 0. Nothing changes on the wire.
 - **8.0.0** - breaking: the control point's `Start(ct)`/`IsStarted` are removed; its observables start listening on first subscription and stop on last disposal. Requires SimpleHttpListener.Rx 7.3.0, and fixes device interface matching for the per-datagram local endpoint that release reports.
 - **7.0.2** - docs: clarify that UPnP eventing is outside this library's scope (README and XML documentation). No code changes.
 - **7.0.1** - fix: multicast reception on Linux/macOS (SSDP sockets now bind the wildcard address; the group join scopes the interface). Control point sample gains a `tcp` response mode.

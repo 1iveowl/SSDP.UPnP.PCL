@@ -503,6 +503,19 @@ public class SsdpMessageParserTests
     }
 
     [Fact]
+    public void ParseNls_MultipleNamespacedHeaders_ResolveDeterministically()
+    {
+        var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["03-NLS"] = "third",
+            ["01-NLS"] = "first",
+            ["02-NLS"] = "second"
+        };
+
+        Assert.Equal("first", SsdpMessageParser.ParseNls(headers));
+    }
+
+    [Fact]
     public void ParseNls_AbsentIsNull()
     {
         var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
