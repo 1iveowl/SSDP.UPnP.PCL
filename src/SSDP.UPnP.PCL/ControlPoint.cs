@@ -305,18 +305,18 @@ public class ControlPoint : IControlPoint
                 {
                     if (i > 0)
                     {
-                        await Task.Delay(TimeSpan.FromMilliseconds(100), TimeProvider, ct);
+                        await Task.Delay(TimeSpan.FromMilliseconds(100), TimeProvider, ct).ConfigureAwait(false);
                     }
 
                     await cp.UdpClient.SendAsync(
                         dataGram,
                         new IPEndPoint(IPAddress.Parse(Constants.UdpSSDPMultiCastAddress), Constants.UdpSSDPMulticastPort),
-                        ct);
+                        ct).ConfigureAwait(false);
                 }
 
                 break;
             case TransportType.Unicast when mSearch.RemoteIpEndPoint is not null:
-                await SendOnTcpAsync(mSearch.RemoteIpEndPoint, dataGram, ct);
+                await SendOnTcpAsync(mSearch.RemoteIpEndPoint, dataGram, ct).ConfigureAwait(false);
                 break;
             case TransportType.Unicast:
                 throw new SSDPException("A unicast M-SEARCH requires a RemoteIpEndPoint.");
@@ -329,18 +329,33 @@ public class ControlPoint : IControlPoint
     {
         using var tcpClient = new TcpClient();
 
-        await tcpClient.ConnectAsync(ipEndPoint.Address, ipEndPoint.Port, ct);
+        await tcpClient.ConnectAsync(ipEndPoint.Address, ipEndPoint.Port, ct).ConfigureAwait(false);
 
         var stream = tcpClient.GetStream();
 
-        await stream.WriteAsync(data, ct);
-        await stream.FlushAsync(ct);
+        await stream.WriteAsync(data, ct).ConfigureAwait(false);
+        await stream.FlushAsync(ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Stops any live listening and closes the sockets this control point created.
+    /// </summary>
+    /// <remarks>
+    /// A control point advertises nothing, so it owes the network no goodbye and
+    /// this does the same work as <see cref="Dispose"/>. It exists so consumers can
+    /// <c>await using</c> a control point and a device alike.
+    /// </remarks>
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
+
+        return ValueTask.CompletedTask;
     }
 
     /// <summary>
     /// Stops any live listening and closes the sockets this control point created.
     /// Sockets supplied through the prepared-interface constructor are left open,
-    /// since the caller owns them.
+    /// since the caller owns them. Safe to call more than once.
     /// </summary>
     public void Dispose()
     {

@@ -46,6 +46,11 @@ What was wrong, and why it mattered:
 
 Migrating: treat a null `BOOTID` as "unknown" and fall back to `NLS`; treat a null version as "the sender did not say". `IsUpnp2` still works but warns - it answers `major == 2`, which is false for UDA 1.1 devices that are not 1.0, so `SupportsAtLeast(1, 1)` is usually the question you meant.
 
+9.0 also adopts two house rules from the sibling libraries:
+
+- **`IDevice` and `IControlPoint` are `IAsyncDisposable`.** `await using` a device sends `ssdp:byebye` before releasing resources, so a graceful shutdown no longer depends on remembering `ByeByeAsync`; forgetting it used to leave a phantom entry in every control point on the LAN until `CACHE-CONTROL` expired. Plain `Dispose` stays the abrupt path and never fires the goodbye off in the background. The goodbye is bounded by `Device.ByeByeTimeout` (five seconds by default, measured against `TimeProvider`), so a disconnected interface cannot stall disposal. `ByeByeAsync` remains public for revoking advertisements while the device keeps running.
+- **Every `await` in the library uses `ConfigureAwait(false)`**, enforced by `CA2007` as a build error. Callers with a synchronization context (WPF, WinForms, Blazor Server, MAUI) could otherwise deadlock, and paid an unnecessary context hop when they did not.
+
 Unchanged on the wire: everything this library sends is byte-identical to 8.0, verified by composing every message kind in both versions and diffing. Configurations keep non-nullable `BOOTID`, `SERVER` and `USER-AGENT` still carry `UPnP/2.0`, and nothing emits `NLS`.
 
 ## Version 8.0 - breaking changes
@@ -108,7 +113,7 @@ Further behavior notes for 7.0:
 - **Value rules enforced.** Device construction validates UDA 2.0 constraints: every device needs a `DeviceUUID` (non-RFC-4122 values are logged as warnings), `CONFIGID` is required (default 0, range 0-16 777 215), BOOTID fits 31 bits, and the unicast endpoint port must be 1900 (default) or in 49152-65535 (the legal `SEARCHPORT` range). Multicast TTL defaults to 2 per the spec and is configurable via constructor parameters.
 - **M-SEARCH repeats.** `SendMSearchAsync` transmits multicast searches twice by default (UDP is unreliable; UDA 2.0 recommends repeats) - tune with `MSearchRequest.SendCount`.
 - **Advertisement sends are best-effort and concurrent.** Each NOTIFY keeps its own spec-mandated jitter and triple-send cadence, but messages are no longer serialized against each other, so a full alive/byebye burst completes in about a second. Individual send failures are logged (set `Device.Logger`) and never stop the device or abort a batch; `UpdateAsync` always advances BOOTID and, per UDA 2.0, follows the update set with alive advertisements carrying the new BOOTID.
-- **Say goodbye explicitly.** `Dispose` only closes resources - call `await device.ByeByeAsync()` before disposing for a clean exit.
+- **Say goodbye by disposing asynchronously.** `await using` (or an explicit `DisposeAsync`) sends `ssdp:byebye` before releasing resources; plain `Dispose` is the abrupt path and leaves the advertisements to expire on their own. `ByeByeAsync` remains public for revoking advertisements while the device keeps running.
 - **BOOTID stamping.** Leave `BOOTID` at 0 and the device stamps it with the Unix timestamp at start (from its `TimeProvider`, replaceable in tests); set it explicitly to control it yourself.
 - **Single-use start (devices).** `Device.StartAsync`/`HotStartAsync` may only be called once per instance. (The control point's start step was removed in 8.0 - see above.)
 - **Cancellation.** All public async methods accept an optional `CancellationToken`.
@@ -193,15 +198,14 @@ var rootDeviceConfiguration = new RootDeviceConfiguration
 };
 
 using var cts = new CancellationTokenSource();
-using var device = new Device(rootDeviceConfiguration);
+
+// await using: disposal sends ssdp:byebye before releasing resources.
+await using var device = new Device(rootDeviceConfiguration);
 
 await device.StartAsync(cts.Token);   // sends ssdp:alive and starts answering M-SEARCH
 
 // ... later:
 await device.UpdateAsync();           // sends ssdp:update and advances BOOTID
-
-// Before exiting: Dispose only closes sockets, so say goodbye first.
-await device.ByeByeAsync();           // sends ssdp:byebye
 ```
 
 Because configurations are records, derived configurations are non-destructive: `rootDeviceConfiguration with { CacheControl = TimeSpan.FromSeconds(600) }`.

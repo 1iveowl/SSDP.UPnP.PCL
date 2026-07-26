@@ -13,7 +13,7 @@ namespace SSDP.UPnP.PCL;
 /// first subscription starts listening, disposing the last subscription stops it,
 /// and subscribing again restarts it.
 /// </remarks>
-public interface IControlPoint : IDisposable
+public interface IControlPoint : IDisposable, IAsyncDisposable
 {
     /// <summary>
     /// Supplies an externally created message stream to observe instead of this

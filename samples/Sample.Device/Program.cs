@@ -72,7 +72,10 @@ var rootDeviceConfiguration = new RootDeviceConfiguration
 };
 
 using var cts = new CancellationTokenSource();
-using var device = new Device(rootDeviceConfiguration);
+
+// await using: disposal sends ssdp:byebye before releasing, so the device does
+// not linger in other control points' caches after this process exits.
+await using var device = new Device(rootDeviceConfiguration);
 
 using var activitySubscription = device.DeviceActivityObservable
     .Subscribe(activity => Console.WriteLine($"[activity] {activity}"));
@@ -81,7 +84,5 @@ await device.StartAsync(cts.Token);
 
 Console.WriteLine("Device started and advertised. Press any key to say byebye and exit.");
 Console.ReadKey();
-
-await device.ByeByeAsync();
 
 cts.Cancel();

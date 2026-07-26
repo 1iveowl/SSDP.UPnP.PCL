@@ -49,6 +49,8 @@ public class Device : IDevice
 
     private bool _skipAlive;
 
+    private bool _disposed;
+
     /// <summary>Optional logger for diagnostics and best-effort send failures.</summary>
     public ILogger? Logger { get; set; }
 
@@ -67,6 +69,13 @@ public class Device : IDevice
     /// manage re-advertisement yourself.
     /// </summary>
     public bool AutoReAdvertise { get; set; } = true;
+
+    /// <summary>
+    /// How long <see cref="DisposeAsync"/> waits for the <c>ssdp:byebye</c>
+    /// goodbye before giving up and releasing resources anyway; defaults to five
+    /// seconds. Measured against <see cref="TimeProvider"/>.
+    /// </summary>
+    public TimeSpan ByeByeTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <inheritdoc />
     public IObservable<DeviceActivity> DeviceActivityObservable { get; }
@@ -305,7 +314,7 @@ public class Device : IDevice
 
         if (!_skipAlive)
         {
-            await SendAliveAsync(_lifetimeCts.Token);
+            await SendAliveAsync(_lifetimeCts.Token).ConfigureAwait(false);
         }
 
         if (AutoReAdvertise)
@@ -369,9 +378,9 @@ public class Device : IDevice
 
                 var interval = maxAge * (0.25 + (Random.Shared.NextDouble() * 0.25));
 
-                await Task.Delay(interval, TimeProvider, ct);
+                await Task.Delay(interval, TimeProvider, ct).ConfigureAwait(false);
 
-                await SendAliveAsync(ct);
+                await SendAliveAsync(ct).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
@@ -415,7 +424,7 @@ public class Device : IDevice
             {
                 await SendResponsesOverTcpAsync(
                     new IPEndPoint(request.RemoteIpEndPoint.Address, tcpPort),
-                    responses);
+                    responses).ConfigureAwait(false);
 
                 return request;
             }
@@ -423,7 +432,7 @@ public class Device : IDevice
             // Each response message is delayed independently over the MX window
             // (UDA 2.0 section 1.3.3) and sent concurrently.
             await Task.WhenAll(responses.Select(response =>
-                SendResponseAsync(rootDeviceInterface, response, request.MX)));
+                SendResponseAsync(rootDeviceInterface, response, request.MX))).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -450,12 +459,12 @@ public class Device : IDevice
                 await Task.Delay(
                     TimeSpan.FromMilliseconds(Random.Shared.NextDouble() * window.TotalMilliseconds),
                     TimeProvider,
-                    ct);
+                    ct).ConfigureAwait(false);
             }
 
             var datagram = DatagramComposer.ComposeMSearchResponse(response);
 
-            await rootDeviceInterface.UdpUnicastClient.SendAsync(datagram, response.RemoteIpEndPoint, ct);
+            await rootDeviceInterface.UdpUnicastClient.SendAsync(datagram, response.RemoteIpEndPoint, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -475,16 +484,16 @@ public class Device : IDevice
 
             using var tcpClient = new TcpClient();
 
-            await tcpClient.ConnectAsync(target.Address, target.Port, ct);
+            await tcpClient.ConnectAsync(target.Address, target.Port, ct).ConfigureAwait(false);
 
             var stream = tcpClient.GetStream();
 
             foreach (var response in responses)
             {
-                await stream.WriteAsync(DatagramComposer.ComposeMSearchResponse(response), ct);
+                await stream.WriteAsync(DatagramComposer.ComposeMSearchResponse(response), ct).ConfigureAwait(false);
             }
 
-            await stream.FlushAsync(ct);
+            await stream.FlushAsync(ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -516,7 +525,7 @@ public class Device : IDevice
             await SendNotificationsAsync(
                 rootDeviceInterface,
                 BuildNotifications(rootDeviceInterface, NTS.Update, nextBootId),
-                ct);
+                ct).ConfigureAwait(false);
 
             // Non-destructively advance every device's BOOTID (UDA 2.0 section 1.2.4).
             updated[i] = rootDeviceInterface with
@@ -532,7 +541,7 @@ public class Device : IDevice
         // UDA 2.0 section 1.2.3: "After all the update messages have been sent, it
         // shall multicast a number of discovery messages ... with the new
         // BOOTID.UPNP.ORG field value."
-        await SendAliveAsync(ct);
+        await SendAliveAsync(ct).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -548,7 +557,7 @@ public class Device : IDevice
             await SendNotificationsAsync(
                 rootDeviceInterface,
                 BuildNotifications(rootDeviceInterface, NTS.ByeBye),
-                ct);
+                ct).ConfigureAwait(false);
         }
     }
 
@@ -559,7 +568,7 @@ public class Device : IDevice
             await SendNotificationsAsync(
                 rootDeviceInterface,
                 BuildNotifications(rootDeviceInterface, NTS.Alive),
-                ct);
+                ct).ConfigureAwait(false);
         }
     }
 
@@ -623,7 +632,7 @@ public class Device : IDevice
 
         _deviceActivitySubject.OnNext(DeviceActivity.Notifying);
 
-        await SendNotifyCoreAsync(rootDeviceInterface, notify, ct);
+        await SendNotifyCoreAsync(rootDeviceInterface, notify, ct).ConfigureAwait(false);
     }
 
     // Sends a batch of NOTIFY messages concurrently — each message keeps its own
@@ -640,7 +649,7 @@ public class Device : IDevice
         {
             try
             {
-                await SendNotifyCoreAsync(rootDeviceInterface, notify, ct);
+                await SendNotifyCoreAsync(rootDeviceInterface, notify, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -649,13 +658,13 @@ public class Device : IDevice
             {
                 Logger?.LogError(ex, "Failed to send a NOTIFY ({NTS}) message.", notify.NTS);
             }
-        }));
+        })).ConfigureAwait(false);
     }
 
     private async Task SendNotifyCoreAsync(RootDeviceInterface rootDeviceInterface, Notify notify, CancellationToken ct)
     {
         // Insert random delay according to UPnP 2.0 spec. section 1.2.1 (page 27).
-        await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.Next(50, 100)), TimeProvider, ct);
+        await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.Next(50, 100)), TimeProvider, ct).ConfigureAwait(false);
 
         var datagram = DatagramComposer.ComposeNotify(notify);
 
@@ -663,22 +672,73 @@ public class Device : IDevice
         for (var i = 0; i < 3; i++)
         {
             await rootDeviceInterface.UdpMulticastClient
-                .SendAsync(datagram, Constants.UdpSSDPMultiCastAddress, Constants.UdpSSDPMulticastPort, ct);
+                .SendAsync(datagram, Constants.UdpSSDPMultiCastAddress, Constants.UdpSSDPMulticastPort, ct)
+                .ConfigureAwait(false);
 
             // Random delay between resends of 200 - 400 milliseconds.
-            await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.Next(200, 400)), TimeProvider, ct);
+            await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.Next(200, 400)), TimeProvider, ct).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>
+    /// Revokes the device's advertisements with <c>ssdp:byebye</c>, then releases
+    /// everything <see cref="Dispose"/> does. This is the graceful shutdown UDA 2.0
+    /// section 1.2.3 asks for, so prefer <c>await using</c> over <c>using</c>.
+    /// </summary>
+    /// <remarks>
+    /// The goodbye is bounded by <see cref="ByeByeTimeout"/> and is best-effort: a
+    /// device on a disconnected interface cannot stall disposal, and a failure to
+    /// send is logged rather than thrown, since the advertisements expire on their
+    /// own regardless.
+    /// </remarks>
+    public async ValueTask DisposeAsync()
+    {
+        GC.SuppressFinalize(this);
+
+        if (_disposed)
+        {
+            return;
+        }
+
+        try
+        {
+            using var timeout = new CancellationTokenSource(ByeByeTimeout, TimeProvider);
+
+            await ByeByeAsync(timeout.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            Logger?.LogWarning("Timed out sending ssdp:byebye while disposing; advertisements will expire instead.");
+        }
+        catch (Exception ex)
+        {
+            Logger?.LogError(ex, "Failed to send ssdp:byebye while disposing.");
+        }
+
+        Dispose();
     }
 
     /// <summary>
     /// Stops listening and the re-advertisement loop, and closes the sockets this
     /// device created. Sockets supplied through the prepared-interface constructor
-    /// are left open, since the caller owns them. Does not send <c>ssdp:byebye</c> —
-    /// call <see cref="ByeByeAsync"/> first for a clean exit.
+    /// are left open, since the caller owns them.
     /// </summary>
+    /// <remarks>
+    /// This is the abrupt path: it does not send <c>ssdp:byebye</c>, so the device's
+    /// advertisements stay live on the network until their <c>CACHE-CONTROL</c>
+    /// lifetime expires. Use <see cref="DisposeAsync"/> for a clean exit. Safe on a
+    /// device that was never started, and safe to call more than once.
+    /// </remarks>
     public void Dispose()
     {
         GC.SuppressFinalize(this);
+
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
 
         _lifetimeCts?.Cancel();
         _lifetimeCts?.Dispose();

@@ -637,6 +637,95 @@ public class DeviceTests
     }
 
     [Fact]
+    public async Task DisposeAsync_SendsByeByeThenReleases()
+    {
+        var rootInterface = LoopbackInterface(Configuration());
+
+        var subject = new Subject<HttpRequestResponse>();
+        var device = new Device(rootInterface) { AutoReAdvertise = false };
+
+        var activities = new List<DeviceActivity>();
+        var completed = false;
+
+        using var activitySubscription = device.DeviceActivityObservable
+            .Subscribe(activities.Add, () => completed = true);
+
+        await device.HotStartAsync(subject, skipAlive: true);
+
+        await device.DisposeAsync();
+
+        // The goodbye was attempted before teardown, and the device released
+        // afterwards - the activity stream completes as part of disposal.
+        Assert.Contains(DeviceActivity.Notifying, activities);
+        Assert.True(completed);
+
+        DisposeInterface(rootInterface);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_IsIdempotent_AndComposesWithDispose()
+    {
+        var rootInterface = LoopbackInterface(Configuration());
+
+        var subject = new Subject<HttpRequestResponse>();
+        var device = new Device(rootInterface) { AutoReAdvertise = false };
+
+        await device.HotStartAsync(subject, skipAlive: true);
+
+        await device.DisposeAsync();
+        await device.DisposeAsync();
+        device.Dispose();
+
+        DisposeInterface(rootInterface);
+    }
+
+    [Fact]
+    public void Dispose_NeverStarted_AndTwice_IsSafe()
+    {
+        var rootInterface = LoopbackInterface(Configuration());
+
+        var device = new Device(rootInterface);
+
+        device.Dispose();
+        device.Dispose();
+
+        DisposeInterface(rootInterface);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_NeverStarted_IsSafe()
+    {
+        var rootInterface = LoopbackInterface(Configuration());
+
+        var device = new Device(rootInterface) { AutoReAdvertise = false };
+
+        await device.DisposeAsync();
+
+        DisposeInterface(rootInterface);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_BoundsTheGoodbye_WhenSendingCannotComplete()
+    {
+        // A device whose sockets are already gone cannot say goodbye; disposal must
+        // still complete rather than hang.
+        var rootInterface = LoopbackInterface(Configuration());
+
+        var subject = new Subject<HttpRequestResponse>();
+        var device = new Device(rootInterface)
+        {
+            AutoReAdvertise = false,
+            ByeByeTimeout = TimeSpan.FromMilliseconds(200)
+        };
+
+        await device.HotStartAsync(subject, skipAlive: true);
+
+        DisposeInterface(rootInterface);
+
+        await device.DisposeAsync();
+    }
+
+    [Fact]
     public void Device_WithoutInterfaces_Throws()
     {
         Assert.Throws<SSDPException>(() => new Device(Array.Empty<RootDeviceInterface>()));

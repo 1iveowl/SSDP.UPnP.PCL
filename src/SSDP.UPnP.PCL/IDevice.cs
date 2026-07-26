@@ -8,7 +8,15 @@ namespace SSDP.UPnP.PCL;
 /// An SSDP device: advertises a root device (and its embedded devices and
 /// services) with NOTIFY messages and answers M-SEARCH requests.
 /// </summary>
-public interface IDevice : IDisposable
+/// <remarks>
+/// Prefer <c>await using</c>: <see cref="IAsyncDisposable.DisposeAsync"/> revokes
+/// the device's advertisements with <c>ssdp:byebye</c> before releasing
+/// resources, which is what UDA 2.0 section 1.2.3 asks of a device shutting down
+/// gracefully. Plain <see cref="IDisposable.Dispose"/> releases resources only;
+/// the advertisements then linger on the network until their
+/// <c>CACHE-CONTROL</c> lifetime expires.
+/// </remarks>
+public interface IDevice : IDisposable, IAsyncDisposable
 {
     /// <summary>Whether the device has been started.</summary>
     bool IsStarted { get; }

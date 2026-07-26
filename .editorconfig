@@ -61,3 +61,13 @@ dotnet_naming_symbols.private_field_symbols.applicable_kinds = field
 dotnet_naming_symbols.private_field_symbols.applicable_accessibilities = private
 dotnet_naming_style.underscore_camel_case.capitalization = camel_case
 dotnet_naming_style.underscore_camel_case.required_prefix = _
+
+# Library code must not capture the caller's synchronization context: a consumer
+# with one (WPF, WinForms, Blazor Server, MAUI) can otherwise deadlock. Enforced
+# rather than left to review, matching SimpleHttpListener.Rx and UPnP.Rx.
+[src/**.cs]
+dotnet_diagnostic.CA2007.severity = error
+
+# Tests and samples are application code and may await on their own context.
+[{tests,samples}/**.cs]
+dotnet_diagnostic.CA2007.severity = none
