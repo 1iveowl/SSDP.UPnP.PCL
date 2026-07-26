@@ -36,8 +36,9 @@ public class DeviceTests
     };
 
     // The device's unicast search port must be 1900 or in the 49152-65535 range
-    // UDA 2.0 allows for SEARCHPORT, so tests bind an explicit in-range port.
-    private static UdpClient BindDynamicRange()
+    // UDA 2.0 allows for SEARCHPORT, so tests bind an explicit in-range port,
+    // retrying past ports that are already taken.
+    private static T BindWithRetry<T>(Func<int, T> bind)
     {
         for (var attempt = 0; ; attempt++)
         {
@@ -45,49 +46,29 @@ public class DeviceTests
 
             try
             {
-                return new UdpClient(new IPEndPoint(IPAddress.Loopback, port));
+                return bind(port);
             }
             catch (SocketException) when (attempt < 20)
             {
             }
         }
     }
+
+    private static UdpClient BindDynamicRange() =>
+        BindWithRetry(port => new UdpClient(new IPEndPoint(IPAddress.Loopback, port)));
 
     // Wildcard-bound, in the SEARCHPORT range: how multicast sockets are bound on
     // Linux/macOS.
-    private static UdpClient BindWildcardDynamicRange()
-    {
-        for (var attempt = 0; ; attempt++)
+    private static UdpClient BindWildcardDynamicRange() =>
+        BindWithRetry(port => new UdpClient(new IPEndPoint(IPAddress.Any, port)));
+
+    private static TcpListener BindDynamicRangeTcp() =>
+        BindWithRetry(port =>
         {
-            var port = Random.Shared.Next(Constants.MinDynamicPort, Constants.MaxDynamicPort + 1);
-
-            try
-            {
-                return new UdpClient(new IPEndPoint(IPAddress.Any, port));
-            }
-            catch (SocketException) when (attempt < 20)
-            {
-            }
-        }
-    }
-
-    private static TcpListener BindDynamicRangeTcp()
-    {
-        for (var attempt = 0; ; attempt++)
-        {
-            var port = Random.Shared.Next(Constants.MinDynamicPort, Constants.MaxDynamicPort + 1);
-
-            try
-            {
-                var listener = new TcpListener(new IPEndPoint(IPAddress.Loopback, port));
-                listener.Start();
-                return listener;
-            }
-            catch (SocketException) when (attempt < 20)
-            {
-            }
-        }
-    }
+            var listener = new TcpListener(new IPEndPoint(IPAddress.Loopback, port));
+            listener.Start();
+            return listener;
+        });
 
     private static RootDeviceInterface LoopbackInterface(RootDeviceConfiguration configuration)
     {

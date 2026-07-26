@@ -51,15 +51,10 @@ public static class DatagramComposer
             AppendOptional(builder, "CPUUID.UPNP.ORG", request.CPUUID);
             AppendOptional(builder, "TCPPORT.UPNP.ORG", request.TCPPORT?.ToString());
 
-            foreach (var header in request.Headers)
-            {
-                builder.Append($"{header.Key}: {header.Value}\r\n");
-            }
+            AppendVendorHeaders(builder, request.Headers);
         }
 
-        builder.Append("\r\n");
-
-        return Encoding.UTF8.GetBytes(builder.ToString());
+        return Terminate(builder);
     }
 
     /// <summary>
@@ -91,14 +86,9 @@ public static class DatagramComposer
         AppendOptional(builder, "SEARCHPORT.UPNP.ORG", response.SEARCHPORT?.ToString());
         AppendOptional(builder, "SECURELOCATION.UPNP.ORG", response.SECURELOCATION);
 
-        foreach (var header in response.Headers)
-        {
-            builder.Append($"{header.Key}: {header.Value}\r\n");
-        }
+        AppendVendorHeaders(builder, response.Headers);
 
-        builder.Append("\r\n");
-
-        return Encoding.UTF8.GetBytes(builder.ToString());
+        return Terminate(builder);
     }
 
     /// <summary>
@@ -161,11 +151,23 @@ public static class DatagramComposer
             AppendOptional(builder, "SECURELOCATION.UPNP.ORG", notify.SECURELOCATION);
         }
 
-        foreach (var header in notify.Headers)
+        AppendVendorHeaders(builder, notify.Headers);
+
+        return Terminate(builder);
+    }
+
+    // Vendor-specific headers are appended verbatim after the standard ones.
+    private static void AppendVendorHeaders(StringBuilder builder, IReadOnlyDictionary<string, string> headers)
+    {
+        foreach (var header in headers)
         {
             builder.Append($"{header.Key}: {header.Value}\r\n");
         }
+    }
 
+    // Every SSDP message ends with the blank line that terminates the header block.
+    private static byte[] Terminate(StringBuilder builder)
+    {
         builder.Append("\r\n");
 
         return Encoding.UTF8.GetBytes(builder.ToString());

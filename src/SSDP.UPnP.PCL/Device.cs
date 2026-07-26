@@ -314,6 +314,10 @@ public class Device : IDevice
         }
     }
 
+    // Cancelled when the device is disposed, so work started by a message that is
+    // still in flight stops with it.
+    private CancellationToken LifetimeToken => _lifetimeCts?.Token ?? CancellationToken.None;
+
     // BOOTID values are Unix seconds capped to the non-negative 31-bit range the
     // spec mandates.
     private uint CurrentBootId() =>
@@ -436,7 +440,7 @@ public class Device : IDevice
     {
         try
         {
-            var ct = _lifetimeCts?.Token ?? CancellationToken.None;
+            var ct = LifetimeToken;
 
             // Unicast requests carry no MX and are answered immediately.
             if (mx > TimeSpan.Zero)
@@ -467,7 +471,7 @@ public class Device : IDevice
     {
         try
         {
-            var ct = _lifetimeCts?.Token ?? CancellationToken.None;
+            var ct = LifetimeToken;
 
             using var tcpClient = new TcpClient();
 
