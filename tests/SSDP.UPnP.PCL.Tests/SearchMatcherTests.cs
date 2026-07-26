@@ -266,8 +266,10 @@ public class SearchMatcherTests
     }
 
     [Fact]
-    public void BuildResponses_OnDefaultPort_OmitsSearchPort()
+    public void BuildResponses_WithoutSearchPort_OmitsTheHeader()
     {
+        // The 1900-means-omit rule lives in RootDeviceInterface.SearchPort; the
+        // matcher receives an already-normalized value and passes it through.
         var request = new MSearchRequest
         {
             ST = Search(STType.RootDeviceSearch),
@@ -275,7 +277,7 @@ public class SearchMatcherTests
         };
 
         var response = Assert.Single(
-            SearchMatcher.BuildResponses(Root, request, DateTimeOffset.UnixEpoch, searchPort: 1900));
+            SearchMatcher.BuildResponses(Root, request, DateTimeOffset.UnixEpoch, searchPort: null));
 
         Assert.Null(response.SEARCHPORT);
     }

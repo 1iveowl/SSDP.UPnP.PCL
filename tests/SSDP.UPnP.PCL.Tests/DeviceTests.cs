@@ -605,6 +605,30 @@ public class DeviceTests
     }
 
     [Fact]
+    public void SearchPort_IsNullOnTheDefaultSsdpPort()
+    {
+        // UDA 2.0 section 1.2.2: a device answering on 1900 does not advertise
+        // SEARCHPORT.UPNP.ORG at all.
+        using var onDefaultPort = new UdpClient(new IPEndPoint(IPAddress.Loopback, Constants.UdpSSDPMulticastPort));
+
+        var defaultPortInterface = new RootDeviceInterface
+        {
+            RootDeviceConfiguration = Configuration(),
+            UdpMulticastClient = onDefaultPort,
+            UdpUnicastClient = onDefaultPort
+        };
+
+        Assert.Null(defaultPortInterface.SearchPort);
+
+        var rootInterface = LoopbackInterface(Configuration());
+        var boundPort = ((IPEndPoint)rootInterface.UdpUnicastClient.Client.LocalEndPoint!).Port;
+
+        Assert.Equal(boundPort, rootInterface.SearchPort);
+
+        DisposeInterface(rootInterface);
+    }
+
+    [Fact]
     public void IsMatchingInterface_WildcardBound_RequiresMatchingConfiguredAddress()
     {
         var multicastClient = BindWildcardDynamicRange();

@@ -17,6 +17,12 @@ public static class Constants
     public const int UdpSSDPMulticastPort = 1900;
 
     /// <summary>
+    /// The value of the <c>HOST</c> header on multicast SSDP messages,
+    /// <c>239.255.255.250:1900</c>.
+    /// </summary>
+    public const string SsdpMulticastHost = UdpSSDPMultiCastAddress + ":" + "1900";
+
+    /// <summary>
     /// The default local TCP port a control point listens on for unicast responses;
     /// inside the 49152–65535 range UDA 2.0 mandates for <c>TCPPORT.UPNP.ORG</c>.
     /// </summary>

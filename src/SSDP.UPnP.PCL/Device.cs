@@ -282,7 +282,9 @@ public class Device : IDevice
         _rootDeviceInterfaces = _rootDeviceInterfaces
             .Select(rootDeviceInterface => rootDeviceInterface with
             {
-                RootDeviceConfiguration = WithStampedBootIds(rootDeviceInterface.RootDeviceConfiguration, now)
+                RootDeviceConfiguration = WithBootIds(
+                    rootDeviceInterface.RootDeviceConfiguration,
+                    bootId => bootId == 0 ? now : bootId)
             })
             .ToArray();
 
@@ -316,15 +318,6 @@ public class Device : IDevice
     // spec mandates.
     private uint CurrentBootId() =>
         (uint)Math.Min(TimeProvider.GetUtcNow().ToUnixTimeSeconds(), int.MaxValue);
-
-    private static RootDeviceConfiguration WithStampedBootIds(RootDeviceConfiguration root, uint now) =>
-        root with
-        {
-            BOOTID = root.BOOTID == 0 ? now : root.BOOTID,
-            EmbeddedDevices = root.EmbeddedDevices
-                .Select(device => device with { BOOTID = device.BOOTID == 0 ? now : device.BOOTID })
-                .ToList()
-        };
 
     private void LogConfigurationAdvisories()
     {
@@ -405,13 +398,11 @@ public class Device : IDevice
 
             _deviceActivitySubject.OnNext(DeviceActivity.Responding);
 
-            var searchPort = (rootDeviceInterface.UdpUnicastClient.Client.LocalEndPoint as IPEndPoint)?.Port;
-
             var responses = SearchMatcher.BuildResponses(
                 rootDeviceInterface.RootDeviceConfiguration,
                 request,
                 TimeProvider.GetUtcNow(),
-                searchPort);
+                rootDeviceInterface.SearchPort);
 
             // UDA 2.0 section 1.3.3: when the search carries TCPPORT.UPNP.ORG the
             // responses go to that TCP port over a reliable connection, without the
@@ -517,36 +508,18 @@ public class Device : IDevice
         for (var i = 0; i < interfaces.Length; i++)
         {
             var rootDeviceInterface = interfaces[i];
-            var root = rootDeviceInterface.RootDeviceConfiguration;
-            var searchPort = (rootDeviceInterface.UdpUnicastClient.Client.LocalEndPoint as IPEndPoint)?.Port;
 
-            var notifications = SearchMatcher.AdvertisementMessages(root)
-                .Select(message => new Notify
-                {
-                    NotifyTransportType = TransportType.Multicast,
-                    HOST = $"{Constants.UdpSSDPMultiCastAddress}:{Constants.UdpSSDPMulticastPort}",
-                    Location = root.Location,
-                    NT = message.Entity.ToUriString(),
-                    NTS = NTS.Update,
-                    USN = UsnFor(message.Owner, message.Entity),
-                    BOOTID = message.Owner.BOOTID,
-                    CONFIGID = root.CONFIGID,
-                    NEXTBOOTID = nextBootId,
-                    SEARCHPORT = searchPort == Constants.UdpSSDPMulticastPort ? null : searchPort,
-                });
-
-            await SendNotificationsAsync(rootDeviceInterface, notifications, ct);
+            await SendNotificationsAsync(
+                rootDeviceInterface,
+                BuildNotifications(rootDeviceInterface, NTS.Update, nextBootId),
+                ct);
 
             // Non-destructively advance every device's BOOTID (UDA 2.0 section 1.2.4).
             updated[i] = rootDeviceInterface with
             {
-                RootDeviceConfiguration = root with
-                {
-                    BOOTID = nextBootId,
-                    EmbeddedDevices = root.EmbeddedDevices
-                        .Select(device => device with { BOOTID = nextBootId })
-                        .ToList()
-                }
+                RootDeviceConfiguration = WithBootIds(
+                    rootDeviceInterface.RootDeviceConfiguration,
+                    _ => nextBootId)
             };
         }
 
@@ -568,21 +541,10 @@ public class Device : IDevice
     {
         foreach (var rootDeviceInterface in _rootDeviceInterfaces)
         {
-            var root = rootDeviceInterface.RootDeviceConfiguration;
-
-            var notifications = SearchMatcher.AdvertisementMessages(root)
-                .Select(message => new Notify
-                {
-                    NotifyTransportType = TransportType.Multicast,
-                    HOST = $"{Constants.UdpSSDPMultiCastAddress}:{Constants.UdpSSDPMulticastPort}",
-                    NT = message.Entity.ToUriString(),
-                    NTS = NTS.ByeBye,
-                    USN = UsnFor(message.Owner, message.Entity),
-                    BOOTID = message.Owner.BOOTID,
-                    CONFIGID = root.CONFIGID,
-                });
-
-            await SendNotificationsAsync(rootDeviceInterface, notifications, ct);
+            await SendNotificationsAsync(
+                rootDeviceInterface,
+                BuildNotifications(rootDeviceInterface, NTS.ByeBye),
+                ct);
         }
     }
 
@@ -590,29 +552,54 @@ public class Device : IDevice
     {
         foreach (var rootDeviceInterface in _rootDeviceInterfaces)
         {
-            var root = rootDeviceInterface.RootDeviceConfiguration;
-            var searchPort = (rootDeviceInterface.UdpUnicastClient.Client.LocalEndPoint as IPEndPoint)?.Port;
-
-            var notifications = SearchMatcher.AdvertisementMessages(root)
-                .Select(message => new Notify
-                {
-                    NotifyTransportType = TransportType.Multicast,
-                    HOST = $"{Constants.UdpSSDPMultiCastAddress}:{Constants.UdpSSDPMulticastPort}",
-                    CacheControl = root.CacheControl,
-                    Location = root.Location,
-                    NT = message.Entity.ToUriString(),
-                    NTS = NTS.Alive,
-                    Server = root.Server,
-                    USN = UsnFor(message.Owner, message.Entity),
-                    BOOTID = message.Owner.BOOTID,
-                    CONFIGID = root.CONFIGID,
-                    SEARCHPORT = searchPort == Constants.UdpSSDPMulticastPort ? null : searchPort,
-                    SECURELOCATION = root.SecureLocation?.AbsoluteUri,
-                });
-
-            await SendNotificationsAsync(rootDeviceInterface, notifications, ct);
+            await SendNotificationsAsync(
+                rootDeviceInterface,
+                BuildNotifications(rootDeviceInterface, NTS.Alive),
+                ct);
         }
     }
+
+    // The advertisement set for one interface, as NOTIFY messages of the given
+    // sub type. Every field the configuration can supply is populated regardless
+    // of the sub type: DatagramComposer is the single authority on which headers
+    // each NTS actually emits (UDA 2.0 section 1.2.2), so the rule is not
+    // expressed a second time here.
+    private static IEnumerable<Notify> BuildNotifications(
+        RootDeviceInterface rootDeviceInterface,
+        NTS nts,
+        uint? nextBootId = null)
+    {
+        var root = rootDeviceInterface.RootDeviceConfiguration;
+        var searchPort = rootDeviceInterface.SearchPort;
+
+        return SearchMatcher.AdvertisementMessages(root)
+            .Select(message => new Notify
+            {
+                NotifyTransportType = TransportType.Multicast,
+                HOST = Constants.SsdpMulticastHost,
+                CacheControl = root.CacheControl,
+                Location = root.Location,
+                NT = message.Entity.ToUriString(),
+                NTS = nts,
+                Server = root.Server,
+                USN = UsnFor(message.Owner, message.Entity),
+                BOOTID = message.Owner.BOOTID,
+                CONFIGID = root.CONFIGID,
+                NEXTBOOTID = nextBootId,
+                SEARCHPORT = searchPort,
+                SECURELOCATION = root.SecureLocation?.AbsoluteUri,
+            });
+    }
+
+    // Rewrites the BOOTID of the root device and every embedded device.
+    private static RootDeviceConfiguration WithBootIds(RootDeviceConfiguration root, Func<uint, uint> map) =>
+        root with
+        {
+            BOOTID = map(root.BOOTID),
+            EmbeddedDevices = root.EmbeddedDevices
+                .Select(device => device with { BOOTID = map(device.BOOTID) })
+                .ToList()
+        };
 
     private static USN UsnFor(DeviceConfiguration owner, Entity entity) => new()
     {

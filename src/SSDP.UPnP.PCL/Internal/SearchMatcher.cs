@@ -129,7 +129,11 @@ internal static class SearchMatcher
     /// <param name="root">The root device configuration answering the search.</param>
     /// <param name="request">The parsed search request.</param>
     /// <param name="date">The timestamp for the <c>DATE</c> header.</param>
-    /// <param name="searchPort">The unicast search port, or <see langword="null"/> when listening on 1900 only.</param>
+    /// <param name="searchPort">
+    /// The value for <c>SEARCHPORT.UPNP.ORG</c>, already normalized by
+    /// <see cref="RootDeviceInterface.SearchPort"/> (<see langword="null"/> when the
+    /// device listens on 1900 and the header is omitted).
+    /// </param>
     internal static IEnumerable<MSearchResponse> BuildResponses(
         RootDeviceConfiguration root,
         MSearchRequest request,
@@ -184,7 +188,7 @@ internal static class SearchMatcher
             },
             BOOTID = owner.BOOTID,
             CONFIGID = root.CONFIGID,
-            SEARCHPORT = searchPort == Constants.UdpSSDPMulticastPort ? null : searchPort,
+            SEARCHPORT = searchPort,
             SECURELOCATION = root.SecureLocation?.AbsoluteUri,
             MX = request.MX,
             RemoteIpEndPoint = request.RemoteIpEndPoint

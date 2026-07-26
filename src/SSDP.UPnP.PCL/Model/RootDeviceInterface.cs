@@ -31,6 +31,21 @@ public sealed record RootDeviceInterface
     public required UdpClient UdpUnicastClient { get; init; }
 
     /// <summary>
+    /// The port this interface answers unicast searches on, as advertised in
+    /// <c>SEARCHPORT.UPNP.ORG</c>, or <see langword="null"/> when it listens on the
+    /// default SSDP port (1900) and the header is therefore omitted.
+    /// </summary>
+    public int? SearchPort
+    {
+        get
+        {
+            var port = (UdpUnicastClient.Client.LocalEndPoint as IPEndPoint)?.Port;
+
+            return port == Constants.UdpSSDPMulticastPort ? null : port;
+        }
+    }
+
+    /// <summary>
     /// Whether a message that arrived on <paramref name="ipEndPoint"/> belongs to
     /// this interface.
     /// </summary>
