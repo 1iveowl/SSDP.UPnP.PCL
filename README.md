@@ -265,6 +265,7 @@ This library's place is **the SSDP protocol itself, taken seriously, for modern 
 - **Rx-native composition.** Filtering is `.Where(...)` on an observable rather than an API surface: no filter property to extend when you need a wildcard, a regex, or anything else.
 - **Immutable records and pure functions** - parsers return `ParseResult<T>` instead of throwing, composers read no ambient state, and one `TimeProvider` drives every delay, which is why the protocol timing is unit-testable at all.
 - **Verified on Windows, Linux and macOS**, whose multicast socket semantics differ from one another in ways that are easy to get subtly wrong.
+- **Debuggable against real firmware.** Malformed messages are dropped, as the spec requires, but never silently: `ParseFailures()` reports what was discarded and why, and opt-in raw capture carries the offending bytes exactly as the device wrote them.
 
 At a glance:
 
