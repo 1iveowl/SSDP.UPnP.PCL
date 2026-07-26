@@ -28,15 +28,15 @@ internal static class MulticastSocket
     /// <param name="multicastTtl">Time-to-live for outgoing multicast packets.</param>
     internal static UdpClient CreateJoined(IPAddress interfaceAddress, int port, int multicastTtl)
     {
+        // Set on every platform, as the device did before this was shared code.
+        // On Windows it is what lets SO_REUSEADDR share the SSDP port at all; on
+        // Unix it resolves to the same SO_REUSEADDR set explicitly below, so it
+        // is a no-op there rather than a behaviour change.
         var udpClient = new UdpClient
         {
+            ExclusiveAddressUse = false,
             MulticastLoopback = true
         };
-
-        if (OperatingSystem.IsWindows())
-        {
-            udpClient.ExclusiveAddressUse = false;
-        }
 
         udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         udpClient.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, multicastTtl);
@@ -55,12 +55,10 @@ internal static class MulticastSocket
     /// </summary>
     internal static UdpClient CreateUnicast(IPEndPoint ipEndPoint)
     {
-        var udpClient = new UdpClient();
-
-        if (OperatingSystem.IsWindows())
+        var udpClient = new UdpClient
         {
-            udpClient.ExclusiveAddressUse = false;
-        }
+            ExclusiveAddressUse = false
+        };
 
         udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         udpClient.Client.Bind(ipEndPoint);
