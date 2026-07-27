@@ -22,6 +22,9 @@ namespace SSDP.UPnP.PCL.Parsing;
 /// </remarks>
 public static class SsdpMessageParser
 {
+    // CacheControl is obsolete but still carried until the next major, so the
+    // parser keeps filling it alongside MaxAge.
+#pragma warning disable CS0618
     // RFC 2774 namespace declared by UPnP 1.0 devices carrying the NLS header.
     private const string UpnpExtensionNamespace = "http://schemas.upnp.org/upnp/1/0/";
 
@@ -158,6 +161,7 @@ public static class SsdpMessageParser
     {
         var st = ST.Parse(GetHeaderValue(response.Headers, "ST"));
         var usn = USN.Parse(GetHeaderValue(response.Headers, "USN"));
+        var maxAge = TryParseMaxAge(GetHeaderValue(response.Headers, "CACHE-CONTROL"));
 
         if (!st.IsSuccess && !usn.IsSuccess)
         {
@@ -170,7 +174,8 @@ public static class SsdpMessageParser
             TransportType = ToTransportType(response.Transport),
             StatusCode = response.StatusCode,
             ResponseReason = response.ReasonPhrase ?? string.Empty,
-            CacheControl = TimeSpan.FromSeconds(ParseMaxAge(GetHeaderValue(response.Headers, "CACHE-CONTROL"))),
+            MaxAge = ToMaxAge(maxAge),
+            CacheControl = TimeSpan.FromSeconds(maxAge ?? 0),
             Date = ParseRfc1123Date(GetHeaderValue(response.Headers, "DATE")),
             NLS = ParseNls(response.Headers),
             Location = ParseUri(GetHeaderValue(response.Headers, "LOCATION")),
@@ -199,12 +204,14 @@ public static class SsdpMessageParser
     public static ParseResult<Notify> ParseNotify(HttpRequestResponse request)
     {
         var usn = USN.Parse(GetHeaderValue(request.Headers, "USN"));
+        var maxAge = TryParseMaxAge(GetHeaderValue(request.Headers, "CACHE-CONTROL"));
 
         return ParseResult<Notify>.Success(new Notify
         {
             NotifyTransportType = ToTransportType(request.Transport),
             HOST = GetHeaderValue(request.Headers, "HOST"),
-            CacheControl = TimeSpan.FromSeconds(ParseMaxAge(GetHeaderValue(request.Headers, "CACHE-CONTROL"))),
+            MaxAge = ToMaxAge(maxAge),
+            CacheControl = TimeSpan.FromSeconds(maxAge ?? 0),
             Location = ParseUri(GetHeaderValue(request.Headers, "LOCATION")),
             NT = GetHeaderValue(request.Headers, "NT"),
             NTS = NTSExtensions.ToNTS(GetHeaderValue(request.Headers, "NTS")),
@@ -315,11 +322,32 @@ public static class SsdpMessageParser
     /// <c>CACHE-CONTROL</c> never carries one.
     /// </para>
     /// </remarks>
-    public static int ParseMaxAge(string? cacheControl)
+    public static int ParseMaxAge(string? cacheControl) => TryParseMaxAge(cacheControl) ?? 0;
+
+    /// <summary>
+    /// Extracts the <c>max-age</c> value in seconds from a <c>CACHE-CONTROL</c>
+    /// header value, or <see langword="null"/> when the sender announced no usable
+    /// lifetime.
+    /// </summary>
+    /// <remarks>
+    /// The distinction <see cref="ParseMaxAge"/> cannot express: a device that sent
+    /// <c>max-age=0</c> asked to be expired immediately, which is a statement, while
+    /// an absent header, a header without a <c>max-age</c> directive, and an invalid
+    /// value announced nothing and leave the lifetime to the consumer. Both collapse
+    /// to <c>0</c> in the older method, and those two cases call for opposite
+    /// behaviour in a device cache.
+    /// <para>
+    /// So: <c>max-age=0</c> returns <c>0</c>; a negative or unparsable value, a
+    /// header carrying only other directives, and a missing header all return
+    /// <see langword="null"/>. Parsing rules are otherwise those of
+    /// <see cref="ParseMaxAge"/>.
+    /// </para>
+    /// </remarks>
+    public static int? TryParseMaxAge(string? cacheControl)
     {
         if (string.IsNullOrWhiteSpace(cacheControl))
         {
-            return 0;
+            return null;
         }
 
         foreach (var directive in cacheControl.Split(','))
@@ -350,7 +378,8 @@ public static class SsdpMessageParser
             {
                 return seconds switch
                 {
-                    < 0 => 0,
+                    // Negative is invalid, so nothing usable was announced.
+                    < 0 => null,
                     > int.MaxValue => int.MaxValue,
                     _ => (int)seconds
                 };
@@ -360,10 +389,11 @@ public static class SsdpMessageParser
             // report the device said nothing.
             return !value.IsEmpty && value.IndexOfAnyExceptInRange('0', '9') < 0
                 ? int.MaxValue
-                : 0;
+                : null;
         }
 
-        return 0;
+        // The header carried directives, but no max-age among them.
+        return null;
     }
 
     /// <summary>
@@ -426,6 +456,9 @@ public static class SsdpMessageParser
         && name[2] == '-'
         && name.AsSpan(3).Equals("NLS", StringComparison.OrdinalIgnoreCase);
 
+    private static TimeSpan? ToMaxAge(int? seconds) =>
+        seconds is { } value ? TimeSpan.FromSeconds(value) : null;
+
     internal static string? GetHeaderValue(IReadOnlyDictionary<string, string> headers, string key) =>
         headers.TryGetValue(key, out var value) ? value : null;
 
@@ -467,3 +500,4 @@ public static class SsdpMessageParser
     private static Uri? ParseUri(string? url) =>
         Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri : null;
 }
+#pragma warning restore CS0618

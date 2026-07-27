@@ -230,6 +230,104 @@ public class SsdpMessageParserTests
     }
 
     [Theory]
+    // The five situations ParseMaxAge collapses into 0, kept apart here.
+    [InlineData("max-age=0", 0)]          // the device genuinely said zero
+    [InlineData("max-age=-1", null)]      // invalid value
+    [InlineData("max-age=abc", null)]     // unparsable value
+    [InlineData("no-cache", null)]        // header present, no max-age directive
+    [InlineData(null, null)]              // no CACHE-CONTROL at all
+    // And the ordinary cases, which must agree with ParseMaxAge.
+    [InlineData("max-age=1800", 1800)]
+    [InlineData("max-age=1800, must-revalidate", 1800)]
+    [InlineData("public, max-age=1800, s-maxage=600", 1800)]
+    [InlineData("s-maxage=600", null)]
+    [InlineData("", null)]
+    public void TryParseMaxAge_SeparatesAbsentFromZero(string? cacheControl, int? expected)
+    {
+        Assert.Equal(expected, SsdpMessageParser.TryParseMaxAge(cacheControl));
+    }
+
+    [Theory]
+    [InlineData("max-age=0")]
+    [InlineData("max-age=-1")]
+    [InlineData("max-age=abc")]
+    [InlineData("no-cache")]
+    [InlineData(null)]
+    [InlineData("max-age=1800")]
+    [InlineData("public, max-age=1800, s-maxage=600")]
+    public void ParseMaxAge_StillAgreesWithTryParse_TreatingAbsentAsZero(string? cacheControl)
+    {
+        // ParseMaxAge is public API in use: its behaviour must not drift, so it is
+        // exactly TryParseMaxAge with absence flattened to 0.
+        Assert.Equal(
+            SsdpMessageParser.TryParseMaxAge(cacheControl) ?? 0,
+            SsdpMessageParser.ParseMaxAge(cacheControl));
+    }
+
+    [Fact]
+    public void MaxAge_IsZeroWhenTheDeviceSaidZero_ButNullWhenItSaidNothing()
+    {
+        // The pair that is the entire point of the change: expiring immediately and
+        // announcing no lifetime call for opposite handling downstream.
+        var saidZero = SsdpMessageParser.ParseMSearchResponse(Message(MessageType.Response,
+            new Dictionary<string, string>
+            {
+                ["CACHE-CONTROL"] = "max-age=0",
+                ["ST"] = "upnp:rootdevice",
+                ["USN"] = "uuid:device-1::upnp:rootdevice"
+            }));
+
+        var saidNothing = SsdpMessageParser.ParseMSearchResponse(Message(MessageType.Response,
+            new Dictionary<string, string>
+            {
+                ["ST"] = "upnp:rootdevice",
+                ["USN"] = "uuid:device-1::upnp:rootdevice"
+            }));
+
+        Assert.True(saidZero.IsSuccess);
+        Assert.True(saidNothing.IsSuccess);
+
+        Assert.Equal(TimeSpan.Zero, saidZero.Value.MaxAge);
+        Assert.Null(saidNothing.Value.MaxAge);
+
+        // The obsolete property cannot tell them apart, which is why it is obsolete.
+        Assert.Equal(TimeSpan.Zero, saidZero.Value.CacheControl);
+        Assert.Equal(TimeSpan.Zero, saidNothing.Value.CacheControl);
+    }
+
+    [Fact]
+    public void Notify_ByeBye_HasNoMaxAge()
+    {
+        // A byebye carries no CACHE-CONTROL, so null is normal rather than a gap.
+        var result = SsdpMessageParser.ParseNotify(Message(MessageType.Request,
+            new Dictionary<string, string>
+            {
+                ["NT"] = "upnp:rootdevice",
+                ["NTS"] = "ssdp:byebye",
+                ["USN"] = "uuid:device-1::upnp:rootdevice"
+            }, method: "NOTIFY"));
+
+        Assert.True(result.IsSuccess);
+        Assert.Null(result.Value.MaxAge);
+    }
+
+    [Fact]
+    public void Notify_Alive_CarriesTheAnnouncedMaxAge()
+    {
+        var result = SsdpMessageParser.ParseNotify(Message(MessageType.Request,
+            new Dictionary<string, string>
+            {
+                ["CACHE-CONTROL"] = "max-age=1800, must-revalidate",
+                ["NT"] = "upnp:rootdevice",
+                ["NTS"] = "ssdp:alive",
+                ["USN"] = "uuid:device-1::upnp:rootdevice"
+            }, method: "NOTIFY"));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(TimeSpan.FromSeconds(1800), result.Value.MaxAge);
+    }
+
+    [Theory]
     [InlineData("max-age=99999999999")]
     [InlineData("max-age=2147483648")]
     [InlineData("max-age=999999999999999999999999999999")]

@@ -199,6 +199,27 @@ public class DatagramComposerTests
         Assert.DoesNotContain(lines, line => line.StartsWith("CACHE-CONTROL:"));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ComposeNotify_TakesMaxAgeFromEitherProperty(bool useMaxAge)
+    {
+        // MaxAge is the property to set; CacheControl keeps working until the next
+        // major removes it. Both must produce the same header.
+        var notify = new Notify
+        {
+            NTS = NTS.Alive,
+            MaxAge = useMaxAge ? TimeSpan.FromSeconds(1800) : null,
+            CacheControl = useMaxAge ? TimeSpan.Zero : TimeSpan.FromSeconds(1800),
+            Location = new Uri("http://192.168.0.10/description.xml"),
+            NT = "upnp:rootdevice",
+            Server = new Server(),
+            USN = new USN { EntityType = EntityType.RootDevice, DeviceUUID = "device-1" }
+        };
+
+        Assert.Contains("CACHE-CONTROL: max-age=1800", HeaderLines(DatagramComposer.ComposeNotify(notify)));
+    }
+
     [Fact]
     public void ComposeNotify_WithoutUsn_Throws()
     {

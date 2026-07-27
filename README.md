@@ -26,6 +26,26 @@ The library is written in a functional style: all message and configuration type
 dotnet add package SSDP.UPnP.PCL
 ```
 
+## Version 9.1 - absent lifetimes
+
+Additive, no breaking changes. 9.0 fixed *parsing* `CACHE-CONTROL`, but the result still could not say that a device announced no lifetime at all: `ParseMaxAge` returns `int`, and `CacheControl` is a non-nullable `TimeSpan`, so five different situations all arrived as zero.
+
+| The header said | The device meant | v9.0 | v9.1 `MaxAge` |
+|---|---|---|---|
+| `max-age=0` | expire me now | `0` | `TimeSpan.Zero` |
+| `max-age=-1` | invalid value | `0` | `null` |
+| `max-age=abc` | unparsable value | `0` | `null` |
+| `no-cache` | present, no `max-age` | `0` | `null` |
+| *(absent)* | nothing announced | `0` | `null` |
+
+A control point uses this to decide when a device has gone quiet, and the first row calls for the opposite behaviour from the last: "expire this immediately" against "pick your own default". So:
+
+- **`MaxAge`** (`TimeSpan?`) is new on `Notify` and `MSearchResponse`, and **`SsdpMessageParser.TryParseMaxAge`** (`int?`) is the parsing primitive behind it.
+- **`CacheControl` on those two records is `[Obsolete]`** and will be removed in the next major. It still works, and still populates, so nothing breaks today.
+- `ParseMaxAge` keeps its exact signature and behaviour - it is now literally `TryParseMaxAge(...) ?? 0`, so it cannot drift.
+
+Nothing changes for senders. `RootDeviceConfiguration.CacheControl` stays required and non-nullable, because UDA 2.0 section 1.2.2 requires `CACHE-CONTROL` on every `ssdp:alive`; nullable-on-receive does not become optional-on-send. When composing a message by hand, set `MaxAge` - the composer prefers it and falls back to `CacheControl`, so both spellings emit the identical header. Verified by composing every message kind under 9.0 and 9.1 and diffing: byte-identical.
+
 ## Version 9.0 - breaking changes
 
 Version 9.0 fixes what the parser reports about received messages. Three defects made it claim things devices never said, so the affected properties now express absence:
@@ -309,6 +329,7 @@ Both samples accept an explicit IP address as the first argument. Notes for same
 
 ## Version history
 
+- **9.1.0** - additive: `MaxAge` (`TimeSpan?`) on received messages and `TryParseMaxAge`, so an absent `CACHE-CONTROL` is no longer indistinguishable from `max-age=0`; `CacheControl` on those records is obsolete. Nothing changes on the wire.
 - **9.0.0** - breaking: received `BOOTID` and `Date` are nullable, and the UPnP version from `SERVER`/`USER-AGENT` is an `int?` located by token name, so absence is reported rather than fabricated; adds the UPnP 1.0 `NLS` header, opt-in raw wire capture and parse-failure diagnostics, `IAsyncDisposable` with an automatic `ssdp:byebye`, and `ConfigureAwait(false)` throughout; fixes `CACHE-CONTROL` with multiple directives parsing to `max-age` 0. Nothing changes on the wire.
 - **8.0.0** - breaking: the control point's `Start(ct)`/`IsStarted` are removed; its observables start listening on first subscription and stop on last disposal. Requires SimpleHttpListener.Rx 7.3.0, and fixes device interface matching for the per-datagram local endpoint that release reports.
 - **7.0.2** - docs: clarify that UPnP eventing is outside this library's scope (README and XML documentation). No code changes.

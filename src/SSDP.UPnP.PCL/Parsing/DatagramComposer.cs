@@ -10,6 +10,7 @@ namespace SSDP.UPnP.PCL.Parsing;
 /// </summary>
 public static class DatagramComposer
 {
+#pragma warning disable CS0618 // Reads the obsolete CacheControl as a fallback.
     /// <summary>
     /// Composes an M-SEARCH request datagram.
     /// </summary>
@@ -73,7 +74,7 @@ public static class DatagramComposer
         var builder = new StringBuilder();
 
         builder.Append($"HTTP/1.1 {response.StatusCode} {response.ResponseReason}\r\n");
-        builder.Append($"CACHE-CONTROL: max-age={(int)response.CacheControl.TotalSeconds}\r\n");
+        builder.Append($"CACHE-CONTROL: max-age={(int)MaxAgeOf(response.MaxAge, response.CacheControl).TotalSeconds}\r\n");
         // DATE is Recommended rather than Required (UDA 2.0 section 1.3.3), so a
         // response without one omits the header instead of emitting a placeholder.
         if (response.Date is { } date)
@@ -121,7 +122,7 @@ public static class DatagramComposer
 
         if (notify.NTS == NTS.Alive)
         {
-            builder.Append($"CACHE-CONTROL: max-age={(int)notify.CacheControl.TotalSeconds}\r\n");
+            builder.Append($"CACHE-CONTROL: max-age={(int)MaxAgeOf(notify.MaxAge, notify.CacheControl).TotalSeconds}\r\n");
         }
 
         if (notify.NTS is NTS.Alive or NTS.Update && notify.Location is not null)
@@ -179,6 +180,12 @@ public static class DatagramComposer
         return Encoding.UTF8.GetBytes(builder.ToString());
     }
 
+    // CACHE-CONTROL is Required on the messages that carry it (UDA 2.0 section
+    // 1.2.2), so composing never omits it. MaxAge is the property to set; the
+    // obsolete CacheControl is honoured until the next major removes it.
+    private static TimeSpan MaxAgeOf(TimeSpan? maxAge, TimeSpan cacheControl) =>
+        maxAge ?? cacheControl;
+
     private static void AppendOptional(StringBuilder builder, string name, string? value)
     {
         if (!string.IsNullOrEmpty(value))
@@ -187,3 +194,4 @@ public static class DatagramComposer
         }
     }
 }
+#pragma warning restore CS0618

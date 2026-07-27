@@ -164,7 +164,10 @@ internal static class SearchMatcher
             TransportType = TransportType.Unicast,
             StatusCode = 200,
             ResponseReason = "OK",
+            MaxAge = root.CacheControl,
+#pragma warning disable CS0618 // Obsolete but still carried until the next major.
             CacheControl = root.CacheControl,
+#pragma warning restore CS0618
             Date = date,
             Ext = true,
             Location = root.Location,

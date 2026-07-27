@@ -16,7 +16,23 @@ public sealed record Notify
     /// <summary>The <c>HOST</c> header; the SSDP multicast group for multicast notifications.</summary>
     public string? HOST { get; init; }
 
+    /// <summary>
+    /// The advertised lifetime from <c>CACHE-CONTROL: max-age</c>, or
+    /// <see langword="null"/> when the sender announced none.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="TimeSpan.Zero"/> and <see langword="null"/> mean different things
+    /// and call for opposite handling: zero is a device asking to be expired now,
+    /// null is a device that said nothing, leaving the lifetime to the consumer's
+    /// own default. Null also covers a header with no <c>max-age</c> directive and
+    /// an invalid value. A <c>ssdp:byebye</c> carries no <c>CACHE-CONTROL</c> at
+    /// all, so null there is normal.
+    /// </remarks>
+    public TimeSpan? MaxAge { get; init; }
+
     /// <summary>Advertisement validity (<c>CACHE-CONTROL: max-age</c>); only sent for <c>ssdp:alive</c>.</summary>
+    [Obsolete("Use MaxAge; CacheControl cannot express an absent CACHE-CONTROL, " +
+              "reporting both 'the device said max-age=0' and 'the device said nothing' as zero.")]
     public TimeSpan CacheControl { get; init; }
 
     /// <summary>The URL of the device description document (<c>LOCATION</c>); sent for alive and update.</summary>
