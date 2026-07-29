@@ -17,11 +17,17 @@ public sealed record USN : Entity
     /// <c>uuid:[UUID]::urn:schemas-upnp-org:service:[type]:[version]</c>.
     /// </summary>
     /// <exception cref="SSDPException">The USN is not fully specified for its <see cref="Entity.EntityType"/>.</exception>
-    public string ToUsnString() => EntityType switch
+    public string ToUsnString()
     {
-        EntityType.Device => $"uuid:{DeviceUUID}",
-        _ => $"uuid:{DeviceUUID}::{ToUriString()}"
-    };
+        // Every USN form starts with the device UUID, so an unset one produced
+        // "uuid:" or "uuid:::upnp:rootdevice" - a malformed Required header rather
+        // than an error.
+        SsdpUri.RequireUuid(DeviceUUID, EntityType);
+
+        return EntityType == EntityType.Device
+            ? $"uuid:{DeviceUUID}"
+            : $"uuid:{DeviceUUID}::{ToUriString()}";
+    }
 
     /// <summary>
     /// Parses a USN header value.

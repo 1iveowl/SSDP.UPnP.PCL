@@ -237,6 +237,27 @@ public class Device : IDevice
             {
                 throw new SSDPException("BOOTID must fit a non-negative 31-bit integer (UDA 2.0 section 1.2.2).");
             }
+
+            // A device or service type that cannot form a URI would otherwise fail
+            // per-message at send time, where the failure is caught and logged and
+            // the device just quietly advertises less than it should.
+            foreach (var service in device.Services)
+            {
+                if (string.IsNullOrEmpty(service.TypeName))
+                {
+                    throw new SSDPException("Every service must specify a TypeName.");
+                }
+
+                if (service.Version < 1)
+                {
+                    throw new SSDPException("Every service must specify a version of 1 or greater (UPnP versions start at 1).");
+                }
+            }
+
+            if (!string.IsNullOrEmpty(device.TypeName) && device.Version < 1)
+            {
+                throw new SSDPException("A device that specifies a TypeName must also specify a version of 1 or greater.");
+            }
         }
 
         if (root.CONFIGID is < 0 or > 16777215)

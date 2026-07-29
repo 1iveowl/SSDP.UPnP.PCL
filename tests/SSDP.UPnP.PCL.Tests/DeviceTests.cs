@@ -733,6 +733,48 @@ public class DeviceTests
             new RootDeviceConfiguration { Location = new Uri("http://127.0.0.1/description.xml") }));
     }
 
+    // A service that cannot form a URI would otherwise fail once per message at
+    // send time, where the failure is logged and the device quietly advertises
+    // less than it should.
+    // The endpoint has to be set, or construction throws "must be fully specified"
+    // before it ever looks at the services - and the assertion below would pass
+    // with the service validation deleted. The message is asserted for the same
+    // reason: SSDPException on its own says nothing about which check ran.
+    private static RootDeviceConfiguration ConfigurationWithServices(params ServiceConfiguration[] services) =>
+        Configuration() with
+        {
+            IpEndPoint = new IPEndPoint(IPAddress.Loopback, Constants.UdpSSDPMulticastPort),
+            Services = services
+        };
+
+    [Fact]
+    public void Device_RejectsAServiceWithoutATypeName()
+    {
+        var error = Assert.Throws<SSDPException>(
+            () => new Device(ConfigurationWithServices(new ServiceConfiguration { Version = 1 })));
+
+        Assert.Contains("TypeName", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Device_RejectsADeviceTypeWithoutAVersion()
+    {
+        var configuration = ConfigurationWithServices() with { Version = 0 };
+
+        var error = Assert.Throws<SSDPException>(() => new Device(configuration));
+
+        Assert.Contains("version", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Device_RejectsAServiceWithoutAVersion()
+    {
+        var error = Assert.Throws<SSDPException>(
+            () => new Device(ConfigurationWithServices(new ServiceConfiguration { TypeName = "TestService" })));
+
+        Assert.Contains("version", error.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Device_ValidatesConfiguration()
     {
