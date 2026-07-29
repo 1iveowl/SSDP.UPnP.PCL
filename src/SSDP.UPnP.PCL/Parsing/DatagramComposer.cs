@@ -1,4 +1,5 @@
 using System.Text;
+using SSDP.UPnP.PCL.Internal;
 using SSDP.UPnP.PCL.Model;
 
 namespace SSDP.UPnP.PCL.Parsing;
@@ -27,10 +28,10 @@ public static class DatagramComposer
         builder.Append("M-SEARCH * HTTP/1.1\r\n");
 
         builder.Append(request.TransportType == TransportType.Multicast
-            ? $"HOST: {Constants.UdpSSDPMultiCastAddress}:{Constants.UdpSSDPMulticastPort}\r\n"
-            : $"HOST: {request.HOST}\r\n");
+            ? $"{SsdpHeaders.Host}: {Constants.UdpSSDPMultiCastAddress}:{Constants.UdpSSDPMulticastPort}\r\n"
+            : $"{SsdpHeaders.Host}: {request.HOST}\r\n");
 
-        builder.Append("MAN: \"ssdp:discover\"\r\n");
+        builder.Append($"{SsdpHeaders.Man}: \"ssdp:discover\"\r\n");
 
         if (request.TransportType == TransportType.Multicast)
         {
@@ -39,18 +40,18 @@ public static class DatagramComposer
                 throw new SSDPException("A multicast M-SEARCH requires an MX of at least 1 second (UDA 2.0 section 1.3.2).");
             }
 
-            builder.Append($"MX: {(int)request.MX.TotalSeconds}\r\n");
+            builder.Append($"{SsdpHeaders.Mx}: {(int)request.MX.TotalSeconds}\r\n");
         }
 
-        builder.Append($"ST: {request.ST.ToSearchTargetString()}\r\n");
-        builder.Append($"USER-AGENT: {request.UserAgent.ToHeaderString()}\r\n");
+        builder.Append($"{SsdpHeaders.St}: {request.ST.ToSearchTargetString()}\r\n");
+        builder.Append($"{SsdpHeaders.UserAgent}: {request.UserAgent.ToHeaderString()}\r\n");
 
         if (request.TransportType == TransportType.Multicast)
         {
-            builder.Append($"CPFN.UPNP.ORG: {request.CPFN}\r\n");
+            builder.Append($"{SsdpHeaders.Cpfn}: {request.CPFN}\r\n");
 
-            AppendOptional(builder, "CPUUID.UPNP.ORG", request.CPUUID);
-            AppendOptional(builder, "TCPPORT.UPNP.ORG", request.TCPPORT?.ToString());
+            AppendOptional(builder, SsdpHeaders.Cpuuid, request.CPUUID);
+            AppendOptional(builder, SsdpHeaders.TcpPort, request.TCPPORT?.ToString());
 
             AppendVendorHeaders(builder, request.Headers);
         }
@@ -74,24 +75,24 @@ public static class DatagramComposer
         var builder = new StringBuilder();
 
         builder.Append($"HTTP/1.1 {response.StatusCode} {response.ResponseReason}\r\n");
-        builder.Append($"CACHE-CONTROL: max-age={(int)MaxAgeOf(response.MaxAge, response.CacheControl).TotalSeconds}\r\n");
+        builder.Append($"{SsdpHeaders.CacheControl}: max-age={(int)MaxAgeOf(response.MaxAge, response.CacheControl).TotalSeconds}\r\n");
         // DATE is Recommended rather than Required (UDA 2.0 section 1.3.3), so a
         // response without one omits the header instead of emitting a placeholder.
         if (response.Date is { } date)
         {
-            builder.Append($"DATE: {date:r}\r\n");
+            builder.Append($"{SsdpHeaders.Date}: {date:r}\r\n");
         }
 
-        builder.Append("EXT:\r\n");
-        builder.Append($"LOCATION: {response.Location}\r\n");
-        builder.Append($"SERVER: {response.Server.ToHeaderString()}\r\n");
-        builder.Append($"ST: {(response.ST.StSearchType == STType.All ? response.ST.ToUriString() : response.ST.ToSearchTargetString())}\r\n");
-        builder.Append($"USN: {response.USN.ToUsnString()}\r\n");
-        builder.Append($"BOOTID.UPNP.ORG: {response.BOOTID ?? 0}\r\n");
+        builder.Append($"{SsdpHeaders.Ext}:\r\n");
+        builder.Append($"{SsdpHeaders.Location}: {response.Location}\r\n");
+        builder.Append($"{SsdpHeaders.Server}: {response.Server.ToHeaderString()}\r\n");
+        builder.Append($"{SsdpHeaders.St}: {(response.ST.StSearchType == STType.All ? response.ST.ToUriString() : response.ST.ToSearchTargetString())}\r\n");
+        builder.Append($"{SsdpHeaders.Usn}: {response.USN.ToUsnString()}\r\n");
+        builder.Append($"{SsdpHeaders.BootId}: {response.BOOTID ?? 0}\r\n");
 
-        AppendOptional(builder, "CONFIGID.UPNP.ORG", response.CONFIGID?.ToString());
-        AppendOptional(builder, "SEARCHPORT.UPNP.ORG", response.SEARCHPORT?.ToString());
-        AppendOptional(builder, "SECURELOCATION.UPNP.ORG", response.SECURELOCATION);
+        AppendOptional(builder, SsdpHeaders.ConfigId, response.CONFIGID?.ToString());
+        AppendOptional(builder, SsdpHeaders.SearchPort, response.SEARCHPORT?.ToString());
+        AppendOptional(builder, SsdpHeaders.SecureLocation, response.SECURELOCATION);
 
         AppendVendorHeaders(builder, response.Headers);
 
@@ -117,45 +118,45 @@ public static class DatagramComposer
         builder.Append("NOTIFY * HTTP/1.1\r\n");
 
         builder.Append(notify.NotifyTransportType == TransportType.Multicast
-            ? $"HOST: {Constants.UdpSSDPMultiCastAddress}:{Constants.UdpSSDPMulticastPort}\r\n"
-            : $"HOST: {notify.HOST}\r\n");
+            ? $"{SsdpHeaders.Host}: {Constants.UdpSSDPMultiCastAddress}:{Constants.UdpSSDPMulticastPort}\r\n"
+            : $"{SsdpHeaders.Host}: {notify.HOST}\r\n");
 
         if (notify.NTS == NTS.Alive)
         {
-            builder.Append($"CACHE-CONTROL: max-age={(int)MaxAgeOf(notify.MaxAge, notify.CacheControl).TotalSeconds}\r\n");
+            builder.Append($"{SsdpHeaders.CacheControl}: max-age={(int)MaxAgeOf(notify.MaxAge, notify.CacheControl).TotalSeconds}\r\n");
         }
 
         if (notify.NTS is NTS.Alive or NTS.Update && notify.Location is not null)
         {
-            builder.Append($"LOCATION: {notify.Location.AbsoluteUri}\r\n");
+            builder.Append($"{SsdpHeaders.Location}: {notify.Location.AbsoluteUri}\r\n");
         }
 
-        builder.Append($"NT: {notify.NT}\r\n");
-        builder.Append($"NTS: {notify.NTS.ToUriString()}\r\n");
+        builder.Append($"{SsdpHeaders.Nt}: {notify.NT}\r\n");
+        builder.Append($"{SsdpHeaders.Nts}: {notify.NTS.ToUriString()}\r\n");
 
         if (notify.NTS == NTS.Alive && notify.Server is not null)
         {
-            builder.Append($"SERVER: {notify.Server.ToHeaderString()}\r\n");
+            builder.Append($"{SsdpHeaders.Server}: {notify.Server.ToHeaderString()}\r\n");
         }
 
-        builder.Append($"USN: {notify.USN.ToUsnString()}\r\n");
-        builder.Append($"BOOTID.UPNP.ORG: {notify.BOOTID ?? 0}\r\n");
+        builder.Append($"{SsdpHeaders.Usn}: {notify.USN.ToUsnString()}\r\n");
+        builder.Append($"{SsdpHeaders.BootId}: {notify.BOOTID ?? 0}\r\n");
 
-        AppendOptional(builder, "CONFIGID.UPNP.ORG", notify.CONFIGID?.ToString());
+        AppendOptional(builder, SsdpHeaders.ConfigId, notify.CONFIGID?.ToString());
 
         if (notify.NTS == NTS.Update)
         {
-            AppendOptional(builder, "NEXTBOOTID.UPNP.ORG", notify.NEXTBOOTID?.ToString());
+            AppendOptional(builder, SsdpHeaders.NextBootId, notify.NEXTBOOTID?.ToString());
         }
 
         if (notify.NTS is NTS.Alive or NTS.Update)
         {
             if (notify.SEARCHPORT is > 0 && notify.SEARCHPORT != Constants.UdpSSDPMulticastPort)
             {
-                AppendOptional(builder, "SEARCHPORT.UPNP.ORG", notify.SEARCHPORT?.ToString());
+                AppendOptional(builder, SsdpHeaders.SearchPort, notify.SEARCHPORT?.ToString());
             }
 
-            AppendOptional(builder, "SECURELOCATION.UPNP.ORG", notify.SECURELOCATION);
+            AppendOptional(builder, SsdpHeaders.SecureLocation, notify.SECURELOCATION);
         }
 
         AppendVendorHeaders(builder, notify.Headers);

@@ -287,11 +287,34 @@ public class ControlPoint : IControlPoint
             if (node.TcpListener is not null)
             {
                 listenerObservables.Add(
-                    node.TcpListener.ToHttpListenerObservable(options, ct, ErrorCorrection.HeaderCompletionError));
+                    node.TcpListener
+                        .ToHttpListenerObservable(options, ct, ErrorCorrection.HeaderCompletionError)
+                        .Do(ReleaseOwnedConnection));
             }
         }
 
         return listenerObservables.Merge();
+    }
+
+    // The listener hands a TCP connection to its consumer whenever it stops reading
+    // it: when the message says not to keep the connection alive, and when the
+    // message asks for a protocol upgrade. A control point answers nothing it
+    // receives, so there is no response whose sending would close the connection as
+    // a side effect — it has to be released here.
+    //
+    // Without this the socket leaks, and any peer can trigger it at will by sending
+    // HTTP/1.0 or "Connection: close" to the response port. Both conditions are
+    // needed: an upgrade request has ShouldKeepAlive == true and would otherwise
+    // slip through.
+    //
+    // Only the listeners this control point owns go through here. A stream supplied
+    // to HotStart belongs to the caller, connections and all.
+    private static void ReleaseOwnedConnection(HttpRequestResponse message)
+    {
+        if (!message.ShouldKeepAlive || message.IsUpgradeRequest)
+        {
+            message.Connection?.Dispose();
+        }
     }
 
     /// <inheritdoc />

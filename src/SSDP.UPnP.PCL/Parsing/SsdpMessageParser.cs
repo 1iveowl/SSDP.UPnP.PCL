@@ -1,6 +1,7 @@
 using System.Collections.Frozen;
 using System.Globalization;
 using SimpleHttpListener.Rx.Model;
+using SSDP.UPnP.PCL.Internal;
 using SSDP.UPnP.PCL.Model;
 
 namespace SSDP.UPnP.PCL.Parsing;
@@ -28,25 +29,6 @@ public static class SsdpMessageParser
     // RFC 2774 namespace declared by UPnP 1.0 devices carrying the NLS header.
     private const string UpnpExtensionNamespace = "http://schemas.upnp.org/upnp/1/0/";
 
-    private static readonly FrozenSet<string> MSearchRequestStandardHeaders = new[]
-    {
-        "HOST", "CACHE-CONTROL", "MAN", "MX", "ST", "USER-AGENT",
-        "CPFN.UPNP.ORG", "CPUUID.UPNP.ORG", "TCPPORT.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
-    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
-
-    private static readonly FrozenSet<string> MSearchResponseStandardHeaders = new[]
-    {
-        "HOST", "CACHE-CONTROL", "LOCATION", "DATE", "EXT", "SERVER", "ST", "USN",
-        "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG", "SEARCHPORT.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
-    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
-
-    private static readonly FrozenSet<string> NotifyStandardHeaders = new[]
-    {
-        "HOST", "CACHE-CONTROL", "LOCATION", "NT", "NTS", "SERVER", "USN",
-        "BOOTID.UPNP.ORG", "CONFIGID.UPNP.ORG",
-        "SEARCHPORT.UPNP.ORG", "NEXTBOOTID.UPNP.ORG", "SECURELOCATION.UPNP.ORG"
-    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
-
     /// <summary>
     /// Parses a received M-SEARCH request message, applying the UDA 2.0 validation
     /// rules a device must enforce: the <c>MAN</c> header must be
@@ -64,21 +46,21 @@ public static class SsdpMessageParser
     /// <returns>The parsed request, or a failure describing the problem.</returns>
     public static ParseResult<MSearchRequest> ParseMSearchRequest(HttpRequestResponse request)
     {
-        var stResult = ST.Parse(GetHeaderValue(request.Headers, "ST"));
+        var stResult = ST.Parse(GetHeaderValue(request.Headers, SsdpHeaders.St));
 
         if (!stResult.IsSuccess)
         {
             return ParseResult<MSearchRequest>.Failure(stResult.Error);
         }
 
-        var host = GetHeaderValue(request.Headers, "HOST");
+        var host = GetHeaderValue(request.Headers, SsdpHeaders.Host);
 
         if (string.IsNullOrEmpty(host))
         {
             return ParseResult<MSearchRequest>.Failure("M-SEARCH is missing the required HOST header.");
         }
 
-        if (TrimQuotes(GetHeaderValue(request.Headers, "MAN")) != "ssdp:discover")
+        if (TrimQuotes(GetHeaderValue(request.Headers, SsdpHeaders.Man)) != "ssdp:discover")
         {
             return ParseResult<MSearchRequest>.Failure(
                 "M-SEARCH MAN header must be \"ssdp:discover\".");
@@ -95,7 +77,7 @@ public static class SsdpMessageParser
             // UDA 2.0 §1.3.3: a multicast search without a valid MX (>= 1) must be
             // silently discarded. Unicast searches carry no MX and are answered
             // immediately.
-            if (!int.TryParse(GetHeaderValue(request.Headers, "MX"), out var mxSeconds) || mxSeconds < 1)
+            if (!int.TryParse(GetHeaderValue(request.Headers, SsdpHeaders.Mx), out var mxSeconds) || mxSeconds < 1)
             {
                 return ParseResult<MSearchRequest>.Failure(
                     "Multicast M-SEARCH requires an integer MX header of 1 or greater.");
@@ -105,7 +87,7 @@ public static class SsdpMessageParser
         }
 
         int? tcpPort = null;
-        var tcpPortValue = GetHeaderValue(request.Headers, "TCPPORT.UPNP.ORG");
+        var tcpPortValue = GetHeaderValue(request.Headers, SsdpHeaders.TcpPort);
 
         if (tcpPortValue is not null)
         {
@@ -125,11 +107,11 @@ public static class SsdpMessageParser
             HOST = host,
             MX = mx,
             ST = stResult.Value,
-            UserAgent = ParseDeviceInfo<UserAgent>(GetHeaderValue(request.Headers, "USER-AGENT")),
-            CPFN = GetHeaderValue(request.Headers, "CPFN.UPNP.ORG"),
-            CPUUID = GetHeaderValue(request.Headers, "CPUUID.UPNP.ORG"),
+            UserAgent = ParseDeviceInfo<UserAgent>(GetHeaderValue(request.Headers, SsdpHeaders.UserAgent)),
+            CPFN = GetHeaderValue(request.Headers, SsdpHeaders.Cpfn),
+            CPUUID = GetHeaderValue(request.Headers, SsdpHeaders.Cpuuid),
             TCPPORT = tcpPort,
-            Headers = AdditionalHeaders(request.Headers, MSearchRequestStandardHeaders),
+            Headers = AdditionalHeaders(request.Headers, SsdpHeaders.MSearchRequestStandard),
             RawMessage = request.RawMessage,
             LocalIpEndPoint = request.LocalEndPoint,
             RemoteIpEndPoint = request.RemoteEndPoint,
@@ -159,9 +141,9 @@ public static class SsdpMessageParser
     /// <returns>The parsed response, or a failure describing the problem.</returns>
     public static ParseResult<MSearchResponse> ParseMSearchResponse(HttpRequestResponse response)
     {
-        var st = ST.Parse(GetHeaderValue(response.Headers, "ST"));
-        var usn = USN.Parse(GetHeaderValue(response.Headers, "USN"));
-        var maxAge = TryParseMaxAge(GetHeaderValue(response.Headers, "CACHE-CONTROL"));
+        var st = ST.Parse(GetHeaderValue(response.Headers, SsdpHeaders.St));
+        var usn = USN.Parse(GetHeaderValue(response.Headers, SsdpHeaders.Usn));
+        var maxAge = TryParseMaxAge(GetHeaderValue(response.Headers, SsdpHeaders.CacheControl));
 
         if (!st.IsSuccess && !usn.IsSuccess)
         {
@@ -176,18 +158,18 @@ public static class SsdpMessageParser
             ResponseReason = response.ReasonPhrase ?? string.Empty,
             MaxAge = ToMaxAge(maxAge),
             CacheControl = TimeSpan.FromSeconds(maxAge ?? 0),
-            Date = ParseRfc1123Date(GetHeaderValue(response.Headers, "DATE")),
+            Date = ParseRfc1123Date(GetHeaderValue(response.Headers, SsdpHeaders.Date)),
             NLS = ParseNls(response.Headers),
-            Location = ParseUri(GetHeaderValue(response.Headers, "LOCATION")),
-            Ext = response.Headers.ContainsKey("EXT"),
-            Server = ParseDeviceInfo<Server>(GetHeaderValue(response.Headers, "SERVER")),
+            Location = ParseUri(GetHeaderValue(response.Headers, SsdpHeaders.Location)),
+            Ext = response.Headers.ContainsKey(SsdpHeaders.Ext),
+            Server = ParseDeviceInfo<Server>(GetHeaderValue(response.Headers, SsdpHeaders.Server)),
             ST = st.Value,
             USN = usn.Value,
-            BOOTID = ParseNullableUInt(GetHeaderValue(response.Headers, "BOOTID.UPNP.ORG")),
-            CONFIGID = ParseNullableInt(GetHeaderValue(response.Headers, "CONFIGID.UPNP.ORG")),
-            SEARCHPORT = ParseNullableInt(GetHeaderValue(response.Headers, "SEARCHPORT.UPNP.ORG")),
-            SECURELOCATION = GetHeaderValue(response.Headers, "SECURELOCATION.UPNP.ORG"),
-            Headers = AdditionalHeaders(response.Headers, MSearchResponseStandardHeaders),
+            BOOTID = ParseNullableUInt(GetHeaderValue(response.Headers, SsdpHeaders.BootId)),
+            CONFIGID = ParseNullableInt(GetHeaderValue(response.Headers, SsdpHeaders.ConfigId)),
+            SEARCHPORT = ParseNullableInt(GetHeaderValue(response.Headers, SsdpHeaders.SearchPort)),
+            SECURELOCATION = GetHeaderValue(response.Headers, SsdpHeaders.SecureLocation),
+            Headers = AdditionalHeaders(response.Headers, SsdpHeaders.MSearchResponseStandard),
             RawMessage = response.RawMessage,
             LocalIpEndPoint = response.LocalEndPoint,
             RemoteIpEndPoint = response.RemoteEndPoint,
@@ -203,28 +185,28 @@ public static class SsdpMessageParser
     /// <returns>The parsed notification, or a failure describing the problem.</returns>
     public static ParseResult<Notify> ParseNotify(HttpRequestResponse request)
     {
-        var usn = USN.Parse(GetHeaderValue(request.Headers, "USN"));
-        var maxAge = TryParseMaxAge(GetHeaderValue(request.Headers, "CACHE-CONTROL"));
+        var usn = USN.Parse(GetHeaderValue(request.Headers, SsdpHeaders.Usn));
+        var maxAge = TryParseMaxAge(GetHeaderValue(request.Headers, SsdpHeaders.CacheControl));
 
         return ParseResult<Notify>.Success(new Notify
         {
             NotifyTransportType = ToTransportType(request.Transport),
-            HOST = GetHeaderValue(request.Headers, "HOST"),
+            HOST = GetHeaderValue(request.Headers, SsdpHeaders.Host),
             MaxAge = ToMaxAge(maxAge),
             CacheControl = TimeSpan.FromSeconds(maxAge ?? 0),
-            Location = ParseUri(GetHeaderValue(request.Headers, "LOCATION")),
-            NT = GetHeaderValue(request.Headers, "NT"),
-            NTS = NTSExtensions.ToNTS(GetHeaderValue(request.Headers, "NTS")),
-            Server = ParseDeviceInfo<Server>(GetHeaderValue(request.Headers, "SERVER")),
+            Location = ParseUri(GetHeaderValue(request.Headers, SsdpHeaders.Location)),
+            NT = GetHeaderValue(request.Headers, SsdpHeaders.Nt),
+            NTS = NTSExtensions.ToNTS(GetHeaderValue(request.Headers, SsdpHeaders.Nts)),
+            Server = ParseDeviceInfo<Server>(GetHeaderValue(request.Headers, SsdpHeaders.Server)),
             USN = usn.Value,
-            BOOTID = ParseNullableUInt(GetHeaderValue(request.Headers, "BOOTID.UPNP.ORG")),
+            BOOTID = ParseNullableUInt(GetHeaderValue(request.Headers, SsdpHeaders.BootId)),
             NLS = ParseNls(request.Headers),
-            CONFIGID = ParseNullableInt(GetHeaderValue(request.Headers, "CONFIGID.UPNP.ORG")),
-            SEARCHPORT = ParseNullableInt(GetHeaderValue(request.Headers, "SEARCHPORT.UPNP.ORG")),
-            NEXTBOOTID = ParseNullableUInt(GetHeaderValue(request.Headers, "NEXTBOOTID.UPNP.ORG")),
-            SECURELOCATION = GetHeaderValue(request.Headers, "SECURELOCATION.UPNP.ORG"),
+            CONFIGID = ParseNullableInt(GetHeaderValue(request.Headers, SsdpHeaders.ConfigId)),
+            SEARCHPORT = ParseNullableInt(GetHeaderValue(request.Headers, SsdpHeaders.SearchPort)),
+            NEXTBOOTID = ParseNullableUInt(GetHeaderValue(request.Headers, SsdpHeaders.NextBootId)),
+            SECURELOCATION = GetHeaderValue(request.Headers, SsdpHeaders.SecureLocation),
             IsUuidUpnp2Compliant = Guid.TryParse(usn.Value?.DeviceUUID, out _),
-            Headers = AdditionalHeaders(request.Headers, NotifyStandardHeaders),
+            Headers = AdditionalHeaders(request.Headers, SsdpHeaders.NotifyStandard),
             RawMessage = request.RawMessage,
             LocalIpEndPoint = request.LocalEndPoint,
             RemoteIpEndPoint = request.RemoteEndPoint,
@@ -418,7 +400,7 @@ public static class SsdpMessageParser
     /// </remarks>
     public static string? ParseNls(IReadOnlyDictionary<string, string> headers)
     {
-        var opt = GetHeaderValue(headers, "OPT");
+        var opt = GetHeaderValue(headers, SsdpHeaders.Opt);
 
         if (opt is not null)
         {
