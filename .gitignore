@@ -304,3 +304,6 @@ $RECYCLE.BIN/
 
 # Local planning documents (not committed)
 /plan/
+
+# BenchmarkDotNet
+BenchmarkDotNet.Artifacts/

@@ -35,19 +35,27 @@ public sealed record USN : Entity
             return ParseResult<USN>.Failure("USN is empty.");
         }
 
-        var parts = usn.Split(':');
+        var value = usn.AsSpan();
+        var firstColon = value.IndexOf(':');
+        var scheme = firstColon < 0 ? value : value[..firstColon];
 
-        if (!parts[0].Equals("uuid", StringComparison.OrdinalIgnoreCase))
+        if (!scheme.Equals("uuid", StringComparison.OrdinalIgnoreCase))
         {
             return ParseResult<USN>.Failure("USN string must start with 'uuid:'.");
         }
 
-        if (parts.Length < 2 || string.IsNullOrEmpty(parts[1]))
+        // The device UUID runs from after "uuid:" to the next colon, which is where
+        // the "::" entity separator begins when there is one.
+        var rest = firstColon < 0 ? ReadOnlySpan<char>.Empty : value[(firstColon + 1)..];
+        var next = rest.IndexOf(':');
+        var uuid = next < 0 ? rest : rest[..next];
+
+        if (firstColon < 0 || uuid.IsEmpty)
         {
             return ParseResult<USN>.Failure("Device-UUID is empty. USN string must start with 'uuid:[device-UUID]'.");
         }
 
-        var deviceUuid = parts[1];
+        var deviceUuid = uuid.ToString();
 
         var separatorIndex = usn.IndexOf("::", StringComparison.Ordinal);
 

@@ -8,6 +8,9 @@
     <Project Path="tests/SSDP.UPnP.PCL.Tests/SSDP.UPnP.PCL.Tests.csproj" />
     <Project Path="tests/SSDP.UPnP.PCL.Analyzers.Tests/SSDP.UPnP.PCL.Analyzers.Tests.csproj" />
   </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/SSDP.UPnP.PCL.Benchmarks/SSDP.UPnP.PCL.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/Sample.ControlPoint/Sample.ControlPoint.csproj" />
     <Project Path="samples/Sample.Device/Sample.Device.csproj" />

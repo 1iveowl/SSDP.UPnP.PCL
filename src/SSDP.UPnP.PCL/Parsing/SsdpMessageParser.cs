@@ -221,13 +221,11 @@ public static class SsdpMessageParser
             return new T();
         }
 
-        var parts = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var span = value.AsSpan();
 
-        var (os, osVersion) = parts.Length > 0 ? SplitPair(parts[0]) : (null, null);
-
-        var (upnpMajor, upnpMinor) = FindUpnpVersion(parts);
-
-        var (product, productVersion) = parts.Length > 2 ? SplitPair(parts[2]) : (null, null);
+        var (os, osVersion) = SplitPair(TokenAt(span, 0));
+        var (upnpMajor, upnpMinor) = FindUpnpVersion(span);
+        var (product, productVersion) = SplitPair(TokenAt(span, 2));
 
         return new T
         {
@@ -240,10 +238,44 @@ public static class SsdpMessageParser
             ProductVersion = productVersion
         };
 
-        static (string?, string?) SplitPair(string part)
+        // The nth space-separated token, empty when there are fewer. Empty runs are
+        // skipped, matching the StringSplitOptions.RemoveEmptyEntries this replaced.
+        static ReadOnlySpan<char> TokenAt(ReadOnlySpan<char> value, int index)
         {
-            var pair = part.Split('/');
-            return pair.Length == 2 ? (pair[0], pair[1]) : (part, null);
+            var seen = 0;
+
+            foreach (var token in value.Split(' '))
+            {
+                var candidate = value[token];
+
+                if (candidate.IsEmpty)
+                {
+                    continue;
+                }
+
+                if (seen++ == index)
+                {
+                    return candidate;
+                }
+            }
+
+            return default;
+        }
+
+        static (string?, string?) SplitPair(ReadOnlySpan<char> part)
+        {
+            if (part.IsEmpty)
+            {
+                return (null, null);
+            }
+
+            var separator = part.IndexOf('/');
+
+            // More than one slash is not the OS/version shape, so the whole token is
+            // the name - which is what Split('/') with a length check did before.
+            return separator < 0 || part[(separator + 1)..].IndexOf('/') >= 0
+                ? (part.ToString(), null)
+                : (part[..separator].ToString(), part[(separator + 1)..].ToString());
         }
 
         // UDA 2.0 section 1.1.2 puts the UPnP token second, and this library sends
@@ -251,25 +283,33 @@ public static class SsdpMessageParser
         // ("UPnP/1.0, DLNADOC/1.50 Platinum/1.0.5.13"). Find the token by its name
         // instead of its position, and report absence rather than guessing when
         // there is none: an assumed version is worse than an unknown one.
-        static (int?, int?) FindUpnpVersion(string[] parts)
+        static (int?, int?) FindUpnpVersion(ReadOnlySpan<char> value)
         {
-            foreach (var part in parts)
+            foreach (var range in value.Split(' '))
             {
-                // Trailing commas are common in the reordered forms.
-                var token = part.TrimEnd(',');
-                var separator = token.IndexOf('/');
+                var part = value[range];
 
-                if (separator < 0
-                    || !token.AsSpan(0, separator).Equals("UPnP", StringComparison.OrdinalIgnoreCase))
+                if (part.IsEmpty)
                 {
                     continue;
                 }
 
-                var version = token[(separator + 1)..].Split('.');
+                // Trailing commas are common in the reordered forms.
+                var token = part.TrimEnd(',');
+                var separator = token.IndexOf('/');
 
-                if (version.Length == 2
-                    && int.TryParse(version[0], out var major)
-                    && int.TryParse(version[1], out var minor))
+                if (separator < 0 || !token[..separator].Equals("UPnP", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var version = token[(separator + 1)..];
+                var dot = version.IndexOf('.');
+
+                if (dot >= 0
+                    && version[(dot + 1)..].IndexOf('.') < 0
+                    && int.TryParse(version[..dot], out var major)
+                    && int.TryParse(version[(dot + 1)..], out var minor))
                 {
                     return (major, minor);
                 }
