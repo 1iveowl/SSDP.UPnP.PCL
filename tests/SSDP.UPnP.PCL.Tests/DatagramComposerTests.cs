@@ -289,4 +289,49 @@ public class DatagramComposerTests
         Assert.Equal(request.ST.TypeName, roundTripped.Value.TypeName);
         Assert.Equal(request.ST.Version, roundTripped.Value.Version);
     }
+
+    // A required header with an empty value is worse than one that is missing: it
+    // is syntactically present, so a strict device reads it as "the sender declares
+    // it has no host". These are the two places the composer used to do that.
+    [Fact]
+    public void ComposeNotify_UnicastWithoutHost_Throws()
+    {
+        var notify = AliveNotifyWith(TimeSpan.FromSeconds(1800)) with
+        {
+            NotifyTransportType = TransportType.Unicast,
+            HOST = null
+        };
+
+        Assert.Throws<SSDPException>(() => DatagramComposer.ComposeNotify(notify));
+    }
+
+    [Fact]
+    public void ComposeNotify_UnicastWithHost_UsesIt()
+    {
+        var notify = AliveNotifyWith(TimeSpan.FromSeconds(1800)) with
+        {
+            NotifyTransportType = TransportType.Unicast,
+            HOST = "192.168.0.20:1900"
+        };
+
+        Assert.Contains("HOST: 192.168.0.20:1900", HeaderLines(DatagramComposer.ComposeNotify(notify)));
+    }
+
+    // LOCATION is Required on a search response (UDA 2.0 section 1.3.3), and is now
+    // required by the type - so the empty-value case is a compile error rather than
+    // a test. What is left to pin is that a real one still reaches the wire.
+    [Fact]
+    public void ComposeMSearchResponse_CarriesTheLocation()
+    {
+        var response = new MSearchResponse
+        {
+            Location = new Uri("http://192.168.0.10/description.xml"),
+            ST = new ST { StSearchType = STType.RootDeviceSearch, EntityType = EntityType.RootDevice },
+            USN = new USN { EntityType = EntityType.RootDevice, DeviceUUID = "device-1" }
+        };
+
+        Assert.Contains(
+            "LOCATION: http://192.168.0.10/description.xml",
+            HeaderLines(DatagramComposer.ComposeMSearchResponse(response)));
+    }
 }

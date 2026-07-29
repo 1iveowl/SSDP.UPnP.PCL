@@ -161,8 +161,6 @@ internal static class SearchMatcher
 
         return new MSearchResponse
         {
-            StatusCode = 200,
-            ResponseReason = "OK",
             MaxAge = root.CacheControl,
             Date = date,
             Location = root.Location,

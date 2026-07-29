@@ -249,12 +249,11 @@ public class Device : IDevice
     // that port is unavailable; an advertised SEARCHPORT must be in 49152-65535.
     private static void ValidateUnicastPort(int port)
     {
-        if (port != Constants.UdpSSDPMulticastPort
-            && port is < Constants.MinDynamicPort or > Constants.MaxDynamicPort)
+        if (port != Constants.UdpSSDPMulticastPort && !DynamicPort.IsValid(port))
         {
             throw new SSDPException(
                 $"The unicast search port must be {Constants.UdpSSDPMulticastPort} or in the range " +
-                $"{Constants.MinDynamicPort}-{Constants.MaxDynamicPort} (UDA 2.0 section 1.2.2, SEARCHPORT.UPNP.ORG).");
+                $"{DynamicPort.MinimumPort}-{DynamicPort.MaximumPort} (UDA 2.0 section 1.2.2, SEARCHPORT.UPNP.ORG).");
         }
     }
 

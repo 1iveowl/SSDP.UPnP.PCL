@@ -129,6 +129,17 @@ public static class DatagramComposer
 
         var builder = Rent();
 
+        // HOST is Required (UDA 2.0 section 1.2.2). Multicast supplies its own; a
+        // unicast notification has to carry the target, and interpolating a null
+        // would put a blank required header on the wire - the same mistake CPFN
+        // used to make on the search side.
+        if (notify.NotifyTransportType != TransportType.Multicast
+            && string.IsNullOrWhiteSpace(notify.HOST))
+        {
+            throw new SSDPException(
+                "A unicast NOTIFY requires a non-empty HOST (UDA 2.0 section 1.2.2).");
+        }
+
         builder.Append("NOTIFY * HTTP/1.1\r\n");
 
         builder.Append(notify.NotifyTransportType == TransportType.Multicast

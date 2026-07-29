@@ -41,11 +41,10 @@ public sealed record RootDeviceInterface
         {
             var port = (UdpUnicastClient.Client.LocalEndPoint as IPEndPoint)?.Port;
 
-            // Device construction already constrains the bind port to 1900 or the
-            // dynamic range, so anything that is not 1900 is a valid DynamicPort.
-            return port is null || port == Constants.UdpSSDPMulticastPort
-                ? null
-                : new DynamicPort(port.Value);
+            // Device construction constrains the bind port to 1900 or the dynamic
+            // range, but this record is public and can be built without it, so an
+            // unadvertisable port reports null rather than throwing from a getter.
+            return port == Constants.UdpSSDPMulticastPort ? null : DynamicPort.TryCreate(port);
         }
     }
 

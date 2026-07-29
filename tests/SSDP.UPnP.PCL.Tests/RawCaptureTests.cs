@@ -185,6 +185,7 @@ public class RawCaptureTests
                 DeviceUUID = "root-uuid",
                 TypeName = "TestRootDevice",
                 Version = 1,
+                Location = new Uri("http://127.0.0.1/description.xml"),
                 BOOTID = 1,
                 IpEndPoint = (IPEndPoint)multicastClient.Client.LocalEndPoint!
             },

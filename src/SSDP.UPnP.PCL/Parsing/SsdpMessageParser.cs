@@ -504,9 +504,6 @@ public static class SsdpMessageParser
             : new Dictionary<string, string>(extras, StringComparer.OrdinalIgnoreCase);
     }
 
-    private static uint ParseUIntOr(string? value, uint fallback) =>
-        uint.TryParse(value, out var result) ? result : fallback;
-
     private static int? ParseNullableInt(string? value) =>
         int.TryParse(value, out var result) ? result : null;
 

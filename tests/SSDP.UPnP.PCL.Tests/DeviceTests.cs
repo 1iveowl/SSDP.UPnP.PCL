@@ -729,7 +729,8 @@ public class DeviceTests
     public void Device_WithoutInterfaces_Throws()
     {
         Assert.Throws<SSDPException>(() => new Device(Array.Empty<RootDeviceInterface>()));
-        Assert.Throws<SSDPException>(() => new Device(new RootDeviceConfiguration()));
+        Assert.Throws<SSDPException>(() => new Device(
+            new RootDeviceConfiguration { Location = new Uri("http://127.0.0.1/description.xml") }));
     }
 
     [Fact]

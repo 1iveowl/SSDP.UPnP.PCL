@@ -34,7 +34,12 @@ public sealed record MSearchResponse
     public DateTimeOffset? Date { get; init; }
 
     /// <summary>The URL of the device description document (<c>LOCATION</c>).</summary>
-    public Uri? Location { get; init; }
+    /// <remarks>
+    /// Required by UDA 2.0 section 1.3.3, and therefore <see langword="required"/>
+    /// here: a response whose LOCATION is absent used to compose a header with an
+    /// empty value, which is worse than either having one or omitting it.
+    /// </remarks>
+    public required Uri Location { get; init; }
 
     /// <summary>The responding device's identity (<c>SERVER</c> header).</summary>
     public Server Server { get; init; } = new();
