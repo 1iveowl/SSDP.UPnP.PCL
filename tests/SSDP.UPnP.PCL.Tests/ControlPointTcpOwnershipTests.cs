@@ -30,24 +30,6 @@ namespace SSDP.UPnP.PCL.Tests;
 /// </remarks>
 public class ControlPointTcpOwnershipTests
 {
-    private static TcpListener BindDynamicRangeTcp()
-    {
-        for (var attempt = 0; ; attempt++)
-        {
-            var port = Random.Shared.Next(Constants.MinDynamicPort, Constants.MaxDynamicPort + 1);
-
-            try
-            {
-                var listener = new TcpListener(new IPEndPoint(IPAddress.Loopback, port));
-                listener.Start();
-                return listener;
-            }
-            catch (SocketException) when (attempt < 20)
-            {
-            }
-        }
-    }
-
     // A NOTIFY the control point would otherwise consume, so the test exercises the
     // real pipeline rather than a message it ignores.
     private const string NotifyConnectionClose =
@@ -95,7 +77,7 @@ public class ControlPointTcpOwnershipTests
     // Unfixed, the connection stays open and this waits until the token trips.
     private static async Task AssertServerClosesAsync(string message, CancellationToken ct)
     {
-        var listener = BindDynamicRangeTcp();
+        var listener = LoopbackSockets.Tcp();
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;
 
         using var controlPoint = new ControlPoint(
@@ -151,7 +133,7 @@ public class ControlPointTcpOwnershipTests
     {
         var ct = TestContext.Current.CancellationToken;
 
-        var listener = BindDynamicRangeTcp();
+        var listener = LoopbackSockets.Tcp();
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;
 
         using var controlPoint = new ControlPoint(

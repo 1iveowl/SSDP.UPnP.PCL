@@ -26,7 +26,7 @@ namespace SSDP.UPnP.PCL.Model;
 /// <c>default</c>, which is not a legal port.
 /// </para>
 /// </remarks>
-public readonly struct DynamicPort : IEquatable<DynamicPort>, IComparable<DynamicPort>
+public readonly struct DynamicPort : IEquatable<DynamicPort>
 {
     // Offset from the minimum so that default(DynamicPort) is the bottom of the
     // range rather than 0, which is not a port at all.
@@ -78,9 +78,6 @@ public readonly struct DynamicPort : IEquatable<DynamicPort>, IComparable<Dynami
 
     /// <inheritdoc />
     public override int GetHashCode() => _portAboveMinimum;
-
-    /// <inheritdoc />
-    public int CompareTo(DynamicPort other) => _portAboveMinimum.CompareTo(other._portAboveMinimum);
 
     /// <summary>The port as it appears in the header, e.g. <c>51900</c>.</summary>
     public override string ToString() => Port.ToString(CultureInfo.InvariantCulture);

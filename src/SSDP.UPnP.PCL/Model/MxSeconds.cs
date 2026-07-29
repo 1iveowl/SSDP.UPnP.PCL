@@ -26,7 +26,7 @@ namespace SSDP.UPnP.PCL.Model;
 /// than a zero that the specification forbids.
 /// </para>
 /// </remarks>
-public readonly struct MxSeconds : IEquatable<MxSeconds>, IComparable<MxSeconds>
+public readonly struct MxSeconds : IEquatable<MxSeconds>
 {
     // Stored as an offset from the minimum so that the all-zero default is one
     // second - the smallest legal value - rather than an illegal zero.
@@ -40,9 +40,6 @@ public readonly struct MxSeconds : IEquatable<MxSeconds>, IComparable<MxSeconds>
 
     /// <summary>The default: <see cref="MinimumSeconds"/> second.</summary>
     public static MxSeconds Minimum => default;
-
-    /// <summary>The largest recommended value, 5 seconds.</summary>
-    public static MxSeconds RecommendedMaximum => new(RecommendedMaximumSeconds);
 
     /// <summary>
     /// Creates an <c>MX</c> value of <paramref name="seconds"/> seconds.
@@ -65,19 +62,6 @@ public readonly struct MxSeconds : IEquatable<MxSeconds>, IComparable<MxSeconds>
     /// <summary>The value in whole seconds, as it appears in the <c>MX</c> header.</summary>
     public int Seconds => _secondsAboveMinimum + MinimumSeconds;
 
-    /// <summary>The value as a <see cref="TimeSpan"/>.</summary>
-    public TimeSpan ToTimeSpan() => TimeSpan.FromSeconds(Seconds);
-
-    /// <summary>
-    /// Creates an <c>MX</c> value from a <see cref="TimeSpan"/>, truncated to whole
-    /// seconds because the header carries an integer.
-    /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">The value truncates to less than <see cref="MinimumSeconds"/> second.</exception>
-    public static MxSeconds FromTimeSpan(TimeSpan value) => new((int)value.TotalSeconds);
-
-    /// <summary>Whether <paramref name="seconds"/> is a value this type can hold.</summary>
-    public static bool IsValid(int seconds) => seconds >= MinimumSeconds;
-
     /// <inheritdoc />
     public bool Equals(MxSeconds other) => _secondsAboveMinimum == other._secondsAboveMinimum;
 
@@ -87,9 +71,6 @@ public readonly struct MxSeconds : IEquatable<MxSeconds>, IComparable<MxSeconds>
     /// <inheritdoc />
     public override int GetHashCode() => _secondsAboveMinimum;
 
-    /// <inheritdoc />
-    public int CompareTo(MxSeconds other) => _secondsAboveMinimum.CompareTo(other._secondsAboveMinimum);
-
     /// <summary>The value as it appears in the header, e.g. <c>3</c>.</summary>
     public override string ToString() => Seconds.ToString(CultureInfo.InvariantCulture);
 
@@ -98,16 +79,4 @@ public readonly struct MxSeconds : IEquatable<MxSeconds>, IComparable<MxSeconds>
 
     /// <summary>Whether two values differ.</summary>
     public static bool operator !=(MxSeconds left, MxSeconds right) => !left.Equals(right);
-
-    /// <summary>Whether <paramref name="left"/> is shorter than <paramref name="right"/>.</summary>
-    public static bool operator <(MxSeconds left, MxSeconds right) => left.CompareTo(right) < 0;
-
-    /// <summary>Whether <paramref name="left"/> is longer than <paramref name="right"/>.</summary>
-    public static bool operator >(MxSeconds left, MxSeconds right) => left.CompareTo(right) > 0;
-
-    /// <summary>Whether <paramref name="left"/> is no longer than <paramref name="right"/>.</summary>
-    public static bool operator <=(MxSeconds left, MxSeconds right) => left.CompareTo(right) <= 0;
-
-    /// <summary>Whether <paramref name="left"/> is no shorter than <paramref name="right"/>.</summary>
-    public static bool operator >=(MxSeconds left, MxSeconds right) => left.CompareTo(right) >= 0;
 }

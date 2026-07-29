@@ -74,7 +74,6 @@ SSDP.UPnP.PCL.ControlPoint.NotifyObservable() -> System.IObservable<SSDP.UPnP.PC
 SSDP.UPnP.PCL.IControlPoint.MSearchResponseObservable() -> System.IObservable<SSDP.UPnP.PCL.Model.ReceivedMSearchResponse!>!
 SSDP.UPnP.PCL.IControlPoint.NotifyObservable() -> System.IObservable<SSDP.UPnP.PCL.Model.ReceivedNotify!>!
 SSDP.UPnP.PCL.Model.DynamicPort
-SSDP.UPnP.PCL.Model.DynamicPort.CompareTo(SSDP.UPnP.PCL.Model.DynamicPort other) -> int
 SSDP.UPnP.PCL.Model.DynamicPort.DynamicPort() -> void
 SSDP.UPnP.PCL.Model.DynamicPort.DynamicPort(int port) -> void
 SSDP.UPnP.PCL.Model.DynamicPort.Equals(SSDP.UPnP.PCL.Model.DynamicPort other) -> bool
@@ -98,12 +97,10 @@ SSDP.UPnP.PCL.Model.MulticastMSearch.SendCount.init -> void
 SSDP.UPnP.PCL.Model.MulticastMSearch.TCPPORT.get -> SSDP.UPnP.PCL.Model.DynamicPort?
 SSDP.UPnP.PCL.Model.MulticastMSearch.TCPPORT.init -> void
 SSDP.UPnP.PCL.Model.MxSeconds
-SSDP.UPnP.PCL.Model.MxSeconds.CompareTo(SSDP.UPnP.PCL.Model.MxSeconds other) -> int
 SSDP.UPnP.PCL.Model.MxSeconds.Equals(SSDP.UPnP.PCL.Model.MxSeconds other) -> bool
 SSDP.UPnP.PCL.Model.MxSeconds.MxSeconds() -> void
 SSDP.UPnP.PCL.Model.MxSeconds.MxSeconds(int seconds) -> void
 SSDP.UPnP.PCL.Model.MxSeconds.Seconds.get -> int
-SSDP.UPnP.PCL.Model.MxSeconds.ToTimeSpan() -> System.TimeSpan
 SSDP.UPnP.PCL.Model.Notify.NT.get -> string!
 SSDP.UPnP.PCL.Model.Notify.SEARCHPORT.get -> SSDP.UPnP.PCL.Model.DynamicPort?
 SSDP.UPnP.PCL.Model.Notify.USN.get -> SSDP.UPnP.PCL.Model.USN!
@@ -269,16 +266,9 @@ static SSDP.UPnP.PCL.Model.DynamicPort.operator !=(SSDP.UPnP.PCL.Model.DynamicPo
 static SSDP.UPnP.PCL.Model.DynamicPort.operator ==(SSDP.UPnP.PCL.Model.DynamicPort left, SSDP.UPnP.PCL.Model.DynamicPort right) -> bool
 static SSDP.UPnP.PCL.Model.MulticastMSearch.operator !=(SSDP.UPnP.PCL.Model.MulticastMSearch? left, SSDP.UPnP.PCL.Model.MulticastMSearch? right) -> bool
 static SSDP.UPnP.PCL.Model.MulticastMSearch.operator ==(SSDP.UPnP.PCL.Model.MulticastMSearch? left, SSDP.UPnP.PCL.Model.MulticastMSearch? right) -> bool
-static SSDP.UPnP.PCL.Model.MxSeconds.FromTimeSpan(System.TimeSpan value) -> SSDP.UPnP.PCL.Model.MxSeconds
-static SSDP.UPnP.PCL.Model.MxSeconds.IsValid(int seconds) -> bool
 static SSDP.UPnP.PCL.Model.MxSeconds.Minimum.get -> SSDP.UPnP.PCL.Model.MxSeconds
-static SSDP.UPnP.PCL.Model.MxSeconds.RecommendedMaximum.get -> SSDP.UPnP.PCL.Model.MxSeconds
 static SSDP.UPnP.PCL.Model.MxSeconds.operator !=(SSDP.UPnP.PCL.Model.MxSeconds left, SSDP.UPnP.PCL.Model.MxSeconds right) -> bool
-static SSDP.UPnP.PCL.Model.MxSeconds.operator <(SSDP.UPnP.PCL.Model.MxSeconds left, SSDP.UPnP.PCL.Model.MxSeconds right) -> bool
-static SSDP.UPnP.PCL.Model.MxSeconds.operator <=(SSDP.UPnP.PCL.Model.MxSeconds left, SSDP.UPnP.PCL.Model.MxSeconds right) -> bool
 static SSDP.UPnP.PCL.Model.MxSeconds.operator ==(SSDP.UPnP.PCL.Model.MxSeconds left, SSDP.UPnP.PCL.Model.MxSeconds right) -> bool
-static SSDP.UPnP.PCL.Model.MxSeconds.operator >(SSDP.UPnP.PCL.Model.MxSeconds left, SSDP.UPnP.PCL.Model.MxSeconds right) -> bool
-static SSDP.UPnP.PCL.Model.MxSeconds.operator >=(SSDP.UPnP.PCL.Model.MxSeconds left, SSDP.UPnP.PCL.Model.MxSeconds right) -> bool
 static SSDP.UPnP.PCL.Model.ReceivedMSearch.operator !=(SSDP.UPnP.PCL.Model.ReceivedMSearch? left, SSDP.UPnP.PCL.Model.ReceivedMSearch? right) -> bool
 static SSDP.UPnP.PCL.Model.ReceivedMSearch.operator ==(SSDP.UPnP.PCL.Model.ReceivedMSearch? left, SSDP.UPnP.PCL.Model.ReceivedMSearch? right) -> bool
 static SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.operator !=(SSDP.UPnP.PCL.Model.ReceivedMSearchResponse? left, SSDP.UPnP.PCL.Model.ReceivedMSearchResponse? right) -> bool

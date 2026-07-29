@@ -35,45 +35,10 @@ public class DeviceTests
         ]
     };
 
-    // The device's unicast search port must be 1900 or in the 49152-65535 range
-    // UDA 2.0 allows for SEARCHPORT, so tests bind an explicit in-range port,
-    // retrying past ports that are already taken.
-    private static T BindWithRetry<T>(Func<int, T> bind)
-    {
-        for (var attempt = 0; ; attempt++)
-        {
-            var port = Random.Shared.Next(Constants.MinDynamicPort, Constants.MaxDynamicPort + 1);
-
-            try
-            {
-                return bind(port);
-            }
-            catch (SocketException) when (attempt < 20)
-            {
-            }
-        }
-    }
-
-    private static UdpClient BindDynamicRange() =>
-        BindWithRetry(port => new UdpClient(new IPEndPoint(IPAddress.Loopback, port)));
-
-    // Wildcard-bound, in the SEARCHPORT range: how multicast sockets are bound on
-    // Linux/macOS.
-    private static UdpClient BindWildcardDynamicRange() =>
-        BindWithRetry(port => new UdpClient(new IPEndPoint(IPAddress.Any, port)));
-
-    private static TcpListener BindDynamicRangeTcp() =>
-        BindWithRetry(port =>
-        {
-            var listener = new TcpListener(new IPEndPoint(IPAddress.Loopback, port));
-            listener.Start();
-            return listener;
-        });
-
     private static RootDeviceInterface LoopbackInterface(RootDeviceConfiguration configuration)
     {
         var multicastClient = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
-        var unicastClient = BindDynamicRange();
+        var unicastClient = LoopbackSockets.Udp();
 
         return new RootDeviceInterface
         {
@@ -304,7 +269,7 @@ public class DeviceTests
     public async Task Device_RepliesOverTcp_WhenTcpPortRequested()
     {
         var rootInterface = LoopbackInterface(Configuration());
-        using var tcpListener = BindDynamicRangeTcp();
+        using var tcpListener = LoopbackSockets.Tcp();
 
         var tcpPort = ((IPEndPoint)tcpListener.LocalEndpoint).Port;
 
@@ -550,7 +515,7 @@ public class DeviceTests
         // listener reports the interface the datagram actually arrived on (not the
         // socket's 0.0.0.0 bind address). Interface matching must accept that, or
         // the device silently ignores every multicast M-SEARCH.
-        var multicastClient = BindWildcardDynamicRange();
+        var multicastClient = LoopbackSockets.WildcardUdp();
         var boundPort = ((IPEndPoint)multicastClient.Client.LocalEndPoint!).Port;
 
         var configuration = Configuration() with
@@ -612,7 +577,7 @@ public class DeviceTests
     [Fact]
     public void IsMatchingInterface_WildcardBound_RequiresMatchingConfiguredAddress()
     {
-        var multicastClient = BindWildcardDynamicRange();
+        var multicastClient = LoopbackSockets.WildcardUdp();
         var boundPort = ((IPEndPoint)multicastClient.Client.LocalEndPoint!).Port;
 
         var rootInterface = new RootDeviceInterface

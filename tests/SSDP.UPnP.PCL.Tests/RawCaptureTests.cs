@@ -28,22 +28,6 @@ public class RawCaptureTests
         RemoteEndPoint = new IPEndPoint(IPAddress.Parse("192.168.0.20"), 40000)
     };
 
-    private static System.Net.Sockets.UdpClient BindInSearchPortRange()
-    {
-        for (var attempt = 0; ; attempt++)
-        {
-            var port = Random.Shared.Next(Constants.MinDynamicPort, Constants.MaxDynamicPort + 1);
-
-            try
-            {
-                return new System.Net.Sockets.UdpClient(new IPEndPoint(IPAddress.Loopback, port));
-            }
-            catch (System.Net.Sockets.SocketException) when (attempt < 20)
-            {
-            }
-        }
-    }
-
     private static ControlPoint HotStartedControlPoint(IObservable<HttpRequestResponse> source)
     {
         var controlPoint = new ControlPoint(new ControlPointInterface { IpAddress = IPAddress.Loopback });
@@ -176,7 +160,7 @@ public class RawCaptureTests
         // UDA 2.0 section 1.3.3 requires the device to ignore a malformed search
         // without replying, which is invisible without this stream.
         // The unicast port must be 1900 or in the SEARCHPORT range, so bind in range.
-        var multicastClient = BindInSearchPortRange();
+        var multicastClient = LoopbackSockets.Udp();
 
         var rootInterface = new RootDeviceInterface
         {
