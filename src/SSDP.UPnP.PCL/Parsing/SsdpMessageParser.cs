@@ -24,7 +24,7 @@ namespace SSDP.UPnP.PCL.Parsing;
 public static class SsdpMessageParser
 {
     // RFC 2774 namespace declared by UPnP 1.0 devices carrying the NLS header.
-    private const string UpnpExtensionNamespace = "http://schemas.upnp.org/upnp/1/0/";
+    private const string _upnpExtensionNamespace = "http://schemas.upnp.org/upnp/1/0/";
 
     /// <summary>
     /// Parses a received M-SEARCH request message, applying the UDA 2.0 validation
@@ -440,7 +440,7 @@ public static class SsdpMessageParser
         {
             var parts = opt.Split(';');
 
-            if (string.Equals(TrimQuotes(parts[0]), UpnpExtensionNamespace, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(TrimQuotes(parts[0]), _upnpExtensionNamespace, StringComparison.OrdinalIgnoreCase))
             {
                 foreach (var part in parts.Skip(1))
                 {

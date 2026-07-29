@@ -27,25 +27,25 @@ namespace SSDP.UPnP.PCL.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class SsdpValueRangeAnalyzer : DiagnosticAnalyzer
 {
-    private const string MxSecondsTypeName = "SSDP.UPnP.PCL.Model.MxSeconds";
-    private const string DynamicPortTypeName = "SSDP.UPnP.PCL.Model.DynamicPort";
-    private const string RootDeviceConfigurationTypeName = "SSDP.UPnP.PCL.Model.RootDeviceConfiguration";
-    private const string IPEndPointTypeName = "System.Net.IPEndPoint";
+    private const string _mxSecondsTypeName = "SSDP.UPnP.PCL.Model.MxSeconds";
+    private const string _dynamicPortTypeName = "SSDP.UPnP.PCL.Model.DynamicPort";
+    private const string _rootDeviceConfigurationTypeName = "SSDP.UPnP.PCL.Model.RootDeviceConfiguration";
+    private const string _iPEndPointTypeName = "System.Net.IPEndPoint";
 
     // UDA 2.0 section 1.3.2: MX "should be less than 5 inclusive". A should, not a
     // shall - the same clause allows raising it "if a large number of devices are
     // expected to respond" - so this is a warning with a documented escape, and the
     // floor is the type's job rather than this rule's.
-    private const int RecommendedMaximumMx = 5;
+    private const int _recommendedMaximumMx = 5;
 
     // UDA 2.0 section 1.2.2: freely assignable CONFIGID values are 0 to 2^24-1.
-    private const int MaximumConfigId = 16777215;
+    private const int _maximumConfigId = 16777215;
 
-    private const int MinDynamicPort = 49152;
-    private const int MaxDynamicPort = 65535;
-    private const int SsdpPort = 1900;
+    private const int _minDynamicPort = 49152;
+    private const int _maxDynamicPort = 65535;
+    private const int _ssdpPort = 1900;
 
-    private static readonly DiagnosticDescriptor MxAboveRecommendedMaximumRule = new(
+    private static readonly DiagnosticDescriptor _mxAboveRecommendedMaximumRule = new(
         DiagnosticIds.MxAboveRecommendedMaximum,
         "M-SEARCH MX is above the 5 seconds UDA 2.0 recommends",
         "MX of {0} seconds exceeds the 5 UDA 2.0 recommends; devices assume 5 or less, so the extra wait never happens",
@@ -59,7 +59,7 @@ public sealed class SsdpValueRangeAnalyzer : DiagnosticAnalyzer
             + "diagnostic where that is the intent.",
         helpLinkUri: DiagnosticIds.HelpLink(DiagnosticIds.MxAboveRecommendedMaximum));
 
-    private static readonly DiagnosticDescriptor TcpPortOutOfRangeRule = new(
+    private static readonly DiagnosticDescriptor _tcpPortOutOfRangeRule = new(
         DiagnosticIds.TcpPortOutOfRange,
         "SSDP port is outside the 49152-65535 range UDA 2.0 mandates",
         "Port {0} is outside the 49152-65535 range UDA 2.0 mandates; this throws at run time",
@@ -72,7 +72,7 @@ public sealed class SsdpValueRangeAnalyzer : DiagnosticAnalyzer
             + "rejects the message.",
         helpLinkUri: DiagnosticIds.HelpLink(DiagnosticIds.TcpPortOutOfRange));
 
-    private static readonly DiagnosticDescriptor DeviceConfigurationOutOfRangeRule = new(
+    private static readonly DiagnosticDescriptor _deviceConfigurationOutOfRangeRule = new(
         DiagnosticIds.DeviceConfigurationOutOfRange,
         "Device configuration value is outside the range UDA 2.0 mandates",
         "{0}; constructing the device throws at run time",
@@ -87,16 +87,16 @@ public sealed class SsdpValueRangeAnalyzer : DiagnosticAnalyzer
 
     // Analyzers run on every keystroke, so the properties a code fix reads are
     // built once per distinct value rather than per diagnostic.
-    private static readonly ImmutableDictionary<string, string?> ClampMxToMaximumProperties =
+    private static readonly ImmutableDictionary<string, string?> _clampMxToMaximumProperties =
         ImmutableDictionary<string, string?>.Empty
-            .Add(DiagnosticIds.ReplacementValueKey, RecommendedMaximumMx.ToString());
+            .Add(DiagnosticIds.ReplacementValueKey, _recommendedMaximumMx.ToString());
 
     /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
         ImmutableArray.Create(
-            MxAboveRecommendedMaximumRule,
-            TcpPortOutOfRangeRule,
-            DeviceConfigurationOutOfRangeRule);
+            _mxAboveRecommendedMaximumRule,
+            _tcpPortOutOfRangeRule,
+            _deviceConfigurationOutOfRangeRule);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -108,10 +108,10 @@ public sealed class SsdpValueRangeAnalyzer : DiagnosticAnalyzer
         {
             var compilation = compilationStart.Compilation;
 
-            var mxSeconds = compilation.GetTypeByMetadataName(MxSecondsTypeName);
-            var dynamicPort = compilation.GetTypeByMetadataName(DynamicPortTypeName);
-            var rootDeviceConfiguration = compilation.GetTypeByMetadataName(RootDeviceConfigurationTypeName);
-            var ipEndPoint = compilation.GetTypeByMetadataName(IPEndPointTypeName);
+            var mxSeconds = compilation.GetTypeByMetadataName(_mxSecondsTypeName);
+            var dynamicPort = compilation.GetTypeByMetadataName(_dynamicPortTypeName);
+            var rootDeviceConfiguration = compilation.GetTypeByMetadataName(_rootDeviceConfigurationTypeName);
+            var ipEndPoint = compilation.GetTypeByMetadataName(_iPEndPointTypeName);
 
             // Nothing to say about a compilation that does not reference the library.
             if (mxSeconds is null && dynamicPort is null && rootDeviceConfiguration is null)
@@ -156,22 +156,22 @@ public sealed class SsdpValueRangeAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeMxSeconds(OperationAnalysisContext context, IObjectCreationOperation creation)
     {
-        if (TryGetSingleConstantInt(creation, out var seconds) && seconds > RecommendedMaximumMx)
+        if (TryGetSingleConstantInt(creation, out var seconds) && seconds > _recommendedMaximumMx)
         {
             context.ReportDiagnostic(Diagnostic.Create(
-                MxAboveRecommendedMaximumRule,
+                _mxAboveRecommendedMaximumRule,
                 creation.Syntax.GetLocation(),
-                ClampMxToMaximumProperties,
+                _clampMxToMaximumProperties,
                 seconds));
         }
     }
 
     private static void AnalyzeDynamicPort(OperationAnalysisContext context, IObjectCreationOperation creation)
     {
-        if (TryGetSingleConstantInt(creation, out var port) && (port < MinDynamicPort || port > MaxDynamicPort))
+        if (TryGetSingleConstantInt(creation, out var port) && (port < _minDynamicPort || port > _maxDynamicPort))
         {
             context.ReportDiagnostic(Diagnostic.Create(
-                TcpPortOutOfRangeRule,
+                _tcpPortOutOfRangeRule,
                 creation.Syntax.GetLocation(),
                 port));
         }
@@ -192,20 +192,20 @@ public sealed class SsdpValueRangeAnalyzer : DiagnosticAnalyzer
             switch (property.Property.Name)
             {
                 case "CONFIGID" when TryGetConstantInt(assignment.Value, out var configId)
-                                     && (configId < 0 || configId > MaximumConfigId):
+                                     && (configId < 0 || configId > _maximumConfigId):
                     context.ReportDiagnostic(Diagnostic.Create(
-                        DeviceConfigurationOutOfRangeRule,
+                        _deviceConfigurationOutOfRangeRule,
                         assignment.Syntax.GetLocation(),
-                        $"CONFIGID {configId} is outside the 0-{MaximumConfigId} range UDA 2.0 allows"));
+                        $"CONFIGID {configId} is outside the 0-{_maximumConfigId} range UDA 2.0 allows"));
                     break;
 
                 case "IpEndPoint" when TryGetEndPointPort(assignment.Value, known, out var port)
-                                       && port != SsdpPort
-                                       && (port < MinDynamicPort || port > MaxDynamicPort):
+                                       && port != _ssdpPort
+                                       && (port < _minDynamicPort || port > _maxDynamicPort):
                     context.ReportDiagnostic(Diagnostic.Create(
-                        DeviceConfigurationOutOfRangeRule,
+                        _deviceConfigurationOutOfRangeRule,
                         assignment.Value.Syntax.GetLocation(),
-                        $"A device answers unicast searches on port {SsdpPort} or in {MinDynamicPort}-{MaxDynamicPort}, not {port}"));
+                        $"A device answers unicast searches on port {_ssdpPort} or in {_minDynamicPort}-{_maxDynamicPort}, not {port}"));
                     break;
             }
         }
