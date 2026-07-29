@@ -60,6 +60,12 @@ using var controlPoint = new ControlPoint(ipAddress) { CaptureRawMessages = capt
 
 // Keyed by USN, which is the identity SSDP actually guarantees to be unique.
 var seen = new ConcurrentDictionary<string, Advertiser>(StringComparer.OrdinalIgnoreCase);
+
+// Device UUIDs that only ever turned up in a message we could not parse. A
+// malformed advertisement matters if it was the device's only one, and does not
+// if the same device also advertised itself properly - which is the question the
+// error text alone cannot answer.
+var droppedUuids = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 var dropped = 0;
 
 // No start step: the first subscription binds the sockets and starts listening;
@@ -76,8 +82,29 @@ using var failures = controlPoint.ParseFailures()
     .Subscribe(failure =>
     {
         Interlocked.Increment(ref dropped);
-        Write(ConsoleColor.DarkRed, "  dropped  ");
-        Write(ConsoleColor.DarkGray, $"{failure.MessageType,-8} from {failure.RemoteIpEndPoint}  ");
+        Write(ConsoleColor.DarkRed, "  dropped   ");
+        WriteLine(ConsoleColor.DarkGray, $"{failure.MessageType} from {failure.RemoteIpEndPoint}");
+
+        // The headers survive even when the typed parse does not, so the message
+        // can still say which device this was and where its description lives.
+        if (Header(failure, "USN") is { } rawUsn)
+        {
+            Write(ConsoleColor.DarkGray, "             usn ");
+            WriteLine(ConsoleColor.Gray, rawUsn);
+
+            if (UuidOf(rawUsn) is { } uuid)
+            {
+                droppedUuids[uuid] = rawUsn;
+            }
+        }
+
+        if (Header(failure, "LOCATION") is { } location)
+        {
+            Write(ConsoleColor.DarkGray, "             at  ");
+            WriteLine(ConsoleColor.Gray, location);
+        }
+
+        Write(ConsoleColor.DarkGray, "             why ");
         WriteLine(ConsoleColor.DarkRed, failure.Error);
 
         if (captureRaw && !failure.RawMessage.IsEmpty)
@@ -264,6 +291,26 @@ void PrintSummary()
     Console.WriteLine();
     Console.WriteLine();
 
+    // The distinction that matters: a device whose only advertisements were
+    // unparsable is invisible, while one that also advertised itself properly
+    // simply has one advertisement missing from its list.
+    var invisible = droppedUuids
+        .Where(entry => !seen.Values.Any(advertiser =>
+            string.Equals(advertiser.DeviceUuid, entry.Key, StringComparison.OrdinalIgnoreCase)))
+        .ToList();
+
+    if (invisible.Count > 0)
+    {
+        WriteLine(ConsoleColor.Yellow, $"{invisible.Count} device(s) seen only in messages that could not be parsed:");
+
+        foreach (var entry in invisible)
+        {
+            WriteLine(ConsoleColor.DarkGray, $"   {entry.Value}");
+        }
+
+        Console.WriteLine();
+    }
+
     foreach (var device in byDevice)
     {
         var identity = device.FirstOrDefault(advertiser => advertiser.Location is not null) ?? device.First();
@@ -312,6 +359,24 @@ static string Entity(string usn)
     var separator = usn.IndexOf("::", StringComparison.Ordinal);
 
     return separator < 0 ? "(the device itself)" : usn[(separator + 2)..];
+}
+
+static string? Header(SsdpParseFailure failure, string name) =>
+    failure.Headers.TryGetValue(name, out var value) && !string.IsNullOrWhiteSpace(value) ? value : null;
+
+// "uuid:<id>::<entity>" or "uuid:<id>" -> the id, even when the entity part is
+// the thing that failed to parse.
+static string? UuidOf(string usn)
+{
+    if (!usn.StartsWith("uuid:", StringComparison.OrdinalIgnoreCase))
+    {
+        return null;
+    }
+
+    var value = usn[5..];
+    var separator = value.IndexOf("::", StringComparison.Ordinal);
+
+    return separator < 0 ? value : value[..separator];
 }
 
 static string Truncate(string value, int width) =>
