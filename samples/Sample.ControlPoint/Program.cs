@@ -186,6 +186,11 @@ if (!seen.IsEmpty && Volatile.Read(ref replies) is 0)
           1. On Windows, the "SSDP Discovery" service (SSDPSRV) holds UDP 1900 - the
              same port the reply arrives on - and can take it instead. Pause it
              (elevated): net stop SSDPSRV   resume after: net start SSDPSRV
+             It is trigger-started, so it comes back on its own: opening Network in
+             Explorer or any UPnP-aware app is enough, and replies stop again
+             mid-session with nothing else having changed. To make it stay down:
+             sc config SSDPSRV start=disabled   and to undo: sc config SSDPSRV start=demand
+             Leave it enabled unless you know nothing else on the box wants UPnP.
 
           2. A firewall dropping unsolicited inbound UDP. A device replies from its
              own ephemeral port, so the reply does not match the outbound multicast

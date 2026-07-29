@@ -547,7 +547,7 @@ Both samples accept an explicit IP address as the first argument. Notes for same
 - **Multicast does not work in Docker, WSL or a devcontainer.** Run the samples on the host; the control point says so itself if nothing answers.
 - **Advertisements arriving but no search replies** is a specific failure with a short list of causes. `NOTIFY` is multicast, flooded to every station and delivered to every socket joined to the group; a search response is unicast back to the port the search left from, so it has to be addressed to this host, allowed in, and handed to this process. Usual suspects, in order: Windows `SSDPSRV` holding UDP 1900, a firewall dropping unsolicited inbound UDP, a VM bridged over Wi-Fi (access points often refuse a second MAC behind one radio), or a VM on NAT. Running with `tcp` splits the first from the rest. The sample prints all of this when it happens.
 - Across two machines on the same LAN, no precautions are needed - start them in any order.
-- On Windows, stop the built-in *SSDP Discovery* service first; it intercepts the multicasts.
+- On Windows, stop the built-in *SSDP Discovery* service first (`net stop SSDPSRV`, elevated); it holds UDP 1900 and takes the unicast search replies. It is trigger-started, so it restarts on its own - opening Network in Explorer or any UPnP-aware app is enough, and replies stop again mid-session. `sc config SSDPSRV start=disabled` makes it stick; `start=demand` puts it back.
 
 ## Version history
 
