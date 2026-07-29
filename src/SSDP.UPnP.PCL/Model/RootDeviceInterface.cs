@@ -35,13 +35,17 @@ public sealed record RootDeviceInterface
     /// <c>SEARCHPORT.UPNP.ORG</c>, or <see langword="null"/> when it listens on the
     /// default SSDP port (1900) and the header is therefore omitted.
     /// </summary>
-    public int? SearchPort
+    public DynamicPort? SearchPort
     {
         get
         {
             var port = (UdpUnicastClient.Client.LocalEndPoint as IPEndPoint)?.Port;
 
-            return port == Constants.UdpSSDPMulticastPort ? null : port;
+            // Device construction already constrains the bind port to 1900 or the
+            // dynamic range, so anything that is not 1900 is a valid DynamicPort.
+            return port is null || port == Constants.UdpSSDPMulticastPort
+                ? null
+                : new DynamicPort(port.Value);
         }
     }
 

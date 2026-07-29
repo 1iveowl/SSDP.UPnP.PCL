@@ -81,7 +81,7 @@ public class Device : IDevice
 
     /// <summary>
     /// Whether each received datagram's bytes are captured as sent, into
-    /// <see cref="MSearchRequest.RawMessage"/> and
+    /// <see cref="ReceivedMSearch.RawMessage"/> and
     /// <see cref="SsdpParseFailure.RawMessage"/>. Off by default; set it before
     /// starting, since that is when listening begins.
     /// </summary>
@@ -350,7 +350,7 @@ public class Device : IDevice
 
     // A malformed search must be discarded in silence (UDA 2.0 section 1.3.3), so
     // reporting it here is the only way a consumer can find out it happened.
-    private void ReportParseFailure((HttpRequestResponse Message, ParseResult<MSearchRequest> Result) parsed)
+    private void ReportParseFailure((HttpRequestResponse Message, ParseResult<ReceivedMSearch> Result) parsed)
     {
         if (!parsed.Result.IsSuccess)
         {
@@ -426,7 +426,7 @@ public class Device : IDevice
     // Answers one M-SEARCH request. Never throws: request handling failures are
     // logged and must not terminate the listener pipeline (a dead pipeline would
     // silently stop the device answering all future searches).
-    private async Task<MSearchRequest> RespondAsync(MSearchRequest request)
+    private async Task<ReceivedMSearch> RespondAsync(ReceivedMSearch request)
     {
         try
         {
@@ -454,7 +454,7 @@ public class Device : IDevice
             if (request.TCPPORT is { } tcpPort)
             {
                 await SendResponsesOverTcpAsync(
-                    new IPEndPoint(request.RemoteIpEndPoint.Address, tcpPort),
+                    new IPEndPoint(request.RemoteIpEndPoint.Address, tcpPort.Port),
                     responses).ConfigureAwait(false);
 
                 return request;

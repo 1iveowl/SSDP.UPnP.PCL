@@ -70,7 +70,7 @@ public class ControlPointTests
         var subject = new Subject<HttpRequestResponse>();
         using var controlPoint = HotStartedControlPoint(subject);
 
-        var received = new List<Notify>();
+        var received = new List<ReceivedNotify>();
         using var subscription = controlPoint.NotifyObservable().Subscribe(received.Add);
 
         subject.OnNext(NotifyMessage("ssdp:alive"));
@@ -84,13 +84,13 @@ public class ControlPointTests
         var subject = new Subject<HttpRequestResponse>();
         using var controlPoint = HotStartedControlPoint(subject);
 
-        var first = new List<Notify>();
+        var first = new List<ReceivedNotify>();
         var subscription = controlPoint.NotifyObservable().Subscribe(first.Add);
 
         subject.OnNext(NotifyMessage("ssdp:alive"));
         subscription.Dispose();
 
-        var second = new List<Notify>();
+        var second = new List<ReceivedNotify>();
         using var resubscription = controlPoint.NotifyObservable().Subscribe(second.Add);
 
         subject.OnNext(NotifyMessage("ssdp:byebye"));
@@ -105,8 +105,8 @@ public class ControlPointTests
         var subject = new Subject<HttpRequestResponse>();
         using var controlPoint = HotStartedControlPoint(subject);
 
-        var firstStream = new List<Notify>();
-        var secondStream = new List<Notify>();
+        var firstStream = new List<ReceivedNotify>();
+        var secondStream = new List<ReceivedNotify>();
 
         using var first = controlPoint.NotifyObservable().Subscribe(firstStream.Add);
         using var second = controlPoint.NotifyObservable().Subscribe(secondStream.Add);
@@ -126,7 +126,7 @@ public class ControlPointTests
         var subject = new Subject<HttpRequestResponse>();
         using var controlPoint = HotStartedControlPoint(subject);
 
-        var received = new List<Notify>();
+        var received = new List<ReceivedNotify>();
         using var subscription = controlPoint.NotifyObservable().Subscribe(received.Add);
 
         subject.OnNext(NotifyMessage("ssdp:alive"));
@@ -142,7 +142,7 @@ public class ControlPointTests
         var subject = new Subject<HttpRequestResponse>();
         using var controlPoint = HotStartedControlPoint(subject);
 
-        var received = new List<Notify>();
+        var received = new List<ReceivedNotify>();
         using var subscription = controlPoint.NotifyObservable().Subscribe(received.Add);
 
         subject.OnNext(NotifyMessage("upnp:propchange"));
@@ -159,7 +159,7 @@ public class ControlPointTests
         var subject = new Subject<HttpRequestResponse>();
         using var controlPoint = HotStartedControlPoint(subject);
 
-        var received = new List<MSearchResponse>();
+        var received = new List<ReceivedMSearchResponse>();
         using var subscription = controlPoint.MSearchResponseObservable().Subscribe(received.Add);
 
         subject.OnNext(ResponseMessage());
@@ -177,7 +177,7 @@ public class ControlPointTests
         var subject = new Subject<HttpRequestResponse>();
         using var controlPoint = HotStartedControlPoint(subject);
 
-        var request = new MSearchRequest { ST = new ST { StSearchType = STType.All } };
+        var request = new MulticastMSearch { ST = new ST { StSearchType = STType.All }, CPFN = "Test CP" };
 
         await Assert.ThrowsAsync<SSDPException>(
             () => controlPoint.SendMSearchAsync(request, IPAddress.Parse("10.99.99.99"), TestContext.Current.CancellationToken));

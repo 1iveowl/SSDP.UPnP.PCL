@@ -65,7 +65,7 @@ public class RawCaptureTests
         using var controlPoint = HotStartedControlPoint(subject);
 
         var failures = new List<SsdpParseFailure>();
-        var responses = new List<MSearchResponse>();
+        var responses = new List<ReceivedMSearchResponse>();
 
         using var failureSubscription = controlPoint.ParseFailures().Subscribe(failures.Add);
         using var responseSubscription = controlPoint.MSearchResponseObservable().Subscribe(responses.Add);
@@ -121,7 +121,7 @@ public class RawCaptureTests
         var subject = new Subject<HttpRequestResponse>();
         using var controlPoint = HotStartedControlPoint(subject);
 
-        var received = new List<Notify>();
+        var received = new List<ReceivedNotify>();
         using var subscription = controlPoint.NotifyObservable().Subscribe(received.Add);
 
         // No RawMessage on the incoming message models capture being disabled.
@@ -152,7 +152,7 @@ public class RawCaptureTests
         var subject = new Subject<HttpRequestResponse>();
         using var controlPoint = HotStartedControlPoint(subject);
 
-        var received = new List<Notify>();
+        var received = new List<ReceivedNotify>();
         using var subscription = controlPoint.NotifyObservable().Subscribe(received.Add);
 
         subject.OnNext(Message(MessageType.Request, new Dictionary<string, string>

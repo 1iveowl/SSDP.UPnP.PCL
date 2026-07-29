@@ -32,14 +32,14 @@ public interface IControlPoint : IDisposable, IAsyncDisposable
     /// subscription and stops when the last subscription is disposed. The stream is
     /// shared: each message is parsed once regardless of subscriber count.
     /// </summary>
-    IObservable<Notify> NotifyObservable();
+    IObservable<ReceivedNotify> NotifyObservable();
 
     /// <summary>
     /// The M-SEARCH responses observed on the network. Listening starts on the first
     /// subscription and stops when the last subscription is disposed. The stream is
     /// shared: each message is parsed once regardless of subscriber count.
     /// </summary>
-    IObservable<MSearchResponse> MSearchResponseObservable();
+    IObservable<ReceivedMSearchResponse> MSearchResponseObservable();
 
     /// <summary>
     /// The messages that arrived but could not be parsed as SSDP, with the reason.
@@ -55,8 +55,9 @@ public interface IControlPoint : IDisposable, IAsyncDisposable
 
     /// <summary>
     /// Sends an M-SEARCH request from the interface bound to
-    /// <paramref name="ipAddress"/>: multicast to the SSDP group, or unicast to
-    /// <see cref="MSearchRequest.RemoteIpEndPoint"/>.
+    /// <paramref name="ipAddress"/>: a <see cref="MulticastMSearch"/> goes to the
+    /// SSDP group, a <see cref="UnicastMSearch"/> to its
+    /// <see cref="UnicastMSearch.Target"/>.
     /// </summary>
     /// <remarks>
     /// Sending does not require an active subscription — but responses are only

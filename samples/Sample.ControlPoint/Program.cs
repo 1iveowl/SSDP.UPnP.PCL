@@ -58,12 +58,11 @@ if (useTcpResponses)
 }
 
 await controlPoint.SendMSearchAsync(
-    new MSearchRequest
+    new MulticastMSearch
     {
-        TransportType = TransportType.Multicast,
-        MX = TimeSpan.FromSeconds(5),
+        MX = new MxSeconds(5),
         ST = new ST { StSearchType = STType.All },
-        TCPPORT = useTcpResponses ? Constants.TcpResponseListenerPort : null,
+        TCPPORT = useTcpResponses ? new DynamicPort(Constants.TcpResponseListenerPort) : null,
         CPFN = "SSDP.UPnP.PCL Sample Control Point",
         UserAgent = new UserAgent
         {

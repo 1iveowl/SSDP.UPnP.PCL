@@ -41,25 +41,25 @@ public static class SsdpMessageParser
     /// </remarks>
     /// <param name="request">A message with <see cref="MessageType.Request"/> and method <c>M-SEARCH</c>.</param>
     /// <returns>The parsed request, or a failure describing the problem.</returns>
-    public static ParseResult<MSearchRequest> ParseMSearchRequest(HttpRequestResponse request)
+    public static ParseResult<ReceivedMSearch> ParseMSearchRequest(HttpRequestResponse request)
     {
         var stResult = ST.Parse(GetHeaderValue(request.Headers, SsdpHeaders.St));
 
         if (!stResult.IsSuccess)
         {
-            return ParseResult<MSearchRequest>.Failure(stResult.Error);
+            return ParseResult<ReceivedMSearch>.Failure(stResult.Error);
         }
 
         var host = GetHeaderValue(request.Headers, SsdpHeaders.Host);
 
         if (string.IsNullOrEmpty(host))
         {
-            return ParseResult<MSearchRequest>.Failure("M-SEARCH is missing the required HOST header.");
+            return ParseResult<ReceivedMSearch>.Failure("M-SEARCH is missing the required HOST header.");
         }
 
         if (TrimQuotes(GetHeaderValue(request.Headers, SsdpHeaders.Man)) != "ssdp:discover")
         {
-            return ParseResult<MSearchRequest>.Failure(
+            return ParseResult<ReceivedMSearch>.Failure(
                 "M-SEARCH MAN header must be \"ssdp:discover\".");
         }
 
@@ -76,29 +76,28 @@ public static class SsdpMessageParser
             // immediately.
             if (!int.TryParse(GetHeaderValue(request.Headers, SsdpHeaders.Mx), out var mxSeconds) || mxSeconds < 1)
             {
-                return ParseResult<MSearchRequest>.Failure(
+                return ParseResult<ReceivedMSearch>.Failure(
                     "Multicast M-SEARCH requires an integer MX header of 1 or greater.");
             }
 
             mx = TimeSpan.FromSeconds(mxSeconds);
         }
 
-        int? tcpPort = null;
+        DynamicPort? tcpPort = null;
         var tcpPortValue = GetHeaderValue(request.Headers, SsdpHeaders.TcpPort);
 
         if (tcpPortValue is not null)
         {
-            if (!int.TryParse(tcpPortValue, out var parsedTcpPort)
-                || parsedTcpPort is < Constants.MinDynamicPort or > Constants.MaxDynamicPort)
+            if (!int.TryParse(tcpPortValue, out var parsedTcpPort) || !DynamicPort.IsValid(parsedTcpPort))
             {
-                return ParseResult<MSearchRequest>.Failure(
-                    $"TCPPORT.UPNP.ORG must be an integer in the range {Constants.MinDynamicPort}-{Constants.MaxDynamicPort}.");
+                return ParseResult<ReceivedMSearch>.Failure(
+                    $"TCPPORT.UPNP.ORG must be an integer in the range {DynamicPort.MinimumPort}-{DynamicPort.MaximumPort}.");
             }
 
-            tcpPort = parsedTcpPort;
+            tcpPort = new DynamicPort(parsedTcpPort);
         }
 
-        return ParseResult<MSearchRequest>.Success(new MSearchRequest
+        return ParseResult<ReceivedMSearch>.Success(new ReceivedMSearch
         {
             TransportType = transportType,
             HOST = host,
@@ -136,7 +135,7 @@ public static class SsdpMessageParser
     /// </summary>
     /// <param name="response">A message with <see cref="MessageType.Response"/>.</param>
     /// <returns>The parsed response, or a failure describing the problem.</returns>
-    public static ParseResult<MSearchResponse> ParseMSearchResponse(HttpRequestResponse response)
+    public static ParseResult<ReceivedMSearchResponse> ParseMSearchResponse(HttpRequestResponse response)
     {
         var st = ST.Parse(GetHeaderValue(response.Headers, SsdpHeaders.St));
         var usn = USN.Parse(GetHeaderValue(response.Headers, SsdpHeaders.Usn));
@@ -144,11 +143,11 @@ public static class SsdpMessageParser
 
         if (!st.IsSuccess && !usn.IsSuccess)
         {
-            return ParseResult<MSearchResponse>.Failure(
+            return ParseResult<ReceivedMSearchResponse>.Failure(
                 $"Neither ST nor USN could be parsed. ST: {st.Error} USN: {usn.Error}");
         }
 
-        return ParseResult<MSearchResponse>.Success(new MSearchResponse
+        return ParseResult<ReceivedMSearchResponse>.Success(new ReceivedMSearchResponse
         {
             TransportType = ToTransportType(response.Transport),
             StatusCode = response.StatusCode,
@@ -179,12 +178,12 @@ public static class SsdpMessageParser
     /// </summary>
     /// <param name="request">A message with <see cref="MessageType.Request"/> and method <c>NOTIFY</c>.</param>
     /// <returns>The parsed notification, or a failure describing the problem.</returns>
-    public static ParseResult<Notify> ParseNotify(HttpRequestResponse request)
+    public static ParseResult<ReceivedNotify> ParseNotify(HttpRequestResponse request)
     {
         var usn = USN.Parse(GetHeaderValue(request.Headers, SsdpHeaders.Usn));
         var maxAge = TryParseMaxAge(GetHeaderValue(request.Headers, SsdpHeaders.CacheControl));
 
-        return ParseResult<Notify>.Success(new Notify
+        return ParseResult<ReceivedNotify>.Success(new ReceivedNotify
         {
             NotifyTransportType = ToTransportType(request.Transport),
             HOST = GetHeaderValue(request.Headers, SsdpHeaders.Host),

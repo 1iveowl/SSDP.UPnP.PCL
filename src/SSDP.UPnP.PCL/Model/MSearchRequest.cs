@@ -4,20 +4,32 @@ using System.Net;
 namespace SSDP.UPnP.PCL.Model;
 
 /// <summary>
-/// An SSDP M-SEARCH request, either composed for sending via
-/// <see cref="IControlPoint.SendMSearchAsync"/> or parsed from a received
-/// datagram by <see cref="Parsing.SsdpMessageParser.ParseMSearchRequest"/>. Immutable.
+/// An M-SEARCH request this control point is sending. Either
+/// <see cref="MulticastMSearch"/> or <see cref="UnicastMSearch"/> - there is no
+/// third kind, and the hierarchy is closed.
 /// </summary>
-public sealed record MSearchRequest
+/// <remarks>
+/// <para>
+/// The two transports carry different header sets by specification (UDA 2.0
+/// section 1.3.2 gives them separate message formats), and separate types are how
+/// that stops being something you can get wrong: a multicast search has no target
+/// endpoint to omit, and a unicast search has no <c>MX</c>, <c>CPFN</c> or
+/// <c>TCPPORT</c> to set by mistake.
+/// </para>
+/// <para>
+/// A received search is <see cref="ReceivedMSearch"/>, not this. What a device
+/// puts on the wire is not something this library gets to require anything of, so
+/// the two directions are separate types with opposite defaults: everything here
+/// is required or defaulted, everything there is nullable.
+/// </para>
+/// </remarks>
+public abstract record MSearchRequest
 {
-    /// <summary>Whether the search is multicast or unicast.</summary>
-    public TransportType TransportType { get; init; } = TransportType.Multicast;
-
-    /// <summary>The <c>HOST</c> header; only used for unicast searches (multicast always targets the SSDP group).</summary>
-    public string? HOST { get; init; }
-
-    /// <summary>Maximum response delay in seconds (<c>MX</c> header); UDA 2.0 limits it to 1–5 seconds.</summary>
-    public TimeSpan MX { get; init; } = TimeSpan.FromSeconds(1);
+    // Closes the hierarchy: only the two types below can derive, so consumers of a
+    // MSearchRequest can switch on it exhaustively.
+    private protected MSearchRequest()
+    {
+    }
 
     /// <summary>The search target.</summary>
     public required ST ST { get; init; }
@@ -25,52 +37,76 @@ public sealed record MSearchRequest
     /// <summary>The control point identity sent in the <c>USER-AGENT</c> header.</summary>
     public UserAgent UserAgent { get; init; } = new();
 
-    /// <summary>Friendly name of the control point (<c>CPFN.UPNP.ORG</c>, required by UDA 2.0 for multicast).</summary>
-    public string? CPFN { get; init; }
+    /// <summary>
+    /// Additional vendor-specific headers to send. Note that each SSDP message must
+    /// fit in a single UDP packet (UDA 2.0 section 1.2.2) - keep vendor headers
+    /// small.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Headers { get; init; } =
+        FrozenDictionary<string, string>.Empty;
+}
+
+/// <summary>
+/// A multicast M-SEARCH: the ordinary "who is out there?" discovery request, sent
+/// to the SSDP group.
+/// </summary>
+public sealed record MulticastMSearch : MSearchRequest
+{
+    /// <summary>
+    /// Friendly name of the control point (<c>CPFN.UPNP.ORG</c>). Required by
+    /// UDA 2.0 section 1.3.2 for multicast search, which is why it is
+    /// <see langword="required"/> here.
+    /// </summary>
+    /// <remarks>
+    /// Must not be empty: <see langword="required"/> obliges you to set it, and the
+    /// composer additionally rejects an empty value, since a present-but-blank
+    /// required header is worse than a thoughtful one.
+    /// </remarks>
+    public required string CPFN { get; init; }
+
+    /// <summary>
+    /// Maximum response delay (<c>MX</c>). Defaults to the minimum of 1 second;
+    /// see <see cref="MxSeconds"/> for why the upper bound is an advisory rather
+    /// than a constraint.
+    /// </summary>
+    public MxSeconds MX { get; init; } = MxSeconds.Minimum;
 
     /// <summary>UUID of the control point (<c>CPUUID.UPNP.ORG</c>), if any.</summary>
     public string? CPUUID { get; init; }
 
     /// <summary>
     /// The TCP port for reliable search responses (<c>TCPPORT.UPNP.ORG</c>), if any.
-    /// Per UDA 2.0 the value must be in the range 49152–65535; when set on a
-    /// multicast search, devices reply over TCP to this port instead of UDP.
+    /// When set, devices reply over TCP to this port instead of UDP, without the
+    /// <c>MX</c> spreading (UDA 2.0 section 1.3.3).
     /// </summary>
-    public int? TCPPORT { get; init; }
+    public DynamicPort? TCPPORT { get; init; }
 
     /// <summary>
-    /// How many times <see cref="IControlPoint.SendMSearchAsync"/> transmits a
-    /// multicast search. UDA 2.0 recommends sending each M-SEARCH more than once
-    /// (UDP is unreliable); defaults to 2. Unicast searches are sent once.
+    /// How many times <see cref="IControlPoint.SendMSearchAsync"/> transmits the
+    /// search. UDA 2.0 section 1.3.2 recommends sending each M-SEARCH more than
+    /// once, since UDP is unreliable; defaults to 2. Values below 1 are treated
+    /// as 1.
     /// </summary>
     public int SendCount { get; init; } = 2;
+}
 
+/// <summary>
+/// A unicast M-SEARCH, aimed at one device whose address is already known.
+/// </summary>
+/// <remarks>
+/// Carries only <c>HOST</c>, <c>MAN</c>, <c>ST</c> and <c>USER-AGENT</c>: UDA 2.0
+/// section 1.3.2 gives the unicast form its own message format, without <c>MX</c>,
+/// <c>CPFN</c> or <c>TCPPORT</c>. Those properties are absent here rather than
+/// ignored.
+/// </remarks>
+public sealed record UnicastMSearch : MSearchRequest
+{
     /// <summary>
-    /// Additional vendor-specific headers to send, or the non-standard headers
-    /// received. Note that each SSDP message must fit in a single UDP packet
-    /// (UDA 2.0 §1.2.2) — keep vendor headers small.
+    /// The device to search. Also supplies the <c>HOST</c> header, so the two can
+    /// no longer disagree.
     /// </summary>
-    public IReadOnlyDictionary<string, string> Headers { get; init; } =
-        FrozenDictionary<string, string>.Empty;
+    public required IPEndPoint Target { get; init; }
 
-    /// <summary>
-    /// The message exactly as it arrived, before parsing or header normalization,
-    /// when raw capture is enabled on the receiving control point or device. Empty
-    /// otherwise, and always empty for messages received over TCP.
-    /// </summary>
-    /// <remarks>
-    /// Useful when a device's own formatting matters: <see cref="Headers"/> is
-    /// normalized to uppercase names with repeated fields comma-joined, while this
-    /// preserves what the sender actually wrote.
-    /// </remarks>
-    public ReadOnlyMemory<byte> RawMessage { get; init; }
-
-    /// <summary>For received requests: the local endpoint the request arrived on.</summary>
-    public IPEndPoint? LocalIpEndPoint { get; init; }
-
-    /// <summary>For received requests: the endpoint of the requester. For unicast sends: the target endpoint.</summary>
-    public IPEndPoint? RemoteIpEndPoint { get; init; }
-
-    /// <summary>Whether the underlying HTTP parser flagged errors in the received message.</summary>
-    public bool HasParsingError { get; init; }
+    /// <summary>The <c>HOST</c> header value, <c>address:port</c> of <see cref="Target"/>.</summary>
+    public string Host => $"{Target.Address}:{Target.Port}";
 }

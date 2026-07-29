@@ -136,9 +136,9 @@ internal static class SearchMatcher
     /// </param>
     internal static IEnumerable<MSearchResponse> BuildResponses(
         RootDeviceConfiguration root,
-        MSearchRequest request,
+        ReceivedMSearch request,
         DateTimeOffset date,
-        int? searchPort)
+        DynamicPort? searchPort)
     {
         return MatchingMessages(root, request.ST)
             .Select(message => BuildResponse(root, message.Owner, message.Entity, request, date, searchPort));
@@ -148,9 +148,9 @@ internal static class SearchMatcher
         RootDeviceConfiguration root,
         DeviceConfiguration owner,
         Entity entity,
-        MSearchRequest request,
+        ReceivedMSearch request,
         DateTimeOffset date,
-        int? searchPort)
+        DynamicPort? searchPort)
     {
         // UDA 2.0 §1.3.3: for type searches the response ST must echo the version
         // from the request (a device supporting v2 answers a v1 search with v1);
@@ -161,12 +161,10 @@ internal static class SearchMatcher
 
         return new MSearchResponse
         {
-            TransportType = TransportType.Unicast,
             StatusCode = 200,
             ResponseReason = "OK",
             MaxAge = root.CacheControl,
             Date = date,
-            Ext = true,
             Location = root.Location,
             Server = root.Server,
             ST = new ST

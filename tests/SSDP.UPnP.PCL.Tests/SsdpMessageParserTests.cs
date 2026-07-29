@@ -158,7 +158,7 @@ public class SsdpMessageParserTests
         if (expectSuccess)
         {
             Assert.True(result.IsSuccess);
-            Assert.Equal(int.Parse(tcpPort), result.Value.TCPPORT);
+            Assert.Equal(int.Parse(tcpPort), result.Value.TCPPORT?.Port);
         }
         else
         {

@@ -604,7 +604,7 @@ public class DeviceTests
         var rootInterface = LoopbackInterface(Configuration());
         var boundPort = ((IPEndPoint)rootInterface.UdpUnicastClient.Client.LocalEndPoint!).Port;
 
-        Assert.Equal(boundPort, rootInterface.SearchPort);
+        Assert.Equal(boundPort, rootInterface.SearchPort?.Port);
 
         DisposeInterface(rootInterface);
     }

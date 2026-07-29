@@ -195,7 +195,7 @@ public class SearchMatcherTests
     [Fact]
     public void BuildResponses_UsesOwnerIdentityAndRootConfiguration()
     {
-        var request = new MSearchRequest
+        var request = new ReceivedMSearch
         {
             ST = Search(STType.ServiceTypeSearch, "EmbeddedService", 1),
             MX = TimeSpan.FromSeconds(1),
@@ -204,13 +204,13 @@ public class SearchMatcherTests
 
         var date = new DateTimeOffset(2026, 7, 22, 10, 0, 0, TimeSpan.Zero);
 
-        var responses = SearchMatcher.BuildResponses(Root, request, date, searchPort: 1901).ToList();
+        var responses = SearchMatcher.BuildResponses(Root, request, date, searchPort: new DynamicPort(49152)).ToList();
 
         var response = Assert.Single(responses);
         Assert.Equal("embedded-uuid", response.USN?.DeviceUUID);
         Assert.Equal(200u, response.BOOTID);
         Assert.Equal(9, response.CONFIGID);
-        Assert.Equal(1901, response.SEARCHPORT);
+        Assert.Equal(49152, response.SEARCHPORT?.Port);
         Assert.Equal(Root.CacheControl, response.MaxAge);
         Assert.Equal(Root.Location, response.Location);
         Assert.Equal(date, response.Date);
@@ -223,14 +223,14 @@ public class SearchMatcherTests
     {
         // UDA 2.0 §1.3.3: a device supporting v3 answers a v1 search with ST v1,
         // while the USN carries the advertised (actual) identity.
-        var request = new MSearchRequest
+        var request = new ReceivedMSearch
         {
             ST = Search(STType.DeviceTypeSearch, "EmbeddedDevice", 1),
             RemoteIpEndPoint = new IPEndPoint(IPAddress.Parse("192.168.0.20"), 41000)
         };
 
         var response = Assert.Single(
-            SearchMatcher.BuildResponses(Root, request, DateTimeOffset.UnixEpoch, searchPort: 1900));
+            SearchMatcher.BuildResponses(Root, request, DateTimeOffset.UnixEpoch, searchPort: null));
 
         Assert.Equal(1, response.ST?.Version);
         Assert.Equal("urn:schemas-upnp-org:device:EmbeddedDevice:1", response.ST?.ToSearchTargetString());
@@ -270,7 +270,7 @@ public class SearchMatcherTests
     {
         // The 1900-means-omit rule lives in RootDeviceInterface.SearchPort; the
         // matcher receives an already-normalized value and passes it through.
-        var request = new MSearchRequest
+        var request = new ReceivedMSearch
         {
             ST = Search(STType.RootDeviceSearch),
             RemoteIpEndPoint = new IPEndPoint(IPAddress.Parse("192.168.0.20"), 41000)

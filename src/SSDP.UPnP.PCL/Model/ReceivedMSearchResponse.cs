@@ -1,0 +1,110 @@
+using System.Collections.Frozen;
+using System.Net;
+
+namespace SSDP.UPnP.PCL.Model;
+
+/// <summary>
+/// An M-SEARCH response as it arrived, observed via
+/// <see cref="IControlPoint.MSearchResponseObservable"/>. Immutable.
+/// </summary>
+/// <remarks>
+/// Separate from <see cref="MSearchResponse"/> on purpose: a composed response can
+/// be held to the specification, an observed one can only be reported. Parsing is
+/// lenient here - an unparsable ST or USN is left unset, and only a response where
+/// neither can be parsed is rejected, since it identifies nothing.
+/// </remarks>
+public sealed record ReceivedMSearchResponse
+{
+    /// <summary>The transport the response arrived over.</summary>
+    public TransportType TransportType { get; init; } = TransportType.Unicast;
+
+    /// <summary>HTTP status code as sent.</summary>
+    public int StatusCode { get; init; } = 200;
+
+    /// <summary>HTTP reason phrase as sent.</summary>
+    public string ResponseReason { get; init; } = "OK";
+
+    /// <summary>
+    /// The advertised lifetime from <c>CACHE-CONTROL: max-age</c>, or
+    /// <see langword="null"/> when the sender announced none.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="TimeSpan.Zero"/> and <see langword="null"/> mean different things
+    /// and call for opposite handling: zero is a device asking to be expired now,
+    /// null is a device that said nothing, leaving the lifetime to the consumer's
+    /// own default.
+    /// </remarks>
+    public TimeSpan? MaxAge { get; init; }
+
+    /// <summary>The <c>DATE</c> header value.</summary>
+    /// <remarks><see langword="null"/> when the response carried no <c>DATE</c> header; it is Recommended rather than Required.</remarks>
+    public DateTimeOffset? Date { get; init; }
+
+    /// <summary>The URL of the device description document (<c>LOCATION</c>).</summary>
+    public Uri? Location { get; init; }
+
+    /// <summary>Whether the <c>EXT</c> header was present (required by UDA for responses).</summary>
+    public bool Ext { get; init; } = true;
+
+    /// <summary>The responding device's identity (<c>SERVER</c> header).</summary>
+    public Server Server { get; init; } = new();
+
+    /// <summary>The search target the response answers (<c>ST</c> header).</summary>
+    public ST? ST { get; init; }
+
+    /// <summary>The unique service name of the responding entity (<c>USN</c> header).</summary>
+    public USN? USN { get; init; }
+
+    /// <summary>The responding device's boot instance (<c>BOOTID.UPNP.ORG</c>).</summary>
+    /// <remarks>
+    /// <see langword="null"/> when the response carried no <c>BOOTID.UPNP.ORG</c>,
+    /// which UPnP 1.0 devices do not send. A device that sent <c>0</c> is a
+    /// different thing from one that sent nothing; see <see cref="NLS"/>.
+    /// </remarks>
+    public uint? BOOTID { get; init; }
+
+    /// <summary>The responding device's configuration number (<c>CONFIGID.UPNP.ORG</c>), if any.</summary>
+    public int? CONFIGID { get; init; }
+
+    /// <summary>
+    /// The port for unicast search (<c>SEARCHPORT.UPNP.ORG</c>) as sent.
+    /// </summary>
+    /// <remarks>
+    /// An <see cref="int"/> rather than a <see cref="DynamicPort"/>: UDA 2.0
+    /// restricts the value to 49152-65535, but a device that ignores that still
+    /// gets reported here rather than having its response dropped.
+    /// </remarks>
+    public int? SEARCHPORT { get; init; }
+
+    /// <summary>The HTTPS description URL (<c>SECURELOCATION.UPNP.ORG</c>), if any.</summary>
+    public string? SECURELOCATION { get; init; }
+
+    /// <summary>
+    /// The UPnP 1.0 Network Location Signature (<c>NLS</c>), when the responder
+    /// carried one. It serves the purpose <see cref="BOOTID"/> later took over:
+    /// the value changes when the device reboots. Opaque - implementations have
+    /// used both integers and GUID-shaped strings - and advisory only, since it
+    /// is not a UDA-normative header.
+    /// </summary>
+    public string? NLS { get; init; }
+
+    /// <summary>Additional vendor-specific headers.</summary>
+    public IReadOnlyDictionary<string, string> Headers { get; init; } =
+        FrozenDictionary<string, string>.Empty;
+
+    /// <summary>
+    /// The message exactly as it arrived, before parsing or header normalization,
+    /// when raw capture is enabled on the receiving control point. Empty otherwise,
+    /// and always empty for messages received over TCP.
+    /// </summary>
+    public ReadOnlyMemory<byte> RawMessage { get; init; }
+
+    /// <summary>The local endpoint the response arrived on.</summary>
+    public IPEndPoint? LocalIpEndPoint { get; init; }
+
+    /// <summary>The responder's endpoint.</summary>
+    public IPEndPoint? RemoteIpEndPoint { get; init; }
+
+    /// <summary>Whether the underlying HTTP parser flagged errors in the received message.</summary>
+    public bool HasParsingError { get; init; }
+}

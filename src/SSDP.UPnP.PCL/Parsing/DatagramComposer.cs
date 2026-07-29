@@ -12,64 +12,81 @@ namespace SSDP.UPnP.PCL.Parsing;
 public static class DatagramComposer
 {
     /// <summary>
-    /// Composes an M-SEARCH request datagram.
+    /// Composes an M-SEARCH request datagram, multicast or unicast.
     /// </summary>
+    /// <remarks>
+    /// The two forms carry different header sets, and which one you get is decided
+    /// by the type rather than by a flag: UDA 2.0 section 1.3.2 gives unicast search
+    /// its own message format, without <c>MX</c>, <c>CPFN</c> or <c>TCPPORT</c>.
+    /// </remarks>
     /// <param name="request">The request to compose; its <see cref="MSearchRequest.ST"/> must be fully specified.</param>
-    /// <exception cref="SSDPException">
-    /// The search target is not fully specified, or a multicast request has an MX
-    /// below 1 second (UDA 2.0 requires <c>MX &gt;= 1</c>; compliant devices
-    /// silently discard such requests).
-    /// </exception>
+    /// <exception cref="SSDPException">The search target is not fully specified, or a multicast request has an empty CPFN.</exception>
     public static byte[] ComposeMSearchRequest(MSearchRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         var builder = new StringBuilder();
 
         builder.Append("M-SEARCH * HTTP/1.1\r\n");
 
-        builder.Append(request.TransportType == TransportType.Multicast
-            ? $"{SsdpHeaders.Host}: {Constants.UdpSSDPMultiCastAddress}:{Constants.UdpSSDPMulticastPort}\r\n"
-            : $"{SsdpHeaders.Host}: {request.HOST}\r\n");
-
-        builder.Append($"{SsdpHeaders.Man}: \"ssdp:discover\"\r\n");
-
-        if (request.TransportType == TransportType.Multicast)
+        switch (request)
         {
-            if (request.MX < TimeSpan.FromSeconds(1))
-            {
-                throw new SSDPException("A multicast M-SEARCH requires an MX of at least 1 second (UDA 2.0 section 1.3.2).");
-            }
-
-            builder.Append($"{SsdpHeaders.Mx}: {(int)request.MX.TotalSeconds}\r\n");
-        }
-
-        builder.Append($"{SsdpHeaders.St}: {request.ST.ToSearchTargetString()}\r\n");
-        builder.Append($"{SsdpHeaders.UserAgent}: {request.UserAgent.ToHeaderString()}\r\n");
-
-        if (request.TransportType == TransportType.Multicast)
-        {
-            builder.Append($"{SsdpHeaders.Cpfn}: {request.CPFN}\r\n");
-
-            AppendOptional(builder, SsdpHeaders.Cpuuid, request.CPUUID);
-            AppendOptional(builder, SsdpHeaders.TcpPort, request.TCPPORT?.ToString());
-
-            AppendVendorHeaders(builder, request.Headers);
+            case MulticastMSearch multicast:
+                ComposeMulticastMSearch(builder, multicast);
+                break;
+            case UnicastMSearch unicast:
+                ComposeUnicastMSearch(builder, unicast);
+                break;
+            default:
+                // Unreachable: the hierarchy is closed by a private protected
+                // constructor, so there is no third case to forget.
+                throw new SSDPException($"Unknown M-SEARCH request type: {request.GetType().Name}.");
         }
 
         return Terminate(builder);
+    }
+
+    private static void ComposeMulticastMSearch(StringBuilder builder, MulticastMSearch request)
+    {
+        // CPFN is Required for multicast search (UDA 2.0 section 1.3.2). The type
+        // makes forgetting it impossible; this catches setting it to nothing, which
+        // would put a blank required header on the wire.
+        if (string.IsNullOrWhiteSpace(request.CPFN))
+        {
+            throw new SSDPException(
+                "A multicast M-SEARCH requires a non-empty CPFN.UPNP.ORG (UDA 2.0 section 1.3.2).");
+        }
+
+        builder.Append($"{SsdpHeaders.Host}: {Constants.UdpSSDPMultiCastAddress}:{Constants.UdpSSDPMulticastPort}\r\n");
+        builder.Append($"{SsdpHeaders.Man}: \"ssdp:discover\"\r\n");
+        builder.Append($"{SsdpHeaders.Mx}: {request.MX.Seconds}\r\n");
+        builder.Append($"{SsdpHeaders.St}: {request.ST.ToSearchTargetString()}\r\n");
+        builder.Append($"{SsdpHeaders.UserAgent}: {request.UserAgent.ToHeaderString()}\r\n");
+        builder.Append($"{SsdpHeaders.Cpfn}: {request.CPFN}\r\n");
+
+        AppendOptional(builder, SsdpHeaders.Cpuuid, request.CPUUID);
+        AppendOptional(builder, SsdpHeaders.TcpPort, request.TCPPORT?.ToString());
+
+        AppendVendorHeaders(builder, request.Headers);
+    }
+
+    private static void ComposeUnicastMSearch(StringBuilder builder, UnicastMSearch request)
+    {
+        builder.Append($"{SsdpHeaders.Host}: {request.Host}\r\n");
+        builder.Append($"{SsdpHeaders.Man}: \"ssdp:discover\"\r\n");
+        builder.Append($"{SsdpHeaders.St}: {request.ST.ToSearchTargetString()}\r\n");
+        builder.Append($"{SsdpHeaders.UserAgent}: {request.UserAgent.ToHeaderString()}\r\n");
     }
 
     /// <summary>
     /// Composes an M-SEARCH response datagram. The <c>DATE</c> header is taken from
     /// <see cref="MSearchResponse.Date"/>.
     /// </summary>
-    /// <param name="response">The response to compose; <see cref="MSearchResponse.ST"/> and <see cref="MSearchResponse.USN"/> must be set.</param>
-    /// <exception cref="SSDPException">The search target or USN is missing or not fully specified.</exception>
+    /// <param name="response">The response to compose.</param>
+    /// <exception cref="SSDPException">The search target or USN is not fully specified.</exception>
     public static byte[] ComposeMSearchResponse(MSearchResponse response)
     {
-        if (response.ST is null || response.USN is null)
-        {
-            throw new SSDPException("An M-SEARCH response requires both ST and USN to be specified.");
-        }
+        ArgumentNullException.ThrowIfNull(response);
 
         var builder = new StringBuilder();
 
@@ -103,14 +120,11 @@ public static class DatagramComposer
     /// notification sub type: alive carries cache control, location and server;
     /// update carries location and NEXTBOOTID; byebye carries neither.
     /// </summary>
-    /// <param name="notify">The notification to compose; <see cref="Notify.USN"/> must be set.</param>
-    /// <exception cref="SSDPException">The USN is missing or not fully specified.</exception>
+    /// <param name="notify">The notification to compose.</param>
+    /// <exception cref="SSDPException">The USN is not fully specified.</exception>
     public static byte[] ComposeNotify(Notify notify)
     {
-        if (notify.USN is null)
-        {
-            throw new SSDPException("A NOTIFY message requires a USN to be specified.");
-        }
+        ArgumentNullException.ThrowIfNull(notify);
 
         var builder = new StringBuilder();
 
@@ -150,10 +164,7 @@ public static class DatagramComposer
 
         if (notify.NTS is NTS.Alive or NTS.Update)
         {
-            if (notify.SEARCHPORT is > 0 && notify.SEARCHPORT != Constants.UdpSSDPMulticastPort)
-            {
-                AppendOptional(builder, SsdpHeaders.SearchPort, notify.SEARCHPORT?.ToString());
-            }
+            AppendOptional(builder, SsdpHeaders.SearchPort, notify.SEARCHPORT?.ToString());
 
             AppendOptional(builder, SsdpHeaders.SecureLocation, notify.SECURELOCATION);
         }
