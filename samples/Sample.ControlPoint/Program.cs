@@ -68,6 +68,13 @@ var seen = new ConcurrentDictionary<string, Advertiser>(StringComparer.OrdinalIg
 var droppedUuids = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 var dropped = 0;
 
+// Counted apart from advertisements on purpose. NOTIFY is multicast, so every
+// socket joined to the group gets a copy; a search response is unicast back to
+// the port the search went out from, so exactly one process gets each one. That
+// asymmetry is the whole diagnosis when advertisements arrive and replies do not,
+// and it is invisible if both are counted together.
+var replies = 0;
+
 // No start step: the first subscription binds the sockets and starts listening;
 // disposing the last one stops it.
 using var notifies = controlPoint.NotifyObservable()
@@ -160,6 +167,35 @@ await controlPoint.SendMSearchAsync(
 // network is quiet. Advertisements keep arriving after this either way.
 await Task.Delay(TimeSpan.FromSeconds(8), TimeProvider.System);
 
+// Advertisements arriving while the search gets nothing back is a specific
+// failure with a specific cause, and it used to look like success because the
+// device list was not empty.
+if (!seen.IsEmpty && Volatile.Read(ref replies) is 0)
+{
+    WriteLine(ConsoleColor.Yellow, """
+        Advertisements are arriving, but nothing answered the search. The two travel
+        differently, and that asymmetry is the whole diagnosis:
+          - NOTIFY is multicast, so every socket joined to the group gets a copy.
+          - A search response is unicast back to the address and port the search went
+            out from, so it has to be routed to exactly this process.
+        Anything that forwards multicast but cannot route the unicast reply back
+        produces precisely this. Two common causes:
+          - A virtual machine on NAT networking (Parallels "Shared", VMware NAT,
+            Hyper-V default switch). Multicast reaches the guest; the unicast reply
+            comes back to the host and has no mapping for the return trip. Switch the
+            VM to bridged networking so the guest holds a real address on the LAN.
+            Note that "tcp" mode below does NOT help here and usually makes it worse:
+            the device opens an inbound connection to this host, which NAT blocks.
+          - On Windows, the "SSDP Discovery" service (SSDPSRV) holds UDP 1900, the
+            same port the reply comes back to, and can consume it. Pause it while
+            discovering (elevated prompt): net stop SSDPSRV - resume after:
+            net start SSDPSRV
+            On a real (non-NAT) network, "tcp" mode side-steps the shared port
+            entirely: dotnet run --project samples/Sample.ControlPoint -- tcp
+        """);
+    Console.WriteLine();
+}
+
 if (seen.IsEmpty)
 {
     WriteLine(ConsoleColor.Yellow, """
@@ -220,6 +256,8 @@ void OnResponse(ReceivedMSearchResponse response)
         return;
     }
 
+    Interlocked.Increment(ref replies);
+
     var advertiser = Remember(usn, response.Location?.AbsoluteUri, response.Server, response.MaxAge, response.BOOTID);
 
     PrintEvent(ConsoleColor.DarkCyan, $"reply/{Transport(response.TransportType)}", usn, response.RemoteIpEndPoint, advertiser.Location);
@@ -277,7 +315,9 @@ void PrintSummary()
     Write(ConsoleColor.Cyan, $"{byDevice.Count}");
     Console.Write(" device(s), ");
     Write(ConsoleColor.Cyan, $"{seen.Count}");
-    Console.Write(" advertisement(s)");
+    Console.Write(" advertisement(s), ");
+    Write(Volatile.Read(ref replies) is 0 ? ConsoleColor.Yellow : ConsoleColor.Cyan, $"{Volatile.Read(ref replies)}");
+    Console.Write(" search repl(ies)");
 
     var lost = Volatile.Read(ref dropped);
 

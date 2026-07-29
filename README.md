@@ -545,6 +545,7 @@ Both samples accept an explicit IP address as the first argument. Notes for same
 - **Or use TCP responses**: `dotnet run --project samples/Sample.ControlPoint -- tcp` asks devices to answer over a reliable TCP connection (`TCPPORT.UPNP.ORG`), which side-steps the shared-port ambiguity entirely.
 - **To see the bytes**: add `raw` to capture each datagram as sent and print the ones that fail to parse.
 - **Multicast does not work in Docker, WSL or a devcontainer.** Run the samples on the host; the control point says so itself if nothing answers.
+- **A VM on NAT networking sees advertisements but no search replies.** `NOTIFY` is multicast and reaches the guest; a search response is unicast back to the address the search came from, and NAT has no mapping for the return trip. Switch the VM to bridged networking. `tcp` mode does not help here - it makes it worse, since the device then opens an *inbound* connection that NAT blocks.
 - Across two machines on the same LAN, no precautions are needed - start them in any order.
 - On Windows, stop the built-in *SSDP Discovery* service first; it intercepts the multicasts.
 
