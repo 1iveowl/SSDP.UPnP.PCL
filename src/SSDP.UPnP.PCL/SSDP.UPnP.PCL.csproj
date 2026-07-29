@@ -31,12 +31,20 @@
        every consumer's reference graph and shows up in Visual Studio as a broken
        reference. ReferenceOutputAssembly="false" keeps the analyzer out of the
        compile, PrivateAssets="all" keeps it out of the nuspec, and
-       OutputItemType="Analyzer" is what makes the library analyse its own code. -->
-  <ItemGroup>
+       OutputItemType="Analyzer" is what makes the library analyse its own code.
+
+       Skipped when publishing native AOT, because the implicit restore that
+       "dotnet publish" runs propagates PublishAot into these netstandard2.0
+       projects as a global property that UndefineProperties cannot strip from a
+       restore graph. Packing never happens under PublishAot, so the analyzers still
+       reach the package. -->
+  <ItemGroup Condition="'$(PublishAot)' != 'true'">
     <ProjectReference Include="../SSDP.UPnP.PCL.Analyzers/SSDP.UPnP.PCL.Analyzers.csproj"
-                      PrivateAssets="all" ReferenceOutputAssembly="false" OutputItemType="Analyzer" />
+                      PrivateAssets="all" ReferenceOutputAssembly="false" OutputItemType="Analyzer"
+                      UndefineProperties="PublishAot;PublishTrimmed;PublishReadyToRun;SelfContained;RuntimeIdentifier" />
     <ProjectReference Include="../SSDP.UPnP.PCL.Analyzers.CodeFixes/SSDP.UPnP.PCL.Analyzers.CodeFixes.csproj"
-                      PrivateAssets="all" ReferenceOutputAssembly="false" />
+                      PrivateAssets="all" ReferenceOutputAssembly="false"
+                      UndefineProperties="PublishAot;PublishTrimmed;PublishReadyToRun;SelfContained;RuntimeIdentifier" />
   </ItemGroup>
 
   <ItemGroup>

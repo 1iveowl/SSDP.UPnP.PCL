@@ -12,10 +12,19 @@
   <!-- Analyzer assets do not cross a ProjectReference edge from an analyzer
        *project*: in-repo consumers take the library by project reference and never
        see the packed analyzers/dotnet/cs folder. Without this, this project is
-       silently unanalysed. -->
-  <ItemGroup>
+       silently unanalysed.
+
+       Skipped when publishing native AOT. The analyzers are netstandard2.0 - they
+       run in the compiler, never in the app - and the implicit restore that
+       "dotnet publish" performs propagates PublishAot into them as a global
+       property, which UndefineProperties cannot remove from a restore graph. The
+       analysis has already happened by then, so there is nothing to lose. Consumers
+       of the NuGet package are unaffected either way: package analyzers are not
+       projects. -->
+  <ItemGroup Condition="'$(PublishAot)' != 'true'">
     <ProjectReference Include="../../src/SSDP.UPnP.PCL.Analyzers/SSDP.UPnP.PCL.Analyzers.csproj"
-                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"
+                      UndefineProperties="PublishAot;PublishTrimmed;PublishReadyToRun;SelfContained;RuntimeIdentifier" />
   </ItemGroup>
 
 </Project>
