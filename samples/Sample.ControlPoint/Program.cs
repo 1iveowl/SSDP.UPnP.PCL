@@ -175,23 +175,38 @@ if (!seen.IsEmpty && Volatile.Read(ref replies) is 0)
     WriteLine(ConsoleColor.Yellow, """
         Advertisements are arriving, but nothing answered the search. The two travel
         differently, and that asymmetry is the whole diagnosis:
-          - NOTIFY is multicast, so every socket joined to the group gets a copy.
-          - A search response is unicast back to the address and port the search went
-            out from, so it has to be routed to exactly this process.
-        Anything that forwards multicast but cannot route the unicast reply back
-        produces precisely this. Two common causes:
-          - A virtual machine on NAT networking (Parallels "Shared", VMware NAT,
-            Hyper-V default switch). Multicast reaches the guest; the unicast reply
-            comes back to the host and has no mapping for the return trip. Switch the
-            VM to bridged networking so the guest holds a real address on the LAN.
-            Note that "tcp" mode below does NOT help here and usually makes it worse:
-            the device opens an inbound connection to this host, which NAT blocks.
-          - On Windows, the "SSDP Discovery" service (SSDPSRV) holds UDP 1900, the
-            same port the reply comes back to, and can consume it. Pause it while
-            discovering (elevated prompt): net stop SSDPSRV - resume after:
-            net start SSDPSRV
-            On a real (non-NAT) network, "tcp" mode side-steps the shared port
-            entirely: dotnet run --project samples/Sample.ControlPoint -- tcp
+          - NOTIFY is multicast. It is flooded to every station on the link and
+            delivered to every socket joined to the group, so it is hard to lose.
+          - A search response is unicast, back to the address and port the search
+            left from. It has to be addressed to this host, allowed in, and handed
+            to this process rather than another one.
+        Anything that breaks only the second produces exactly this. In rough order
+        of how often it is the answer:
+
+          1. On Windows, the "SSDP Discovery" service (SSDPSRV) holds UDP 1900 - the
+             same port the reply arrives on - and can take it instead. Pause it
+             (elevated): net stop SSDPSRV   resume after: net start SSDPSRV
+
+          2. A firewall dropping unsolicited inbound UDP. A device replies from its
+             own ephemeral port, so the reply does not match the outbound multicast
+             as a "solicited" response and stateful rules will not let it through.
+             Allow inbound UDP 1900 for this process, or test with the firewall off.
+
+          3. A VM bridged over Wi-Fi. Multicast is flooded and reaches the guest,
+             but unicast to the guest's own MAC needs the access point to accept a
+             second MAC behind one radio, which many do not. Bridge over Ethernet,
+             or run on the host, to rule this out.
+
+          4. A VM on NAT networking (Parallels "Shared", VMware NAT, Hyper-V default
+             switch): multicast reaches the guest, the unicast reply reaches the host
+             with no mapping back. Switch to bridged.
+
+        A quick way to split these: run with "tcp".
+          dotnet run --project samples/Sample.ControlPoint -- tcp
+        That asks devices to answer over TCP on port 51900 instead of UDP 1900. If
+        replies appear, cause 1 was it. If they still do not, it is 2, 3 or 4 - all
+        of which block the inbound path regardless of protocol. Do not use it to
+        diagnose a NAT setup, where it fails for its own reasons.
         """);
     Console.WriteLine();
 }
