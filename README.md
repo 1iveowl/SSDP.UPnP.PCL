@@ -7,6 +7,7 @@
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![System.Reactive](https://img.shields.io/badge/Rx-7.0-ff69b4.svg)](https://reactivex.io/)
 [![UPnP](https://img.shields.io/badge/UPnP%20Device%20Architecture-2.0-2563EB.svg)](http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v2.0.pdf)
+[![Native AOT](https://img.shields.io/badge/Native%20AOT-compatible-success.svg)](#native-aot-and-trimming)
 
 An Rx-based SSDP library for discovering and advertising UPnP Device Architecture 2.0 devices and services.
 
@@ -119,6 +120,32 @@ becomes `ReceivedMSearchResponse`. Every property you were reading is still ther
   backed by publishing a sample to a native binary and running it, not just by the analyzers
   staying quiet.
 - **Three analyzers ship in the package** - see below.
+
+## Native AOT and trimming
+
+The library is annotated `IsTrimmable` and `IsAotCompatible`, so a consuming app can publish with
+`PublishAot` or `PublishTrimmed` and get no `IL` warnings from this package.
+
+```xml
+<PublishAot>true</PublishAot>
+```
+
+The annotation is backed by publishing and running, not by the analyzers staying quiet. The device
+sample was published to a native binary and executed: it binds the multicast socket, stamps
+BOOTID, composes the advertisement set and sends it. Whole-graph `PublishTrimmed` reports nothing
+either, and the trimming demonstrably happens - `System.Reactive.dll` goes from 1,387,984 bytes to
+70,144 in a trimmed publish.
+
+There is no reflection to trim away in the first place: parsing and composition are hand-written
+over text headers, so there is no `Type.GetType`, no serializer and no `Expression.Compile`
+anywhere in the library.
+
+Two caveats worth stating plainly. This says nothing about *your* code or your other
+dependencies - trimming is a whole-app property. And the compatible ones here are this library,
+[System.Reactive](https://www.nuget.org/packages/System.Reactive) and
+[SimpleHttpListener.Rx](https://www.nuget.org/packages/SimpleHttpListener.Rx), all of which carry
+the trim annotation. The [analyzers](#analyzers) are irrelevant to it either way: they run in the
+compiler and never reach your output.
 
 ## Analyzers
 
