@@ -211,7 +211,7 @@ public class SearchMatcherTests
         Assert.Equal(200u, response.BOOTID);
         Assert.Equal(9, response.CONFIGID);
         Assert.Equal(1901, response.SEARCHPORT);
-        Assert.Equal(Root.CacheControl, response.CacheControl);
+        Assert.Equal(Root.CacheControl, response.MaxAge);
         Assert.Equal(Root.Location, response.Location);
         Assert.Equal(date, response.Date);
         Assert.Equal(request.RemoteIpEndPoint, response.RemoteIpEndPoint);

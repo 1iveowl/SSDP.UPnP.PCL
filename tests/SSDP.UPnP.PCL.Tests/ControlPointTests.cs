@@ -166,7 +166,7 @@ public class ControlPointTests
         subject.OnNext(NotifyMessage("ssdp:alive"));
 
         var response = Assert.Single(received);
-        Assert.Equal(TimeSpan.FromSeconds(1800), response.CacheControl);
+        Assert.Equal(TimeSpan.FromSeconds(1800), response.MaxAge);
         Assert.Equal("device-1", response.USN?.DeviceUUID);
         Assert.Equal(STType.RootDeviceSearch, response.ST?.StSearchType);
     }

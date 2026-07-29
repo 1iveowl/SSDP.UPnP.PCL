@@ -2,8 +2,6 @@
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
-    <!-- Tests exercise CacheControl through its deprecation cycle, on purpose. -->
-    <NoWarn>$(NoWarn);CS0618</NoWarn>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 

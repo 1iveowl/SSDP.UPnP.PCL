@@ -622,9 +622,6 @@ public class Device : IDevice
                 NotifyTransportType = TransportType.Multicast,
                 HOST = Constants.SsdpMulticastHost,
                 MaxAge = root.CacheControl,
-#pragma warning disable CS0618 // Obsolete but still carried until the next major.
-                CacheControl = root.CacheControl,
-#pragma warning restore CS0618
                 Location = root.Location,
                 NT = message.Entity.ToUriString(),
                 NTS = nts,

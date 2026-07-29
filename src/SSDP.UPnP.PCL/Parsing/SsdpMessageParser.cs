@@ -23,9 +23,6 @@ namespace SSDP.UPnP.PCL.Parsing;
 /// </remarks>
 public static class SsdpMessageParser
 {
-    // CacheControl is obsolete but still carried until the next major, so the
-    // parser keeps filling it alongside MaxAge.
-#pragma warning disable CS0618
     // RFC 2774 namespace declared by UPnP 1.0 devices carrying the NLS header.
     private const string UpnpExtensionNamespace = "http://schemas.upnp.org/upnp/1/0/";
 
@@ -157,7 +154,6 @@ public static class SsdpMessageParser
             StatusCode = response.StatusCode,
             ResponseReason = response.ReasonPhrase ?? string.Empty,
             MaxAge = ToMaxAge(maxAge),
-            CacheControl = TimeSpan.FromSeconds(maxAge ?? 0),
             Date = ParseRfc1123Date(GetHeaderValue(response.Headers, SsdpHeaders.Date)),
             NLS = ParseNls(response.Headers),
             Location = ParseUri(GetHeaderValue(response.Headers, SsdpHeaders.Location)),
@@ -193,7 +189,6 @@ public static class SsdpMessageParser
             NotifyTransportType = ToTransportType(request.Transport),
             HOST = GetHeaderValue(request.Headers, SsdpHeaders.Host),
             MaxAge = ToMaxAge(maxAge),
-            CacheControl = TimeSpan.FromSeconds(maxAge ?? 0),
             Location = ParseUri(GetHeaderValue(request.Headers, SsdpHeaders.Location)),
             NT = GetHeaderValue(request.Headers, SsdpHeaders.Nt),
             NTS = NTSExtensions.ToNTS(GetHeaderValue(request.Headers, SsdpHeaders.Nts)),
@@ -482,4 +477,3 @@ public static class SsdpMessageParser
     private static Uri? ParseUri(string? url) =>
         Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri : null;
 }
-#pragma warning restore CS0618

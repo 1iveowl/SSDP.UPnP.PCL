@@ -35,17 +35,6 @@ public record DeviceInfo
     /// </summary>
     public int? UpnpMinorVersion { get; init; }
 
-    /// <summary>Whether the sender declared UPnP 2.x support.</summary>
-    /// <remarks>
-    /// Misleading for version checks: it is false for UDA 1.1 devices, which are
-    /// not 1.0 and do send <c>BOOTID.UPNP.ORG</c>. Prefer
-    /// <see cref="SupportsAtLeast"/>, or compare
-    /// <see cref="UpnpMajorVersion"/>/<see cref="UpnpMinorVersion"/> directly.
-    /// </remarks>
-    [Obsolete("Use SupportsAtLeast, or compare UpnpMajorVersion/UpnpMinorVersion. " +
-              "IsUpnp2 is false for UDA 1.1 senders, which is rarely the question being asked.")]
-    public bool IsUpnp2 => UpnpMajorVersion >= 2;
-
     /// <summary>
     /// Whether the sender declared an architecture version of at least
     /// <paramref name="major"/>.<paramref name="minor"/>. A sender that declared no

@@ -1,0 +1,5 @@
+*REMOVED*SSDP.UPnP.PCL.Model.DeviceInfo.IsUpnp2.get -> bool
+*REMOVED*SSDP.UPnP.PCL.Model.MSearchResponse.CacheControl.get -> System.TimeSpan
+*REMOVED*SSDP.UPnP.PCL.Model.MSearchResponse.CacheControl.init -> void
+*REMOVED*SSDP.UPnP.PCL.Model.Notify.CacheControl.get -> System.TimeSpan
+*REMOVED*SSDP.UPnP.PCL.Model.Notify.CacheControl.init -> void

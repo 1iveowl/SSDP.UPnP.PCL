@@ -85,7 +85,7 @@ public class DatagramComposerTests
         {
             StatusCode = 200,
             ResponseReason = "OK",
-            CacheControl = TimeSpan.FromSeconds(1800),
+            MaxAge = TimeSpan.FromSeconds(1800),
             Date = new DateTimeOffset(2026, 7, 22, 10, 0, 0, TimeSpan.Zero),
             Location = new Uri("http://192.168.0.10/description.xml"),
             Server = new Server
@@ -132,7 +132,7 @@ public class DatagramComposerTests
         var notify = new Notify
         {
             NTS = NTS.Alive,
-            CacheControl = TimeSpan.FromSeconds(1800),
+            MaxAge = TimeSpan.FromSeconds(1800),
             Location = new Uri("http://192.168.0.10/description.xml"),
             NT = "upnp:rootdevice",
             Server = new Server { OperatingSystem = "Linux", OperatingSystemVersion = "6.1", ProductName = "Test", ProductVersion = "1.0" },
@@ -162,7 +162,7 @@ public class DatagramComposerTests
         var notify = new Notify
         {
             NTS = NTS.ByeBye,
-            CacheControl = TimeSpan.FromSeconds(1800),
+            MaxAge = TimeSpan.FromSeconds(1800),
             Location = new Uri("http://192.168.0.10/description.xml"),
             NT = "uuid:device-1",
             Server = new Server(),
@@ -199,26 +199,34 @@ public class DatagramComposerTests
         Assert.DoesNotContain(lines, line => line.StartsWith("CACHE-CONTROL:"));
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void ComposeNotify_TakesMaxAgeFromEitherProperty(bool useMaxAge)
+    [Fact]
+    public void ComposeNotify_TakesTheAdvertisedLifetimeFromMaxAge()
     {
-        // MaxAge is the property to set; CacheControl keeps working until the next
-        // major removes it. Both must produce the same header.
-        var notify = new Notify
-        {
-            NTS = NTS.Alive,
-            MaxAge = useMaxAge ? TimeSpan.FromSeconds(1800) : null,
-            CacheControl = useMaxAge ? TimeSpan.Zero : TimeSpan.FromSeconds(1800),
-            Location = new Uri("http://192.168.0.10/description.xml"),
-            NT = "upnp:rootdevice",
-            Server = new Server(),
-            USN = new USN { EntityType = EntityType.RootDevice, DeviceUUID = "device-1" }
-        };
+        var notify = AliveNotifyWith(TimeSpan.FromSeconds(1800));
 
         Assert.Contains("CACHE-CONTROL: max-age=1800", HeaderLines(DatagramComposer.ComposeNotify(notify)));
     }
+
+    [Fact]
+    public void ComposeNotify_WithoutMaxAge_StillCarriesTheRequiredHeader()
+    {
+        // CACHE-CONTROL is Required on ssdp:alive (UDA 2.0 section 1.2.2), so a
+        // notification that announces no lifetime emits zero rather than omitting
+        // the header and composing a non-conforming message.
+        var notify = AliveNotifyWith(maxAge: null);
+
+        Assert.Contains("CACHE-CONTROL: max-age=0", HeaderLines(DatagramComposer.ComposeNotify(notify)));
+    }
+
+    private static Notify AliveNotifyWith(TimeSpan? maxAge) => new()
+    {
+        NTS = NTS.Alive,
+        MaxAge = maxAge,
+        Location = new Uri("http://192.168.0.10/description.xml"),
+        NT = "upnp:rootdevice",
+        Server = new Server(),
+        USN = new USN { EntityType = EntityType.RootDevice, DeviceUUID = "device-1" }
+    };
 
     [Fact]
     public void ComposeNotify_WithoutUsn_Throws()

@@ -188,7 +188,7 @@ public class SsdpMessageParserTests
         Assert.True(result.IsSuccess);
 
         var response = result.Value;
-        Assert.Equal(TimeSpan.FromSeconds(1800), response.CacheControl);
+        Assert.Equal(TimeSpan.FromSeconds(1800), response.MaxAge);
         Assert.Equal(new DateTimeOffset(2026, 7, 22, 10, 0, 0, TimeSpan.Zero), response.Date);
         Assert.True(response.Ext);
         Assert.Equal(new Uri("http://192.168.0.20/description.xml"), response.Location);
@@ -289,10 +289,6 @@ public class SsdpMessageParserTests
 
         Assert.Equal(TimeSpan.Zero, saidZero.Value.MaxAge);
         Assert.Null(saidNothing.Value.MaxAge);
-
-        // The obsolete property cannot tell them apart, which is why it is obsolete.
-        Assert.Equal(TimeSpan.Zero, saidZero.Value.CacheControl);
-        Assert.Equal(TimeSpan.Zero, saidNothing.Value.CacheControl);
     }
 
     [Fact]
@@ -349,7 +345,7 @@ public class SsdpMessageParserTests
         var result = SsdpMessageParser.ParseMSearchResponse(message);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(TimeSpan.FromSeconds(1800), result.Value.CacheControl);
+        Assert.Equal(TimeSpan.FromSeconds(1800), result.Value.MaxAge);
     }
 
     [Theory]
@@ -516,7 +512,7 @@ public class SsdpMessageParserTests
         var response = result.Value;
         Assert.Null(response.BOOTID);
         Assert.Equal("1785066224", response.NLS);
-        Assert.Equal(TimeSpan.FromSeconds(66), response.CacheControl);
+        Assert.Equal(TimeSpan.FromSeconds(66), response.MaxAge);
         Assert.Equal(new Uri("http://192.168.0.217:16422"), response.Location);
         Assert.Equal("bf3f7ffd-777e-4f76-bfb8-b7ff6be2befe", response.USN?.DeviceUUID);
         Assert.False(response.HasParsingError);

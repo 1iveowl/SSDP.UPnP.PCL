@@ -33,11 +33,6 @@ public sealed record MSearchResponse
     /// </remarks>
     public TimeSpan? MaxAge { get; init; }
 
-    /// <summary>Advertisement validity (<c>CACHE-CONTROL: max-age</c>).</summary>
-    [Obsolete("Use MaxAge; CacheControl cannot express an absent CACHE-CONTROL, " +
-              "reporting both 'the device said max-age=0' and 'the device said nothing' as zero.")]
-    public TimeSpan CacheControl { get; init; }
-
     /// <summary>The <c>DATE</c> header value.</summary>
     /// <remarks><see langword="null"/> when the response carried no <c>DATE</c> header; it is Recommended rather than Required.</remarks>
     public DateTimeOffset? Date { get; init; }
