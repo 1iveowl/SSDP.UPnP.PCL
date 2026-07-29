@@ -19,4 +19,13 @@
     <ProjectReference Include="..\..\src\SSDP.UPnP.PCL\SSDP.UPnP.PCL.csproj" />
   </ItemGroup>
 
+  <!-- Analyzer assets do not cross a ProjectReference edge from an analyzer
+       *project*: in-repo consumers take the library by project reference and never
+       see the packed analyzers/dotnet/cs folder. Without this, this project is
+       silently unanalysed. -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/SSDP.UPnP.PCL.Analyzers/SSDP.UPnP.PCL.Analyzers.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
 </Project>

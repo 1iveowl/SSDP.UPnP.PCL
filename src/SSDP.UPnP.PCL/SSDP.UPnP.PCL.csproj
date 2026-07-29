@@ -26,6 +26,26 @@
     <InternalsVisibleTo Include="SSDP.UPnP.PCL.Tests" />
   </ItemGroup>
 
+  <!-- The analyzers ship inside this package rather than beside it. A separate
+       package would need a dependency edge, which puts the analyzer project into
+       every consumer's reference graph and shows up in Visual Studio as a broken
+       reference. ReferenceOutputAssembly="false" keeps the analyzer out of the
+       compile, PrivateAssets="all" keeps it out of the nuspec, and
+       OutputItemType="Analyzer" is what makes the library analyse its own code. -->
+  <ItemGroup>
+    <ProjectReference Include="../SSDP.UPnP.PCL.Analyzers/SSDP.UPnP.PCL.Analyzers.csproj"
+                      PrivateAssets="all" ReferenceOutputAssembly="false" OutputItemType="Analyzer" />
+    <ProjectReference Include="../SSDP.UPnP.PCL.Analyzers.CodeFixes/SSDP.UPnP.PCL.Analyzers.CodeFixes.csproj"
+                      PrivateAssets="all" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../SSDP.UPnP.PCL.Analyzers/bin/$(Configuration)/netstandard2.0/SSDP.UPnP.PCL.Analyzers.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="../SSDP.UPnP.PCL.Analyzers.CodeFixes/bin/$(Configuration)/netstandard2.0/SSDP.UPnP.PCL.Analyzers.CodeFixes.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+
   <ItemGroup>
     <AdditionalFiles Include="PublicAPI.Shipped.txt" />
     <AdditionalFiles Include="PublicAPI.Unshipped.txt" />

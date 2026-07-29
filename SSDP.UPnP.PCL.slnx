@@ -1,9 +1,12 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/SSDP.UPnP.PCL/SSDP.UPnP.PCL.csproj" />
+    <Project Path="src/SSDP.UPnP.PCL.Analyzers/SSDP.UPnP.PCL.Analyzers.csproj" />
+    <Project Path="src/SSDP.UPnP.PCL.Analyzers.CodeFixes/SSDP.UPnP.PCL.Analyzers.CodeFixes.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/SSDP.UPnP.PCL.Tests/SSDP.UPnP.PCL.Tests.csproj" />
+    <Project Path="tests/SSDP.UPnP.PCL.Analyzers.Tests/SSDP.UPnP.PCL.Analyzers.Tests.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/Sample.ControlPoint/Sample.ControlPoint.csproj" />

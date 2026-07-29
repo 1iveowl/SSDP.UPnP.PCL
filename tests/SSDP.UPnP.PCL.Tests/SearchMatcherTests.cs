@@ -16,7 +16,7 @@ public class SearchMatcherTests
         CONFIGID = 9,
         CacheControl = TimeSpan.FromSeconds(1800),
         Location = new Uri("http://192.168.0.10/description.xml"),
-        IpEndPoint = new IPEndPoint(IPAddress.Parse("192.168.0.10"), 1901),
+        IpEndPoint = new IPEndPoint(IPAddress.Parse("192.168.0.10"), 49152),
         Services =
         [
             new ServiceConfiguration { TypeName = "RootService", Version = 1 },

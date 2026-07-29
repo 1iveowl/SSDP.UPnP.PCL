@@ -12,6 +12,15 @@
     <RepositoryUrl>https://github.com/1iveowl/SSDP.UPnP.PCL</RepositoryUrl>
   </PropertyGroup>
 
+  <!-- Shared by the analyzer, the code fixes and their tests. Version drift
+       between the three is a real breakage, so the numbers live in one place. -->
+  <PropertyGroup>
+    <SsdpAnalyzerTargetFramework>netstandard2.0</SsdpAnalyzerTargetFramework>
+    <RoslynVersion>4.8.0</RoslynVersion>
+    <RoslynAnalyzersVersion>3.11.0</RoslynAnalyzersVersion>
+    <CodeAnalysisTestingVersion>1.1.3</CodeAnalysisTestingVersion>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(CI)' == 'true'">
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
