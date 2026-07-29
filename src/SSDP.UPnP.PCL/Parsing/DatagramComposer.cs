@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Text;
 using SSDP.UPnP.PCL.Internal;
 using SSDP.UPnP.PCL.Model;
@@ -25,7 +26,7 @@ public static class DatagramComposer
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var builder = new StringBuilder();
+        var builder = Rent();
 
         builder.Append("M-SEARCH * HTTP/1.1\r\n");
 
@@ -88,7 +89,7 @@ public static class DatagramComposer
     {
         ArgumentNullException.ThrowIfNull(response);
 
-        var builder = new StringBuilder();
+        var builder = Rent();
 
         builder.Append($"HTTP/1.1 {response.StatusCode} {response.ResponseReason}\r\n");
         builder.Append($"{SsdpHeaders.CacheControl}: max-age={(int)MaxAgeOf(response.MaxAge).TotalSeconds}\r\n");
@@ -126,7 +127,7 @@ public static class DatagramComposer
     {
         ArgumentNullException.ThrowIfNull(notify);
 
-        var builder = new StringBuilder();
+        var builder = Rent();
 
         builder.Append("NOTIFY * HTTP/1.1\r\n");
 
@@ -188,7 +189,63 @@ public static class DatagramComposer
     {
         builder.Append("\r\n");
 
-        return Encoding.UTF8.GetBytes(builder.ToString());
+        // ToString() would copy the whole message into a string only for GetBytes
+        // to copy it straight back out again. Going through a pooled char buffer
+        // leaves one allocation - the byte[] the caller gets, which is the only one
+        // that outlives this method.
+        var length = builder.Length;
+        var chars = ArrayPool<char>.Shared.Rent(length);
+
+        try
+        {
+            builder.CopyTo(0, chars, length);
+
+            var text = chars.AsSpan(0, length);
+            var datagram = new byte[Encoding.UTF8.GetByteCount(text)];
+
+            Encoding.UTF8.GetBytes(text, datagram);
+
+            return datagram;
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.Return(chars);
+            Release(builder);
+        }
+    }
+
+    // SSDP datagrams have to fit in a single UDP packet, so a builder that has
+    // grown past that was serving a message the protocol does not allow and is not
+    // worth keeping alive per thread.
+    private const int MaxRetainedBuilderCapacity = 2048;
+
+    [ThreadStatic]
+    private static StringBuilder? _cachedBuilder;
+
+    // One builder per thread rather than one per message. Composition is
+    // straight-line and never re-entrant, so the only way to observe this is
+    // through the allocation count.
+    private static StringBuilder Rent()
+    {
+        var builder = _cachedBuilder;
+
+        if (builder is null)
+        {
+            return new StringBuilder(512);
+        }
+
+        _cachedBuilder = null;
+        builder.Clear();
+
+        return builder;
+    }
+
+    private static void Release(StringBuilder builder)
+    {
+        if (builder.Capacity <= MaxRetainedBuilderCapacity)
+        {
+            _cachedBuilder = builder;
+        }
     }
 
     // CACHE-CONTROL is Required on the messages that carry it (UDA 2.0 section
