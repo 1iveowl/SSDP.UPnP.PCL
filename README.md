@@ -8,6 +8,7 @@
 [![System.Reactive](https://img.shields.io/badge/Rx-7.0-ff69b4.svg)](https://reactivex.io/)
 [![UPnP](https://img.shields.io/badge/UPnP%20Device%20Architecture-2.0-2563EB.svg)](http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v2.0.pdf)
 [![Native AOT](https://img.shields.io/badge/Native%20AOT-compatible-success.svg)](#native-aot-and-trimming)
+[![Analyzers](https://img.shields.io/badge/analyzers-included-8A2BE2.svg)](#analyzers)
 
 An Rx-based SSDP library for discovering and advertising UPnP Device Architecture 2.0 devices and services.
 
@@ -254,7 +255,7 @@ A control point uses this to decide when a device has gone quiet, and the first 
 - **`CacheControl` on those two records is `[Obsolete]`** and will be removed in the next major. It still works, and still populates, so nothing breaks today.
 - `ParseMaxAge` keeps its exact signature and behaviour - it is now literally `TryParseMaxAge(...) ?? 0`, so it cannot drift.
 
-Nothing changes for senders. `RootDeviceConfiguration.CacheControl` stays required and non-nullable, because UDA 2.0 section 1.2.2 requires `CACHE-CONTROL` on every `ssdp:alive`; nullable-on-receive does not become optional-on-send. When composing a message by hand, set `MaxAge` - the composer prefers it and falls back to `CacheControl`, so both spellings emit the identical header. Verified by composing every message kind under 9.0 and 9.1 and diffing: byte-identical.
+Nothing changes for senders. `RootDeviceConfiguration.CacheControl` stays required and non-nullable, because UDA 2.0 section 1.2.2 requires `CACHE-CONTROL` on every `ssdp:alive`; nullable-on-receive does not become optional-on-send. When composing a message by hand, set `MaxAge` - in 9.1 the composer preferred it and fell back to `CacheControl`, so both spellings emitted the identical header. Verified by composing every message kind under 9.0 and 9.1 and diffing: byte-identical. (`CacheControl` on received messages was removed in [10.0](#version-100---breaking-changes); `MaxAge` is now the only spelling.)
 
 ## Version 9.0 - breaking changes
 
