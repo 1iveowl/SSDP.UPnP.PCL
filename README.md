@@ -484,10 +484,22 @@ dotnet run --project samples/Sample.Device
 dotnet run --project samples/Sample.ControlPoint
 ```
 
+The control point prints each advertisement as it arrives - `alive`, `byebye`, `update`, search
+replies, and the messages that were dropped with the reason why - then a summary tree of every
+device it saw, with the announced lifetime and boot id. The device prints the advertisement set it
+is about to send as a tree, then its activity, and takes commands on stdin: `u` to multicast
+`ssdp:update` and advance BOOTID, `a` to re-advertise, Enter to say `ssdp:byebye` and exit.
+
+Both files also carry commented-out lines that trigger [SSDP001](#ssdp001), [SSDP003](#ssdp003)
+and [SSDP005](#ssdp005). Uncomment one to watch an analyzer report it - they build as errors in
+this repo, which sets `TreatWarningsAsErrors`.
+
 Both samples accept an explicit IP address as the first argument. Notes for same-host testing:
 
 - **Start the device first.** Both processes share the SSDP UDP port on one host, and unicast search responses are delivered to the most recently bound socket - starting the control point last makes UDP responses land in the right process.
 - **Or use TCP responses**: `dotnet run --project samples/Sample.ControlPoint -- tcp` asks devices to answer over a reliable TCP connection (`TCPPORT.UPNP.ORG`), which side-steps the shared-port ambiguity entirely.
+- **To see the bytes**: add `raw` to capture each datagram as sent and print the ones that fail to parse.
+- **Multicast does not work in Docker, WSL or a devcontainer.** Run the samples on the host; the control point says so itself if nothing answers.
 - Across two machines on the same LAN, no precautions are needed - start them in any order.
 - On Windows, stop the built-in *SSDP Discovery* service first; it intercepts the multicasts.
 
