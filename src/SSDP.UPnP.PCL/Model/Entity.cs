@@ -81,6 +81,11 @@ internal static class SsdpUri
 
                 return $"urn:{resolvedDomain}:{kind}:{typeName}:{version}";
 
+            case EntityType.Unknown:
+                throw new SSDPException(
+                    "This entity came from a USN whose entity part could not be parsed, so there is "
+                    + "no URI to compose. Build the entity you mean to advertise instead of reusing a received one.");
+
             default:
                 throw new SSDPException($"Unknown entity type: {entityType}.");
         }

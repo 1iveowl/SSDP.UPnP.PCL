@@ -87,6 +87,12 @@ public sealed record USN : Entity
             });
         }
 
+        // An unreadable entity part is not a reason to throw the message away. The
+        // device UUID in front of it is the identity SSDP actually guarantees, and
+        // real devices do put things here that no reading of UDA 2.0 allows - a
+        // serviceId URN used as a search target, for one. Report what was
+        // understood, mark the rest Unknown, and keep USNString so the caller can
+        // see exactly what arrived.
         return ST.Parse(entityUri).Match(
             st => ParseResult<USN>.Success(new USN
             {
@@ -97,6 +103,11 @@ public sealed record USN : Entity
                 DeviceUUID = deviceUuid,
                 USNString = usn
             }),
-            error => ParseResult<USN>.Failure($"USN entity part is invalid: {error}"));
+            _ => ParseResult<USN>.Success(new USN
+            {
+                EntityType = EntityType.Unknown,
+                DeviceUUID = deviceUuid,
+                USNString = usn
+            }));
     }
 }

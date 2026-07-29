@@ -18,7 +18,10 @@ namespace SSDP.UPnP.PCL.Parsing;
 /// useless to a device and fails), while responses and notifications are parsed
 /// leniently (real-world devices send malformed headers; fields that cannot be
 /// parsed are left unset) — except that a response in which <em>neither</em> ST
-/// nor USN can be parsed is rejected, since it identifies nothing.
+/// nor USN can be parsed is rejected, since it identifies nothing. A USN whose
+/// device UUID reads but whose entity part does not counts as parsed, with the
+/// entity reported as <see cref="Model.EntityType.Unknown"/> - the device is real
+/// even when what it claims to advertise is unreadable.
 /// </para>
 /// </remarks>
 public static class SsdpMessageParser

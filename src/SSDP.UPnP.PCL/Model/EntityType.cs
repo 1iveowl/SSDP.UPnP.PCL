@@ -21,5 +21,22 @@ public enum EntityType
     DomainDevice,
 
     /// <summary>A vendor-domain service type (<c>urn:[domain]:service:...</c>).</summary>
-    DomainService
+    DomainService,
+
+    /// <summary>
+    /// The entity part of a received <c>USN</c> could not be parsed, so what it
+    /// identified is unknown - but the device UUID in front of it was fine.
+    /// </summary>
+    /// <remarks>
+    /// Only ever produced by <see cref="USN.Parse"/>, and never composable: a
+    /// message this library sends cannot advertise an entity it does not
+    /// understand, so <see cref="Entity.ToUriString"/> throws for it.
+    /// <para>
+    /// Distinct from <see cref="Device"/> on purpose. A bare <c>uuid:[id]</c> USN
+    /// means the device is advertising itself, which is a real statement; this
+    /// means the sender said something and we could not read it. Reporting the
+    /// second as the first would be a lie about what is on the network.
+    /// </para>
+    /// </remarks>
+    Unknown
 }

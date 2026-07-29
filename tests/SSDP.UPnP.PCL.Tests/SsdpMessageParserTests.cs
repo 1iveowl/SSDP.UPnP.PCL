@@ -678,4 +678,46 @@ public class SsdpMessageParserTests
         Assert.Null(result.Value.USN);
         Assert.False(result.Value.IsUuidUpnp2Compliant);
     }
+
+    // End to end for the real-network case: the response a Vera controller sends
+    // for a bridged Pioneer receiver. Both ST and the USN entity part are
+    // unreadable, so this used to be dropped whole - losing a device that is
+    // plainly there, with a LOCATION pointing at its description.
+    [Fact]
+    public void ParseMSearchResponse_WithAnUnreadableEntity_SurvivesWithWhatIsKnown()
+    {
+        var result = SsdpMessageParser.ParseMSearchResponse(Message(MessageType.Response, new Dictionary<string, string>
+        {
+            ["CACHE-CONTROL"] = "max-age=1800",
+            ["EXT"] = "",
+            ["LOCATION"] = "http://192.168.0.203:49453/luaupnp.xml",
+            ["SERVER"] = "Linux/3.10 UPnP/1.0 MiOS/1.0",
+            ["ST"] = "urn:pioneer-com:serviceId:Receiver:1",
+            ["USN"] = "uuid:4d494342-5342-5645-01d2-000002fc7f93::urn:pioneer-com:serviceId:Receiver:1"
+        }));
+
+        Assert.True(result.IsSuccess);
+
+        // The unreadable search target stays unset - lenient, not invented.
+        Assert.Null(result.Value.ST);
+
+        // The device, however, is entirely knowable.
+        Assert.Equal(EntityType.Unknown, result.Value.USN?.EntityType);
+        Assert.Equal("4d494342-5342-5645-01d2-000002fc7f93", result.Value.USN?.DeviceUUID);
+        Assert.Equal("http://192.168.0.203:49453/luaupnp.xml", result.Value.Location?.AbsoluteUri);
+        Assert.Equal(TimeSpan.FromSeconds(1800), result.Value.MaxAge);
+    }
+
+    // The rule that still holds: a response identifying nothing at all is dropped.
+    [Fact]
+    public void ParseMSearchResponse_WithNeitherStNorAUsableUsn_IsStillRejected()
+    {
+        var result = SsdpMessageParser.ParseMSearchResponse(Message(MessageType.Response, new Dictionary<string, string>
+        {
+            ["ST"] = "urn:pioneer-com:serviceId:Receiver:1",
+            ["USN"] = "not-even-a-uuid"
+        }));
+
+        Assert.False(result.IsSuccess);
+    }
 }

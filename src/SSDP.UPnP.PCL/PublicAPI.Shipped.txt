@@ -119,6 +119,7 @@ SSDP.UPnP.PCL.Model.EntityType.DomainDevice = 4 -> SSDP.UPnP.PCL.Model.EntityTyp
 SSDP.UPnP.PCL.Model.EntityType.DomainService = 5 -> SSDP.UPnP.PCL.Model.EntityType
 SSDP.UPnP.PCL.Model.EntityType.RootDevice = 1 -> SSDP.UPnP.PCL.Model.EntityType
 SSDP.UPnP.PCL.Model.EntityType.ServiceType = 3 -> SSDP.UPnP.PCL.Model.EntityType
+SSDP.UPnP.PCL.Model.EntityType.Unknown = 6 -> SSDP.UPnP.PCL.Model.EntityType
 SSDP.UPnP.PCL.Model.MSearchRequest
 SSDP.UPnP.PCL.Model.MSearchRequest.Headers.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
 SSDP.UPnP.PCL.Model.MSearchRequest.Headers.init -> void

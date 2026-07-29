@@ -110,6 +110,24 @@ new UnicastMSearch { Target = new IPEndPoint(address, 1900), ST = st };
 For observers, the change is a rename: `Notify` becomes `ReceivedNotify` and `MSearchResponse`
 becomes `ReceivedMSearchResponse`. Every property you were reading is still there.
 
+### Lenient about what devices actually send
+
+A USN whose device UUID reads but whose entity part does not is now parsed, with
+`EntityType.Unknown` and the raw value on `USNString`, instead of failing the whole message.
+
+Real networks made the case. A Vera controller bridging a Pioneer receiver advertises
+`urn:pioneer-com:serviceId:Receiver:1` as a search target - a *serviceId* URN, which UDA 2.0
+section 2.3 defines for description documents and without a version suffix. It is not a legal
+search target under any reading, and the `ST` is still refused. But the device UUID in front of it
+is perfectly good, and so is the `LOCATION`, so dropping the message lost a device that was
+plainly there.
+
+`Unknown` is a distinct value rather than a bare UUID on purpose: `uuid:[id]` on its own means a
+device advertising *itself*, which is a real statement, and reporting the two as the same thing
+would claim something the sender never said. Nothing composable comes of it either - asking an
+`Unknown` entity for its URI throws, because this library will not put back on the wire something
+it could not read.
+
 ### Also in 10.0
 
 - **A socket leak on the control point's TCP response port is fixed.** The listener hands a
