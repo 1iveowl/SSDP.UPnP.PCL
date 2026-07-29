@@ -1,0 +1,621 @@
+#nullable enable
+SSDP.UPnP.PCL.Constants
+SSDP.UPnP.PCL.ControlPoint
+SSDP.UPnP.PCL.ControlPoint.CaptureRawMessages.get -> bool
+SSDP.UPnP.PCL.ControlPoint.CaptureRawMessages.set -> void
+SSDP.UPnP.PCL.ControlPoint.ControlPoint(System.Collections.Generic.IEnumerable<System.Net.IPAddress!>! ipAddresses, int tcpResponsePort, int multicastTtl = 2) -> void
+SSDP.UPnP.PCL.ControlPoint.ControlPoint(params SSDP.UPnP.PCL.Model.ControlPointInterface![]! controlPointInterfaceParams) -> void
+SSDP.UPnP.PCL.ControlPoint.ControlPoint(params System.Net.IPAddress![]! ipAddressParam) -> void
+SSDP.UPnP.PCL.ControlPoint.Dispose() -> void
+SSDP.UPnP.PCL.ControlPoint.DisposeAsync() -> System.Threading.Tasks.ValueTask
+SSDP.UPnP.PCL.ControlPoint.HotStart(System.IObservable<SimpleHttpListener.Rx.Model.HttpRequestResponse!>! httpListenerObservable) -> void
+SSDP.UPnP.PCL.ControlPoint.MSearchResponseObservable() -> System.IObservable<SSDP.UPnP.PCL.Model.ReceivedMSearchResponse!>!
+SSDP.UPnP.PCL.ControlPoint.NotifyObservable() -> System.IObservable<SSDP.UPnP.PCL.Model.ReceivedNotify!>!
+SSDP.UPnP.PCL.ControlPoint.ParseFailures() -> System.IObservable<SSDP.UPnP.PCL.Model.SsdpParseFailure!>!
+SSDP.UPnP.PCL.ControlPoint.SendMSearchAsync(SSDP.UPnP.PCL.Model.MSearchRequest! mSearch, System.Net.IPAddress! ipAddress, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+SSDP.UPnP.PCL.ControlPoint.TimeProvider.get -> System.TimeProvider!
+SSDP.UPnP.PCL.ControlPoint.TimeProvider.set -> void
+SSDP.UPnP.PCL.Device
+SSDP.UPnP.PCL.Device.AutoReAdvertise.get -> bool
+SSDP.UPnP.PCL.Device.AutoReAdvertise.set -> void
+SSDP.UPnP.PCL.Device.ByeByeAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+SSDP.UPnP.PCL.Device.ByeByeTimeout.get -> System.TimeSpan
+SSDP.UPnP.PCL.Device.ByeByeTimeout.set -> void
+SSDP.UPnP.PCL.Device.CaptureRawMessages.get -> bool
+SSDP.UPnP.PCL.Device.CaptureRawMessages.set -> void
+SSDP.UPnP.PCL.Device.Device(SSDP.UPnP.PCL.Model.RootDeviceConfiguration! rootDeviceConfiguration, int multicastTtl = 2) -> void
+SSDP.UPnP.PCL.Device.Device(params SSDP.UPnP.PCL.Model.RootDeviceInterface![]! rootDeviceInterfaces) -> void
+SSDP.UPnP.PCL.Device.DeviceActivityObservable.get -> System.IObservable<SSDP.UPnP.PCL.Model.DeviceActivity>!
+SSDP.UPnP.PCL.Device.Dispose() -> void
+SSDP.UPnP.PCL.Device.DisposeAsync() -> System.Threading.Tasks.ValueTask
+SSDP.UPnP.PCL.Device.HotStartAsync(System.IObservable<SimpleHttpListener.Rx.Model.HttpRequestResponse!>! httpListenerObservable) -> System.Threading.Tasks.Task!
+SSDP.UPnP.PCL.Device.IsStarted.get -> bool
+SSDP.UPnP.PCL.Device.Logger.get -> Microsoft.Extensions.Logging.ILogger?
+SSDP.UPnP.PCL.Device.Logger.set -> void
+SSDP.UPnP.PCL.Device.ParseFailureObservable.get -> System.IObservable<SSDP.UPnP.PCL.Model.SsdpParseFailure!>!
+SSDP.UPnP.PCL.Device.SendNotifyAsync(SSDP.UPnP.PCL.Model.Notify! notify, System.Net.IPEndPoint! ipEndPoint, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+SSDP.UPnP.PCL.Device.StartAsync(System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task!
+SSDP.UPnP.PCL.Device.TimeProvider.get -> System.TimeProvider!
+SSDP.UPnP.PCL.Device.TimeProvider.set -> void
+SSDP.UPnP.PCL.Device.UpdateAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+SSDP.UPnP.PCL.IControlPoint
+SSDP.UPnP.PCL.IControlPoint.HotStart(System.IObservable<SimpleHttpListener.Rx.Model.HttpRequestResponse!>! httpListenerObservable) -> void
+SSDP.UPnP.PCL.IControlPoint.MSearchResponseObservable() -> System.IObservable<SSDP.UPnP.PCL.Model.ReceivedMSearchResponse!>!
+SSDP.UPnP.PCL.IControlPoint.NotifyObservable() -> System.IObservable<SSDP.UPnP.PCL.Model.ReceivedNotify!>!
+SSDP.UPnP.PCL.IControlPoint.ParseFailures() -> System.IObservable<SSDP.UPnP.PCL.Model.SsdpParseFailure!>!
+SSDP.UPnP.PCL.IControlPoint.SendMSearchAsync(SSDP.UPnP.PCL.Model.MSearchRequest! mSearch, System.Net.IPAddress! ipAddress, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+SSDP.UPnP.PCL.IDevice
+SSDP.UPnP.PCL.IDevice.ByeByeAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+SSDP.UPnP.PCL.IDevice.DeviceActivityObservable.get -> System.IObservable<SSDP.UPnP.PCL.Model.DeviceActivity>!
+SSDP.UPnP.PCL.IDevice.HotStartAsync(System.IObservable<SimpleHttpListener.Rx.Model.HttpRequestResponse!>! httpListenerObservable) -> System.Threading.Tasks.Task!
+SSDP.UPnP.PCL.IDevice.IsStarted.get -> bool
+SSDP.UPnP.PCL.IDevice.ParseFailureObservable.get -> System.IObservable<SSDP.UPnP.PCL.Model.SsdpParseFailure!>!
+SSDP.UPnP.PCL.IDevice.SendNotifyAsync(SSDP.UPnP.PCL.Model.Notify! notify, System.Net.IPEndPoint! ipEndPoint, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+SSDP.UPnP.PCL.IDevice.StartAsync(System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task!
+SSDP.UPnP.PCL.IDevice.UpdateAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+SSDP.UPnP.PCL.Model.ControlPointInterface
+SSDP.UPnP.PCL.Model.ControlPointInterface.<Clone>$() -> SSDP.UPnP.PCL.Model.ControlPointInterface!
+SSDP.UPnP.PCL.Model.ControlPointInterface.ControlPointInterface() -> void
+SSDP.UPnP.PCL.Model.ControlPointInterface.Equals(SSDP.UPnP.PCL.Model.ControlPointInterface? other) -> bool
+SSDP.UPnP.PCL.Model.ControlPointInterface.IpAddress.get -> System.Net.IPAddress!
+SSDP.UPnP.PCL.Model.ControlPointInterface.IpAddress.init -> void
+SSDP.UPnP.PCL.Model.ControlPointInterface.TcpListener.get -> System.Net.Sockets.TcpListener?
+SSDP.UPnP.PCL.Model.ControlPointInterface.TcpListener.init -> void
+SSDP.UPnP.PCL.Model.ControlPointInterface.UdpClient.get -> System.Net.Sockets.UdpClient?
+SSDP.UPnP.PCL.Model.ControlPointInterface.UdpClient.init -> void
+SSDP.UPnP.PCL.Model.DeviceActivity
+SSDP.UPnP.PCL.Model.DeviceActivity.Initialized = 0 -> SSDP.UPnP.PCL.Model.DeviceActivity
+SSDP.UPnP.PCL.Model.DeviceActivity.Notifying = 2 -> SSDP.UPnP.PCL.Model.DeviceActivity
+SSDP.UPnP.PCL.Model.DeviceActivity.Responding = 1 -> SSDP.UPnP.PCL.Model.DeviceActivity
+SSDP.UPnP.PCL.Model.DeviceConfiguration
+SSDP.UPnP.PCL.Model.DeviceConfiguration.BOOTID.get -> uint
+SSDP.UPnP.PCL.Model.DeviceConfiguration.BOOTID.init -> void
+SSDP.UPnP.PCL.Model.DeviceConfiguration.DeviceConfiguration() -> void
+SSDP.UPnP.PCL.Model.DeviceConfiguration.DeviceConfiguration(SSDP.UPnP.PCL.Model.DeviceConfiguration! original) -> void
+SSDP.UPnP.PCL.Model.DeviceConfiguration.Services.get -> System.Collections.Generic.IReadOnlyList<SSDP.UPnP.PCL.Model.ServiceConfiguration!>!
+SSDP.UPnP.PCL.Model.DeviceConfiguration.Services.init -> void
+SSDP.UPnP.PCL.Model.DeviceInfo
+SSDP.UPnP.PCL.Model.DeviceInfo.DeviceInfo() -> void
+SSDP.UPnP.PCL.Model.DeviceInfo.DeviceInfo(SSDP.UPnP.PCL.Model.DeviceInfo! original) -> void
+SSDP.UPnP.PCL.Model.DeviceInfo.FullString.get -> string?
+SSDP.UPnP.PCL.Model.DeviceInfo.FullString.init -> void
+SSDP.UPnP.PCL.Model.DeviceInfo.OperatingSystem.get -> string?
+SSDP.UPnP.PCL.Model.DeviceInfo.OperatingSystem.init -> void
+SSDP.UPnP.PCL.Model.DeviceInfo.OperatingSystemVersion.get -> string?
+SSDP.UPnP.PCL.Model.DeviceInfo.OperatingSystemVersion.init -> void
+SSDP.UPnP.PCL.Model.DeviceInfo.ProductName.get -> string?
+SSDP.UPnP.PCL.Model.DeviceInfo.ProductName.init -> void
+SSDP.UPnP.PCL.Model.DeviceInfo.ProductVersion.get -> string?
+SSDP.UPnP.PCL.Model.DeviceInfo.ProductVersion.init -> void
+SSDP.UPnP.PCL.Model.DeviceInfo.SupportsAtLeast(int major, int minor = 0) -> bool
+SSDP.UPnP.PCL.Model.DeviceInfo.ToHeaderString() -> string!
+SSDP.UPnP.PCL.Model.DeviceInfo.UpnpMajorVersion.get -> int?
+SSDP.UPnP.PCL.Model.DeviceInfo.UpnpMajorVersion.init -> void
+SSDP.UPnP.PCL.Model.DeviceInfo.UpnpMinorVersion.get -> int?
+SSDP.UPnP.PCL.Model.DeviceInfo.UpnpMinorVersion.init -> void
+SSDP.UPnP.PCL.Model.DynamicPort
+SSDP.UPnP.PCL.Model.DynamicPort.DynamicPort() -> void
+SSDP.UPnP.PCL.Model.DynamicPort.DynamicPort(int port) -> void
+SSDP.UPnP.PCL.Model.DynamicPort.Equals(SSDP.UPnP.PCL.Model.DynamicPort other) -> bool
+SSDP.UPnP.PCL.Model.DynamicPort.Port.get -> int
+SSDP.UPnP.PCL.Model.Entity
+SSDP.UPnP.PCL.Model.Entity.DeviceUUID.get -> string?
+SSDP.UPnP.PCL.Model.Entity.DeviceUUID.init -> void
+SSDP.UPnP.PCL.Model.Entity.Domain.get -> string?
+SSDP.UPnP.PCL.Model.Entity.Domain.init -> void
+SSDP.UPnP.PCL.Model.Entity.Entity() -> void
+SSDP.UPnP.PCL.Model.Entity.Entity(SSDP.UPnP.PCL.Model.Entity! original) -> void
+SSDP.UPnP.PCL.Model.Entity.EntityType.get -> SSDP.UPnP.PCL.Model.EntityType
+SSDP.UPnP.PCL.Model.Entity.EntityType.init -> void
+SSDP.UPnP.PCL.Model.Entity.ToUriString() -> string!
+SSDP.UPnP.PCL.Model.Entity.TypeName.get -> string?
+SSDP.UPnP.PCL.Model.Entity.TypeName.init -> void
+SSDP.UPnP.PCL.Model.Entity.Version.get -> int
+SSDP.UPnP.PCL.Model.Entity.Version.init -> void
+SSDP.UPnP.PCL.Model.EntityType
+SSDP.UPnP.PCL.Model.EntityType.Device = 0 -> SSDP.UPnP.PCL.Model.EntityType
+SSDP.UPnP.PCL.Model.EntityType.DeviceType = 2 -> SSDP.UPnP.PCL.Model.EntityType
+SSDP.UPnP.PCL.Model.EntityType.DomainDevice = 4 -> SSDP.UPnP.PCL.Model.EntityType
+SSDP.UPnP.PCL.Model.EntityType.DomainService = 5 -> SSDP.UPnP.PCL.Model.EntityType
+SSDP.UPnP.PCL.Model.EntityType.RootDevice = 1 -> SSDP.UPnP.PCL.Model.EntityType
+SSDP.UPnP.PCL.Model.EntityType.ServiceType = 3 -> SSDP.UPnP.PCL.Model.EntityType
+SSDP.UPnP.PCL.Model.EntityType.Unknown = 6 -> SSDP.UPnP.PCL.Model.EntityType
+SSDP.UPnP.PCL.Model.MSearchRequest
+SSDP.UPnP.PCL.Model.MSearchRequest.Headers.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+SSDP.UPnP.PCL.Model.MSearchRequest.Headers.init -> void
+SSDP.UPnP.PCL.Model.MSearchRequest.MSearchRequest(SSDP.UPnP.PCL.Model.MSearchRequest! original) -> void
+SSDP.UPnP.PCL.Model.MSearchRequest.ST.get -> SSDP.UPnP.PCL.Model.ST!
+SSDP.UPnP.PCL.Model.MSearchRequest.ST.init -> void
+SSDP.UPnP.PCL.Model.MSearchRequest.UserAgent.get -> SSDP.UPnP.PCL.Model.UserAgent!
+SSDP.UPnP.PCL.Model.MSearchRequest.UserAgent.init -> void
+SSDP.UPnP.PCL.Model.MSearchResponse
+SSDP.UPnP.PCL.Model.MSearchResponse.<Clone>$() -> SSDP.UPnP.PCL.Model.MSearchResponse!
+SSDP.UPnP.PCL.Model.MSearchResponse.BOOTID.get -> uint?
+SSDP.UPnP.PCL.Model.MSearchResponse.BOOTID.init -> void
+SSDP.UPnP.PCL.Model.MSearchResponse.CONFIGID.get -> int?
+SSDP.UPnP.PCL.Model.MSearchResponse.CONFIGID.init -> void
+SSDP.UPnP.PCL.Model.MSearchResponse.Date.get -> System.DateTimeOffset?
+SSDP.UPnP.PCL.Model.MSearchResponse.Date.init -> void
+SSDP.UPnP.PCL.Model.MSearchResponse.Equals(SSDP.UPnP.PCL.Model.MSearchResponse? other) -> bool
+SSDP.UPnP.PCL.Model.MSearchResponse.Headers.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+SSDP.UPnP.PCL.Model.MSearchResponse.Headers.init -> void
+SSDP.UPnP.PCL.Model.MSearchResponse.Location.get -> System.Uri!
+SSDP.UPnP.PCL.Model.MSearchResponse.Location.init -> void
+SSDP.UPnP.PCL.Model.MSearchResponse.MSearchResponse() -> void
+SSDP.UPnP.PCL.Model.MSearchResponse.MX.get -> System.TimeSpan
+SSDP.UPnP.PCL.Model.MSearchResponse.MX.init -> void
+SSDP.UPnP.PCL.Model.MSearchResponse.MaxAge.get -> System.TimeSpan?
+SSDP.UPnP.PCL.Model.MSearchResponse.MaxAge.init -> void
+SSDP.UPnP.PCL.Model.MSearchResponse.RemoteIpEndPoint.get -> System.Net.IPEndPoint?
+SSDP.UPnP.PCL.Model.MSearchResponse.RemoteIpEndPoint.init -> void
+SSDP.UPnP.PCL.Model.MSearchResponse.ResponseReason.get -> string!
+SSDP.UPnP.PCL.Model.MSearchResponse.ResponseReason.init -> void
+SSDP.UPnP.PCL.Model.MSearchResponse.SEARCHPORT.get -> SSDP.UPnP.PCL.Model.DynamicPort?
+SSDP.UPnP.PCL.Model.MSearchResponse.SEARCHPORT.init -> void
+SSDP.UPnP.PCL.Model.MSearchResponse.SECURELOCATION.get -> string?
+SSDP.UPnP.PCL.Model.MSearchResponse.SECURELOCATION.init -> void
+SSDP.UPnP.PCL.Model.MSearchResponse.ST.get -> SSDP.UPnP.PCL.Model.ST!
+SSDP.UPnP.PCL.Model.MSearchResponse.ST.init -> void
+SSDP.UPnP.PCL.Model.MSearchResponse.Server.get -> SSDP.UPnP.PCL.Model.Server!
+SSDP.UPnP.PCL.Model.MSearchResponse.Server.init -> void
+SSDP.UPnP.PCL.Model.MSearchResponse.StatusCode.get -> int
+SSDP.UPnP.PCL.Model.MSearchResponse.StatusCode.init -> void
+SSDP.UPnP.PCL.Model.MSearchResponse.USN.get -> SSDP.UPnP.PCL.Model.USN!
+SSDP.UPnP.PCL.Model.MSearchResponse.USN.init -> void
+SSDP.UPnP.PCL.Model.MulticastMSearch
+SSDP.UPnP.PCL.Model.MulticastMSearch.CPFN.get -> string!
+SSDP.UPnP.PCL.Model.MulticastMSearch.CPFN.init -> void
+SSDP.UPnP.PCL.Model.MulticastMSearch.CPUUID.get -> string?
+SSDP.UPnP.PCL.Model.MulticastMSearch.CPUUID.init -> void
+SSDP.UPnP.PCL.Model.MulticastMSearch.Equals(SSDP.UPnP.PCL.Model.MulticastMSearch? other) -> bool
+SSDP.UPnP.PCL.Model.MulticastMSearch.MX.get -> SSDP.UPnP.PCL.Model.MxSeconds
+SSDP.UPnP.PCL.Model.MulticastMSearch.MX.init -> void
+SSDP.UPnP.PCL.Model.MulticastMSearch.MulticastMSearch() -> void
+SSDP.UPnP.PCL.Model.MulticastMSearch.SendCount.get -> int
+SSDP.UPnP.PCL.Model.MulticastMSearch.SendCount.init -> void
+SSDP.UPnP.PCL.Model.MulticastMSearch.TCPPORT.get -> SSDP.UPnP.PCL.Model.DynamicPort?
+SSDP.UPnP.PCL.Model.MulticastMSearch.TCPPORT.init -> void
+SSDP.UPnP.PCL.Model.MxSeconds
+SSDP.UPnP.PCL.Model.MxSeconds.Equals(SSDP.UPnP.PCL.Model.MxSeconds other) -> bool
+SSDP.UPnP.PCL.Model.MxSeconds.MxSeconds() -> void
+SSDP.UPnP.PCL.Model.MxSeconds.MxSeconds(int seconds) -> void
+SSDP.UPnP.PCL.Model.MxSeconds.Seconds.get -> int
+SSDP.UPnP.PCL.Model.NTS
+SSDP.UPnP.PCL.Model.NTS.Alive = 0 -> SSDP.UPnP.PCL.Model.NTS
+SSDP.UPnP.PCL.Model.NTS.ByeBye = 1 -> SSDP.UPnP.PCL.Model.NTS
+SSDP.UPnP.PCL.Model.NTS.Propchange = 3 -> SSDP.UPnP.PCL.Model.NTS
+SSDP.UPnP.PCL.Model.NTS.Unknown = 4 -> SSDP.UPnP.PCL.Model.NTS
+SSDP.UPnP.PCL.Model.NTS.Update = 2 -> SSDP.UPnP.PCL.Model.NTS
+SSDP.UPnP.PCL.Model.NTSExtensions
+SSDP.UPnP.PCL.Model.Notify
+SSDP.UPnP.PCL.Model.Notify.<Clone>$() -> SSDP.UPnP.PCL.Model.Notify!
+SSDP.UPnP.PCL.Model.Notify.BOOTID.get -> uint?
+SSDP.UPnP.PCL.Model.Notify.BOOTID.init -> void
+SSDP.UPnP.PCL.Model.Notify.CONFIGID.get -> int?
+SSDP.UPnP.PCL.Model.Notify.CONFIGID.init -> void
+SSDP.UPnP.PCL.Model.Notify.Equals(SSDP.UPnP.PCL.Model.Notify? other) -> bool
+SSDP.UPnP.PCL.Model.Notify.HOST.get -> string?
+SSDP.UPnP.PCL.Model.Notify.HOST.init -> void
+SSDP.UPnP.PCL.Model.Notify.Headers.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+SSDP.UPnP.PCL.Model.Notify.Headers.init -> void
+SSDP.UPnP.PCL.Model.Notify.Location.get -> System.Uri?
+SSDP.UPnP.PCL.Model.Notify.Location.init -> void
+SSDP.UPnP.PCL.Model.Notify.MaxAge.get -> System.TimeSpan?
+SSDP.UPnP.PCL.Model.Notify.MaxAge.init -> void
+SSDP.UPnP.PCL.Model.Notify.NEXTBOOTID.get -> uint?
+SSDP.UPnP.PCL.Model.Notify.NEXTBOOTID.init -> void
+SSDP.UPnP.PCL.Model.Notify.NT.get -> string!
+SSDP.UPnP.PCL.Model.Notify.NT.init -> void
+SSDP.UPnP.PCL.Model.Notify.NTS.get -> SSDP.UPnP.PCL.Model.NTS
+SSDP.UPnP.PCL.Model.Notify.NTS.init -> void
+SSDP.UPnP.PCL.Model.Notify.Notify() -> void
+SSDP.UPnP.PCL.Model.Notify.NotifyTransportType.get -> SSDP.UPnP.PCL.Model.TransportType
+SSDP.UPnP.PCL.Model.Notify.NotifyTransportType.init -> void
+SSDP.UPnP.PCL.Model.Notify.SEARCHPORT.get -> SSDP.UPnP.PCL.Model.DynamicPort?
+SSDP.UPnP.PCL.Model.Notify.SEARCHPORT.init -> void
+SSDP.UPnP.PCL.Model.Notify.SECURELOCATION.get -> string?
+SSDP.UPnP.PCL.Model.Notify.SECURELOCATION.init -> void
+SSDP.UPnP.PCL.Model.Notify.Server.get -> SSDP.UPnP.PCL.Model.Server?
+SSDP.UPnP.PCL.Model.Notify.Server.init -> void
+SSDP.UPnP.PCL.Model.Notify.USN.get -> SSDP.UPnP.PCL.Model.USN!
+SSDP.UPnP.PCL.Model.Notify.USN.init -> void
+SSDP.UPnP.PCL.Model.ParseResult<T>
+SSDP.UPnP.PCL.Model.ParseResult<T>.<Clone>$() -> SSDP.UPnP.PCL.Model.ParseResult<T>!
+SSDP.UPnP.PCL.Model.ParseResult<T>.Equals(SSDP.UPnP.PCL.Model.ParseResult<T>? other) -> bool
+SSDP.UPnP.PCL.Model.ParseResult<T>.Error.get -> string?
+SSDP.UPnP.PCL.Model.ParseResult<T>.IsSuccess.get -> bool
+SSDP.UPnP.PCL.Model.ParseResult<T>.Match<TResult>(System.Func<T, TResult>! onSuccess, System.Func<string!, TResult>! onFailure) -> TResult
+SSDP.UPnP.PCL.Model.ParseResult<T>.Value.get -> T?
+SSDP.UPnP.PCL.Model.ReceivedMSearch
+SSDP.UPnP.PCL.Model.ReceivedMSearch.<Clone>$() -> SSDP.UPnP.PCL.Model.ReceivedMSearch!
+SSDP.UPnP.PCL.Model.ReceivedMSearch.CPFN.get -> string?
+SSDP.UPnP.PCL.Model.ReceivedMSearch.CPFN.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearch.CPUUID.get -> string?
+SSDP.UPnP.PCL.Model.ReceivedMSearch.CPUUID.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearch.Equals(SSDP.UPnP.PCL.Model.ReceivedMSearch? other) -> bool
+SSDP.UPnP.PCL.Model.ReceivedMSearch.HOST.get -> string?
+SSDP.UPnP.PCL.Model.ReceivedMSearch.HOST.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearch.HasParsingError.get -> bool
+SSDP.UPnP.PCL.Model.ReceivedMSearch.HasParsingError.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearch.Headers.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+SSDP.UPnP.PCL.Model.ReceivedMSearch.Headers.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearch.LocalIpEndPoint.get -> System.Net.IPEndPoint?
+SSDP.UPnP.PCL.Model.ReceivedMSearch.LocalIpEndPoint.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearch.MX.get -> System.TimeSpan
+SSDP.UPnP.PCL.Model.ReceivedMSearch.MX.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearch.RawMessage.get -> System.ReadOnlyMemory<byte>
+SSDP.UPnP.PCL.Model.ReceivedMSearch.RawMessage.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearch.ReceivedMSearch() -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearch.RemoteIpEndPoint.get -> System.Net.IPEndPoint?
+SSDP.UPnP.PCL.Model.ReceivedMSearch.RemoteIpEndPoint.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearch.ST.get -> SSDP.UPnP.PCL.Model.ST!
+SSDP.UPnP.PCL.Model.ReceivedMSearch.ST.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearch.TCPPORT.get -> SSDP.UPnP.PCL.Model.DynamicPort?
+SSDP.UPnP.PCL.Model.ReceivedMSearch.TCPPORT.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearch.TransportType.get -> SSDP.UPnP.PCL.Model.TransportType
+SSDP.UPnP.PCL.Model.ReceivedMSearch.TransportType.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearch.UserAgent.get -> SSDP.UPnP.PCL.Model.UserAgent!
+SSDP.UPnP.PCL.Model.ReceivedMSearch.UserAgent.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.<Clone>$() -> SSDP.UPnP.PCL.Model.ReceivedMSearchResponse!
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.BOOTID.get -> uint?
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.BOOTID.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.CONFIGID.get -> int?
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.CONFIGID.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.Date.get -> System.DateTimeOffset?
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.Date.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.Equals(SSDP.UPnP.PCL.Model.ReceivedMSearchResponse? other) -> bool
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.Ext.get -> bool
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.Ext.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.HasParsingError.get -> bool
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.HasParsingError.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.Headers.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.Headers.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.LocalIpEndPoint.get -> System.Net.IPEndPoint?
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.LocalIpEndPoint.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.Location.get -> System.Uri?
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.Location.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.MaxAge.get -> System.TimeSpan?
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.MaxAge.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.NLS.get -> string?
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.NLS.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.RawMessage.get -> System.ReadOnlyMemory<byte>
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.RawMessage.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.ReceivedMSearchResponse() -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.RemoteIpEndPoint.get -> System.Net.IPEndPoint?
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.RemoteIpEndPoint.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.ResponseReason.get -> string!
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.ResponseReason.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.SEARCHPORT.get -> int?
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.SEARCHPORT.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.SECURELOCATION.get -> string?
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.SECURELOCATION.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.ST.get -> SSDP.UPnP.PCL.Model.ST?
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.ST.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.Server.get -> SSDP.UPnP.PCL.Model.Server!
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.Server.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.StatusCode.get -> int
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.StatusCode.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.TransportType.get -> SSDP.UPnP.PCL.Model.TransportType
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.TransportType.init -> void
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.USN.get -> SSDP.UPnP.PCL.Model.USN?
+SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.USN.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify
+SSDP.UPnP.PCL.Model.ReceivedNotify.<Clone>$() -> SSDP.UPnP.PCL.Model.ReceivedNotify!
+SSDP.UPnP.PCL.Model.ReceivedNotify.BOOTID.get -> uint?
+SSDP.UPnP.PCL.Model.ReceivedNotify.BOOTID.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.CONFIGID.get -> int?
+SSDP.UPnP.PCL.Model.ReceivedNotify.CONFIGID.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.Equals(SSDP.UPnP.PCL.Model.ReceivedNotify? other) -> bool
+SSDP.UPnP.PCL.Model.ReceivedNotify.HOST.get -> string?
+SSDP.UPnP.PCL.Model.ReceivedNotify.HOST.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.HasParsingError.get -> bool
+SSDP.UPnP.PCL.Model.ReceivedNotify.HasParsingError.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.Headers.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+SSDP.UPnP.PCL.Model.ReceivedNotify.Headers.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.IsUuidUpnp2Compliant.get -> bool
+SSDP.UPnP.PCL.Model.ReceivedNotify.IsUuidUpnp2Compliant.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.LocalIpEndPoint.get -> System.Net.IPEndPoint?
+SSDP.UPnP.PCL.Model.ReceivedNotify.LocalIpEndPoint.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.Location.get -> System.Uri?
+SSDP.UPnP.PCL.Model.ReceivedNotify.Location.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.MaxAge.get -> System.TimeSpan?
+SSDP.UPnP.PCL.Model.ReceivedNotify.MaxAge.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.NEXTBOOTID.get -> uint?
+SSDP.UPnP.PCL.Model.ReceivedNotify.NEXTBOOTID.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.NLS.get -> string?
+SSDP.UPnP.PCL.Model.ReceivedNotify.NLS.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.NT.get -> string?
+SSDP.UPnP.PCL.Model.ReceivedNotify.NT.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.NTS.get -> SSDP.UPnP.PCL.Model.NTS
+SSDP.UPnP.PCL.Model.ReceivedNotify.NTS.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.NotifyTransportType.get -> SSDP.UPnP.PCL.Model.TransportType
+SSDP.UPnP.PCL.Model.ReceivedNotify.NotifyTransportType.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.RawMessage.get -> System.ReadOnlyMemory<byte>
+SSDP.UPnP.PCL.Model.ReceivedNotify.RawMessage.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.ReceivedNotify() -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.RemoteIpEndPoint.get -> System.Net.IPEndPoint?
+SSDP.UPnP.PCL.Model.ReceivedNotify.RemoteIpEndPoint.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.SEARCHPORT.get -> int?
+SSDP.UPnP.PCL.Model.ReceivedNotify.SEARCHPORT.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.SECURELOCATION.get -> string?
+SSDP.UPnP.PCL.Model.ReceivedNotify.SECURELOCATION.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.Server.get -> SSDP.UPnP.PCL.Model.Server?
+SSDP.UPnP.PCL.Model.ReceivedNotify.Server.init -> void
+SSDP.UPnP.PCL.Model.ReceivedNotify.USN.get -> SSDP.UPnP.PCL.Model.USN?
+SSDP.UPnP.PCL.Model.ReceivedNotify.USN.init -> void
+SSDP.UPnP.PCL.Model.RootDeviceConfiguration
+SSDP.UPnP.PCL.Model.RootDeviceConfiguration.CONFIGID.get -> int
+SSDP.UPnP.PCL.Model.RootDeviceConfiguration.CONFIGID.init -> void
+SSDP.UPnP.PCL.Model.RootDeviceConfiguration.CacheControl.get -> System.TimeSpan
+SSDP.UPnP.PCL.Model.RootDeviceConfiguration.CacheControl.init -> void
+SSDP.UPnP.PCL.Model.RootDeviceConfiguration.EmbeddedDevices.get -> System.Collections.Generic.IReadOnlyList<SSDP.UPnP.PCL.Model.DeviceConfiguration!>!
+SSDP.UPnP.PCL.Model.RootDeviceConfiguration.EmbeddedDevices.init -> void
+SSDP.UPnP.PCL.Model.RootDeviceConfiguration.Equals(SSDP.UPnP.PCL.Model.RootDeviceConfiguration? other) -> bool
+SSDP.UPnP.PCL.Model.RootDeviceConfiguration.IpEndPoint.get -> System.Net.IPEndPoint?
+SSDP.UPnP.PCL.Model.RootDeviceConfiguration.IpEndPoint.init -> void
+SSDP.UPnP.PCL.Model.RootDeviceConfiguration.Location.get -> System.Uri!
+SSDP.UPnP.PCL.Model.RootDeviceConfiguration.Location.init -> void
+SSDP.UPnP.PCL.Model.RootDeviceConfiguration.RootDeviceConfiguration() -> void
+SSDP.UPnP.PCL.Model.RootDeviceConfiguration.SecureLocation.get -> System.Uri?
+SSDP.UPnP.PCL.Model.RootDeviceConfiguration.SecureLocation.init -> void
+SSDP.UPnP.PCL.Model.RootDeviceConfiguration.Server.get -> SSDP.UPnP.PCL.Model.Server!
+SSDP.UPnP.PCL.Model.RootDeviceConfiguration.Server.init -> void
+SSDP.UPnP.PCL.Model.RootDeviceInterface
+SSDP.UPnP.PCL.Model.RootDeviceInterface.<Clone>$() -> SSDP.UPnP.PCL.Model.RootDeviceInterface!
+SSDP.UPnP.PCL.Model.RootDeviceInterface.Equals(SSDP.UPnP.PCL.Model.RootDeviceInterface? other) -> bool
+SSDP.UPnP.PCL.Model.RootDeviceInterface.IsMatchingInterface(System.Net.IPEndPoint? ipEndPoint) -> bool
+SSDP.UPnP.PCL.Model.RootDeviceInterface.RootDeviceConfiguration.get -> SSDP.UPnP.PCL.Model.RootDeviceConfiguration!
+SSDP.UPnP.PCL.Model.RootDeviceInterface.RootDeviceConfiguration.init -> void
+SSDP.UPnP.PCL.Model.RootDeviceInterface.RootDeviceInterface() -> void
+SSDP.UPnP.PCL.Model.RootDeviceInterface.SearchPort.get -> SSDP.UPnP.PCL.Model.DynamicPort?
+SSDP.UPnP.PCL.Model.RootDeviceInterface.UdpMulticastClient.get -> System.Net.Sockets.UdpClient!
+SSDP.UPnP.PCL.Model.RootDeviceInterface.UdpMulticastClient.init -> void
+SSDP.UPnP.PCL.Model.RootDeviceInterface.UdpUnicastClient.get -> System.Net.Sockets.UdpClient!
+SSDP.UPnP.PCL.Model.RootDeviceInterface.UdpUnicastClient.init -> void
+SSDP.UPnP.PCL.Model.ST
+SSDP.UPnP.PCL.Model.ST.Equals(SSDP.UPnP.PCL.Model.ST? other) -> bool
+SSDP.UPnP.PCL.Model.ST.ST() -> void
+SSDP.UPnP.PCL.Model.ST.STString.get -> string?
+SSDP.UPnP.PCL.Model.ST.STString.init -> void
+SSDP.UPnP.PCL.Model.ST.StSearchType.get -> SSDP.UPnP.PCL.Model.STType
+SSDP.UPnP.PCL.Model.ST.StSearchType.init -> void
+SSDP.UPnP.PCL.Model.ST.ToSearchTargetString() -> string!
+SSDP.UPnP.PCL.Model.STType
+SSDP.UPnP.PCL.Model.STType.All = 0 -> SSDP.UPnP.PCL.Model.STType
+SSDP.UPnP.PCL.Model.STType.DeviceTypeSearch = 3 -> SSDP.UPnP.PCL.Model.STType
+SSDP.UPnP.PCL.Model.STType.DomainDeviceSearch = 5 -> SSDP.UPnP.PCL.Model.STType
+SSDP.UPnP.PCL.Model.STType.DomainServiceSearch = 6 -> SSDP.UPnP.PCL.Model.STType
+SSDP.UPnP.PCL.Model.STType.RootDeviceSearch = 1 -> SSDP.UPnP.PCL.Model.STType
+SSDP.UPnP.PCL.Model.STType.ServiceTypeSearch = 4 -> SSDP.UPnP.PCL.Model.STType
+SSDP.UPnP.PCL.Model.STType.UuidSearch = 2 -> SSDP.UPnP.PCL.Model.STType
+SSDP.UPnP.PCL.Model.Server
+SSDP.UPnP.PCL.Model.Server.Equals(SSDP.UPnP.PCL.Model.Server? other) -> bool
+SSDP.UPnP.PCL.Model.Server.Server() -> void
+SSDP.UPnP.PCL.Model.ServiceConfiguration
+SSDP.UPnP.PCL.Model.ServiceConfiguration.Equals(SSDP.UPnP.PCL.Model.ServiceConfiguration? other) -> bool
+SSDP.UPnP.PCL.Model.ServiceConfiguration.ServiceConfiguration() -> void
+SSDP.UPnP.PCL.Model.SsdpParseFailure
+SSDP.UPnP.PCL.Model.SsdpParseFailure.<Clone>$() -> SSDP.UPnP.PCL.Model.SsdpParseFailure!
+SSDP.UPnP.PCL.Model.SsdpParseFailure.Equals(SSDP.UPnP.PCL.Model.SsdpParseFailure? other) -> bool
+SSDP.UPnP.PCL.Model.SsdpParseFailure.Error.get -> string!
+SSDP.UPnP.PCL.Model.SsdpParseFailure.Error.init -> void
+SSDP.UPnP.PCL.Model.SsdpParseFailure.Headers.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+SSDP.UPnP.PCL.Model.SsdpParseFailure.Headers.init -> void
+SSDP.UPnP.PCL.Model.SsdpParseFailure.LocalIpEndPoint.get -> System.Net.IPEndPoint?
+SSDP.UPnP.PCL.Model.SsdpParseFailure.LocalIpEndPoint.init -> void
+SSDP.UPnP.PCL.Model.SsdpParseFailure.MessageType.get -> SimpleHttpListener.Rx.Model.MessageType
+SSDP.UPnP.PCL.Model.SsdpParseFailure.MessageType.init -> void
+SSDP.UPnP.PCL.Model.SsdpParseFailure.Method.get -> string?
+SSDP.UPnP.PCL.Model.SsdpParseFailure.Method.init -> void
+SSDP.UPnP.PCL.Model.SsdpParseFailure.RawMessage.get -> System.ReadOnlyMemory<byte>
+SSDP.UPnP.PCL.Model.SsdpParseFailure.RawMessage.init -> void
+SSDP.UPnP.PCL.Model.SsdpParseFailure.RawMessageText() -> string!
+SSDP.UPnP.PCL.Model.SsdpParseFailure.RemoteIpEndPoint.get -> System.Net.IPEndPoint?
+SSDP.UPnP.PCL.Model.SsdpParseFailure.RemoteIpEndPoint.init -> void
+SSDP.UPnP.PCL.Model.SsdpParseFailure.SsdpParseFailure() -> void
+SSDP.UPnP.PCL.Model.TransportType
+SSDP.UPnP.PCL.Model.TransportType.Multicast = 1 -> SSDP.UPnP.PCL.Model.TransportType
+SSDP.UPnP.PCL.Model.TransportType.NoCast = 0 -> SSDP.UPnP.PCL.Model.TransportType
+SSDP.UPnP.PCL.Model.TransportType.Unicast = 2 -> SSDP.UPnP.PCL.Model.TransportType
+SSDP.UPnP.PCL.Model.USN
+SSDP.UPnP.PCL.Model.USN.Equals(SSDP.UPnP.PCL.Model.USN? other) -> bool
+SSDP.UPnP.PCL.Model.USN.ToUsnString() -> string!
+SSDP.UPnP.PCL.Model.USN.USN() -> void
+SSDP.UPnP.PCL.Model.USN.USNString.get -> string?
+SSDP.UPnP.PCL.Model.USN.USNString.init -> void
+SSDP.UPnP.PCL.Model.UnicastMSearch
+SSDP.UPnP.PCL.Model.UnicastMSearch.Equals(SSDP.UPnP.PCL.Model.UnicastMSearch? other) -> bool
+SSDP.UPnP.PCL.Model.UnicastMSearch.Host.get -> string!
+SSDP.UPnP.PCL.Model.UnicastMSearch.Target.get -> System.Net.IPEndPoint!
+SSDP.UPnP.PCL.Model.UnicastMSearch.Target.init -> void
+SSDP.UPnP.PCL.Model.UnicastMSearch.UnicastMSearch() -> void
+SSDP.UPnP.PCL.Model.UserAgent
+SSDP.UPnP.PCL.Model.UserAgent.Equals(SSDP.UPnP.PCL.Model.UserAgent? other) -> bool
+SSDP.UPnP.PCL.Model.UserAgent.UserAgent() -> void
+SSDP.UPnP.PCL.Parsing.DatagramComposer
+SSDP.UPnP.PCL.Parsing.SsdpMessageParser
+SSDP.UPnP.PCL.SSDPException
+SSDP.UPnP.PCL.SSDPException.SSDPException() -> void
+SSDP.UPnP.PCL.SSDPException.SSDPException(string! message) -> void
+SSDP.UPnP.PCL.SSDPException.SSDPException(string! message, System.Exception! inner) -> void
+abstract SSDP.UPnP.PCL.Model.MSearchRequest.<Clone>$() -> SSDP.UPnP.PCL.Model.MSearchRequest!
+const SSDP.UPnP.PCL.Constants.DefaultMulticastTtl = 2 -> int
+const SSDP.UPnP.PCL.Constants.MaxDynamicPort = 65535 -> int
+const SSDP.UPnP.PCL.Constants.MinDynamicPort = 49152 -> int
+const SSDP.UPnP.PCL.Constants.SsdpMulticastHost = "239.255.255.250:1900" -> string!
+const SSDP.UPnP.PCL.Constants.TcpResponseListenerPort = 51900 -> int
+const SSDP.UPnP.PCL.Constants.UdpSSDPMultiCastAddress = "239.255.255.250" -> string!
+const SSDP.UPnP.PCL.Constants.UdpSSDPMulticastPort = 1900 -> int
+const SSDP.UPnP.PCL.Model.DynamicPort.MaximumPort = 65535 -> int
+const SSDP.UPnP.PCL.Model.DynamicPort.MinimumPort = 49152 -> int
+const SSDP.UPnP.PCL.Model.MxSeconds.MinimumSeconds = 1 -> int
+const SSDP.UPnP.PCL.Model.MxSeconds.RecommendedMaximumSeconds = 5 -> int
+override SSDP.UPnP.PCL.Model.ControlPointInterface.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.ControlPointInterface.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.ControlPointInterface.ToString() -> string!
+override SSDP.UPnP.PCL.Model.DeviceConfiguration.<Clone>$() -> SSDP.UPnP.PCL.Model.DeviceConfiguration!
+override SSDP.UPnP.PCL.Model.DeviceConfiguration.EqualityContract.get -> System.Type!
+override SSDP.UPnP.PCL.Model.DeviceConfiguration.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.DeviceConfiguration.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.DeviceConfiguration.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override SSDP.UPnP.PCL.Model.DeviceConfiguration.ToString() -> string!
+override SSDP.UPnP.PCL.Model.DeviceInfo.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.DeviceInfo.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.DeviceInfo.ToString() -> string!
+override SSDP.UPnP.PCL.Model.DynamicPort.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.DynamicPort.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.DynamicPort.ToString() -> string!
+override SSDP.UPnP.PCL.Model.Entity.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.Entity.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.Entity.ToString() -> string!
+override SSDP.UPnP.PCL.Model.MSearchRequest.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.MSearchRequest.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.MSearchRequest.ToString() -> string!
+override SSDP.UPnP.PCL.Model.MSearchResponse.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.MSearchResponse.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.MSearchResponse.ToString() -> string!
+override SSDP.UPnP.PCL.Model.MulticastMSearch.<Clone>$() -> SSDP.UPnP.PCL.Model.MulticastMSearch!
+override SSDP.UPnP.PCL.Model.MulticastMSearch.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.MulticastMSearch.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.MulticastMSearch.ToString() -> string!
+override SSDP.UPnP.PCL.Model.MxSeconds.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.MxSeconds.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.MxSeconds.ToString() -> string!
+override SSDP.UPnP.PCL.Model.Notify.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.Notify.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.Notify.ToString() -> string!
+override SSDP.UPnP.PCL.Model.ParseResult<T>.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.ParseResult<T>.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.ParseResult<T>.ToString() -> string!
+override SSDP.UPnP.PCL.Model.ReceivedMSearch.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.ReceivedMSearch.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.ReceivedMSearch.ToString() -> string!
+override SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.ToString() -> string!
+override SSDP.UPnP.PCL.Model.ReceivedNotify.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.ReceivedNotify.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.ReceivedNotify.ToString() -> string!
+override SSDP.UPnP.PCL.Model.RootDeviceConfiguration.<Clone>$() -> SSDP.UPnP.PCL.Model.RootDeviceConfiguration!
+override SSDP.UPnP.PCL.Model.RootDeviceConfiguration.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.RootDeviceConfiguration.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.RootDeviceConfiguration.ToString() -> string!
+override SSDP.UPnP.PCL.Model.RootDeviceInterface.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.RootDeviceInterface.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.RootDeviceInterface.ToString() -> string!
+override SSDP.UPnP.PCL.Model.ST.<Clone>$() -> SSDP.UPnP.PCL.Model.ST!
+override SSDP.UPnP.PCL.Model.ST.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.ST.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.ST.ToString() -> string!
+override SSDP.UPnP.PCL.Model.Server.<Clone>$() -> SSDP.UPnP.PCL.Model.Server!
+override SSDP.UPnP.PCL.Model.Server.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.Server.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.Server.ToString() -> string!
+override SSDP.UPnP.PCL.Model.ServiceConfiguration.<Clone>$() -> SSDP.UPnP.PCL.Model.ServiceConfiguration!
+override SSDP.UPnP.PCL.Model.ServiceConfiguration.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.ServiceConfiguration.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.ServiceConfiguration.ToString() -> string!
+override SSDP.UPnP.PCL.Model.SsdpParseFailure.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.SsdpParseFailure.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.SsdpParseFailure.ToString() -> string!
+override SSDP.UPnP.PCL.Model.USN.<Clone>$() -> SSDP.UPnP.PCL.Model.USN!
+override SSDP.UPnP.PCL.Model.USN.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.USN.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.USN.ToString() -> string!
+override SSDP.UPnP.PCL.Model.UnicastMSearch.<Clone>$() -> SSDP.UPnP.PCL.Model.UnicastMSearch!
+override SSDP.UPnP.PCL.Model.UnicastMSearch.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.UnicastMSearch.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.UnicastMSearch.ToString() -> string!
+override SSDP.UPnP.PCL.Model.UserAgent.<Clone>$() -> SSDP.UPnP.PCL.Model.UserAgent!
+override SSDP.UPnP.PCL.Model.UserAgent.Equals(object? obj) -> bool
+override SSDP.UPnP.PCL.Model.UserAgent.GetHashCode() -> int
+override SSDP.UPnP.PCL.Model.UserAgent.ToString() -> string!
+override sealed SSDP.UPnP.PCL.Model.DeviceConfiguration.Equals(SSDP.UPnP.PCL.Model.Entity? other) -> bool
+override sealed SSDP.UPnP.PCL.Model.MulticastMSearch.Equals(SSDP.UPnP.PCL.Model.MSearchRequest? other) -> bool
+override sealed SSDP.UPnP.PCL.Model.RootDeviceConfiguration.Equals(SSDP.UPnP.PCL.Model.DeviceConfiguration? other) -> bool
+override sealed SSDP.UPnP.PCL.Model.ST.Equals(SSDP.UPnP.PCL.Model.Entity? other) -> bool
+override sealed SSDP.UPnP.PCL.Model.Server.Equals(SSDP.UPnP.PCL.Model.DeviceInfo? other) -> bool
+override sealed SSDP.UPnP.PCL.Model.ServiceConfiguration.Equals(SSDP.UPnP.PCL.Model.Entity? other) -> bool
+override sealed SSDP.UPnP.PCL.Model.USN.Equals(SSDP.UPnP.PCL.Model.Entity? other) -> bool
+override sealed SSDP.UPnP.PCL.Model.UnicastMSearch.Equals(SSDP.UPnP.PCL.Model.MSearchRequest? other) -> bool
+override sealed SSDP.UPnP.PCL.Model.UserAgent.Equals(SSDP.UPnP.PCL.Model.DeviceInfo? other) -> bool
+static SSDP.UPnP.PCL.Constants.GetBestGuessLocalIPAddress() -> System.Net.IPAddress?
+static SSDP.UPnP.PCL.Model.ControlPointInterface.operator !=(SSDP.UPnP.PCL.Model.ControlPointInterface? left, SSDP.UPnP.PCL.Model.ControlPointInterface? right) -> bool
+static SSDP.UPnP.PCL.Model.ControlPointInterface.operator ==(SSDP.UPnP.PCL.Model.ControlPointInterface? left, SSDP.UPnP.PCL.Model.ControlPointInterface? right) -> bool
+static SSDP.UPnP.PCL.Model.DeviceConfiguration.operator !=(SSDP.UPnP.PCL.Model.DeviceConfiguration? left, SSDP.UPnP.PCL.Model.DeviceConfiguration? right) -> bool
+static SSDP.UPnP.PCL.Model.DeviceConfiguration.operator ==(SSDP.UPnP.PCL.Model.DeviceConfiguration? left, SSDP.UPnP.PCL.Model.DeviceConfiguration? right) -> bool
+static SSDP.UPnP.PCL.Model.DeviceInfo.operator !=(SSDP.UPnP.PCL.Model.DeviceInfo? left, SSDP.UPnP.PCL.Model.DeviceInfo? right) -> bool
+static SSDP.UPnP.PCL.Model.DeviceInfo.operator ==(SSDP.UPnP.PCL.Model.DeviceInfo? left, SSDP.UPnP.PCL.Model.DeviceInfo? right) -> bool
+static SSDP.UPnP.PCL.Model.DynamicPort.IsValid(int port) -> bool
+static SSDP.UPnP.PCL.Model.DynamicPort.TryCreate(int? port) -> SSDP.UPnP.PCL.Model.DynamicPort?
+static SSDP.UPnP.PCL.Model.DynamicPort.operator !=(SSDP.UPnP.PCL.Model.DynamicPort left, SSDP.UPnP.PCL.Model.DynamicPort right) -> bool
+static SSDP.UPnP.PCL.Model.DynamicPort.operator ==(SSDP.UPnP.PCL.Model.DynamicPort left, SSDP.UPnP.PCL.Model.DynamicPort right) -> bool
+static SSDP.UPnP.PCL.Model.Entity.operator !=(SSDP.UPnP.PCL.Model.Entity? left, SSDP.UPnP.PCL.Model.Entity? right) -> bool
+static SSDP.UPnP.PCL.Model.Entity.operator ==(SSDP.UPnP.PCL.Model.Entity? left, SSDP.UPnP.PCL.Model.Entity? right) -> bool
+static SSDP.UPnP.PCL.Model.MSearchRequest.operator !=(SSDP.UPnP.PCL.Model.MSearchRequest? left, SSDP.UPnP.PCL.Model.MSearchRequest? right) -> bool
+static SSDP.UPnP.PCL.Model.MSearchRequest.operator ==(SSDP.UPnP.PCL.Model.MSearchRequest? left, SSDP.UPnP.PCL.Model.MSearchRequest? right) -> bool
+static SSDP.UPnP.PCL.Model.MSearchResponse.operator !=(SSDP.UPnP.PCL.Model.MSearchResponse? left, SSDP.UPnP.PCL.Model.MSearchResponse? right) -> bool
+static SSDP.UPnP.PCL.Model.MSearchResponse.operator ==(SSDP.UPnP.PCL.Model.MSearchResponse? left, SSDP.UPnP.PCL.Model.MSearchResponse? right) -> bool
+static SSDP.UPnP.PCL.Model.MulticastMSearch.operator !=(SSDP.UPnP.PCL.Model.MulticastMSearch? left, SSDP.UPnP.PCL.Model.MulticastMSearch? right) -> bool
+static SSDP.UPnP.PCL.Model.MulticastMSearch.operator ==(SSDP.UPnP.PCL.Model.MulticastMSearch? left, SSDP.UPnP.PCL.Model.MulticastMSearch? right) -> bool
+static SSDP.UPnP.PCL.Model.MxSeconds.Minimum.get -> SSDP.UPnP.PCL.Model.MxSeconds
+static SSDP.UPnP.PCL.Model.MxSeconds.operator !=(SSDP.UPnP.PCL.Model.MxSeconds left, SSDP.UPnP.PCL.Model.MxSeconds right) -> bool
+static SSDP.UPnP.PCL.Model.MxSeconds.operator ==(SSDP.UPnP.PCL.Model.MxSeconds left, SSDP.UPnP.PCL.Model.MxSeconds right) -> bool
+static SSDP.UPnP.PCL.Model.NTSExtensions.ToNTS(string? value) -> SSDP.UPnP.PCL.Model.NTS
+static SSDP.UPnP.PCL.Model.NTSExtensions.ToUriString(this SSDP.UPnP.PCL.Model.NTS nts) -> string!
+static SSDP.UPnP.PCL.Model.Notify.operator !=(SSDP.UPnP.PCL.Model.Notify? left, SSDP.UPnP.PCL.Model.Notify? right) -> bool
+static SSDP.UPnP.PCL.Model.Notify.operator ==(SSDP.UPnP.PCL.Model.Notify? left, SSDP.UPnP.PCL.Model.Notify? right) -> bool
+static SSDP.UPnP.PCL.Model.ParseResult<T>.Failure(string! error) -> SSDP.UPnP.PCL.Model.ParseResult<T>!
+static SSDP.UPnP.PCL.Model.ParseResult<T>.Success(T value) -> SSDP.UPnP.PCL.Model.ParseResult<T>!
+static SSDP.UPnP.PCL.Model.ParseResult<T>.operator !=(SSDP.UPnP.PCL.Model.ParseResult<T>? left, SSDP.UPnP.PCL.Model.ParseResult<T>? right) -> bool
+static SSDP.UPnP.PCL.Model.ParseResult<T>.operator ==(SSDP.UPnP.PCL.Model.ParseResult<T>? left, SSDP.UPnP.PCL.Model.ParseResult<T>? right) -> bool
+static SSDP.UPnP.PCL.Model.ReceivedMSearch.operator !=(SSDP.UPnP.PCL.Model.ReceivedMSearch? left, SSDP.UPnP.PCL.Model.ReceivedMSearch? right) -> bool
+static SSDP.UPnP.PCL.Model.ReceivedMSearch.operator ==(SSDP.UPnP.PCL.Model.ReceivedMSearch? left, SSDP.UPnP.PCL.Model.ReceivedMSearch? right) -> bool
+static SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.operator !=(SSDP.UPnP.PCL.Model.ReceivedMSearchResponse? left, SSDP.UPnP.PCL.Model.ReceivedMSearchResponse? right) -> bool
+static SSDP.UPnP.PCL.Model.ReceivedMSearchResponse.operator ==(SSDP.UPnP.PCL.Model.ReceivedMSearchResponse? left, SSDP.UPnP.PCL.Model.ReceivedMSearchResponse? right) -> bool
+static SSDP.UPnP.PCL.Model.ReceivedNotify.operator !=(SSDP.UPnP.PCL.Model.ReceivedNotify? left, SSDP.UPnP.PCL.Model.ReceivedNotify? right) -> bool
+static SSDP.UPnP.PCL.Model.ReceivedNotify.operator ==(SSDP.UPnP.PCL.Model.ReceivedNotify? left, SSDP.UPnP.PCL.Model.ReceivedNotify? right) -> bool
+static SSDP.UPnP.PCL.Model.RootDeviceConfiguration.operator !=(SSDP.UPnP.PCL.Model.RootDeviceConfiguration? left, SSDP.UPnP.PCL.Model.RootDeviceConfiguration? right) -> bool
+static SSDP.UPnP.PCL.Model.RootDeviceConfiguration.operator ==(SSDP.UPnP.PCL.Model.RootDeviceConfiguration? left, SSDP.UPnP.PCL.Model.RootDeviceConfiguration? right) -> bool
+static SSDP.UPnP.PCL.Model.RootDeviceInterface.operator !=(SSDP.UPnP.PCL.Model.RootDeviceInterface? left, SSDP.UPnP.PCL.Model.RootDeviceInterface? right) -> bool
+static SSDP.UPnP.PCL.Model.RootDeviceInterface.operator ==(SSDP.UPnP.PCL.Model.RootDeviceInterface? left, SSDP.UPnP.PCL.Model.RootDeviceInterface? right) -> bool
+static SSDP.UPnP.PCL.Model.ST.Parse(string? searchTarget) -> SSDP.UPnP.PCL.Model.ParseResult<SSDP.UPnP.PCL.Model.ST!>!
+static SSDP.UPnP.PCL.Model.ST.operator !=(SSDP.UPnP.PCL.Model.ST? left, SSDP.UPnP.PCL.Model.ST? right) -> bool
+static SSDP.UPnP.PCL.Model.ST.operator ==(SSDP.UPnP.PCL.Model.ST? left, SSDP.UPnP.PCL.Model.ST? right) -> bool
+static SSDP.UPnP.PCL.Model.Server.operator !=(SSDP.UPnP.PCL.Model.Server? left, SSDP.UPnP.PCL.Model.Server? right) -> bool
+static SSDP.UPnP.PCL.Model.Server.operator ==(SSDP.UPnP.PCL.Model.Server? left, SSDP.UPnP.PCL.Model.Server? right) -> bool
+static SSDP.UPnP.PCL.Model.ServiceConfiguration.operator !=(SSDP.UPnP.PCL.Model.ServiceConfiguration? left, SSDP.UPnP.PCL.Model.ServiceConfiguration? right) -> bool
+static SSDP.UPnP.PCL.Model.ServiceConfiguration.operator ==(SSDP.UPnP.PCL.Model.ServiceConfiguration? left, SSDP.UPnP.PCL.Model.ServiceConfiguration? right) -> bool
+static SSDP.UPnP.PCL.Model.SsdpParseFailure.operator !=(SSDP.UPnP.PCL.Model.SsdpParseFailure? left, SSDP.UPnP.PCL.Model.SsdpParseFailure? right) -> bool
+static SSDP.UPnP.PCL.Model.SsdpParseFailure.operator ==(SSDP.UPnP.PCL.Model.SsdpParseFailure? left, SSDP.UPnP.PCL.Model.SsdpParseFailure? right) -> bool
+static SSDP.UPnP.PCL.Model.USN.Parse(string? usn) -> SSDP.UPnP.PCL.Model.ParseResult<SSDP.UPnP.PCL.Model.USN!>!
+static SSDP.UPnP.PCL.Model.USN.operator !=(SSDP.UPnP.PCL.Model.USN? left, SSDP.UPnP.PCL.Model.USN? right) -> bool
+static SSDP.UPnP.PCL.Model.USN.operator ==(SSDP.UPnP.PCL.Model.USN? left, SSDP.UPnP.PCL.Model.USN? right) -> bool
+static SSDP.UPnP.PCL.Model.UnicastMSearch.operator !=(SSDP.UPnP.PCL.Model.UnicastMSearch? left, SSDP.UPnP.PCL.Model.UnicastMSearch? right) -> bool
+static SSDP.UPnP.PCL.Model.UnicastMSearch.operator ==(SSDP.UPnP.PCL.Model.UnicastMSearch? left, SSDP.UPnP.PCL.Model.UnicastMSearch? right) -> bool
+static SSDP.UPnP.PCL.Model.UserAgent.operator !=(SSDP.UPnP.PCL.Model.UserAgent? left, SSDP.UPnP.PCL.Model.UserAgent? right) -> bool
+static SSDP.UPnP.PCL.Model.UserAgent.operator ==(SSDP.UPnP.PCL.Model.UserAgent? left, SSDP.UPnP.PCL.Model.UserAgent? right) -> bool
+static SSDP.UPnP.PCL.Parsing.DatagramComposer.ComposeMSearchRequest(SSDP.UPnP.PCL.Model.MSearchRequest! request) -> byte[]!
+static SSDP.UPnP.PCL.Parsing.DatagramComposer.ComposeMSearchResponse(SSDP.UPnP.PCL.Model.MSearchResponse! response) -> byte[]!
+static SSDP.UPnP.PCL.Parsing.DatagramComposer.ComposeNotify(SSDP.UPnP.PCL.Model.Notify! notify) -> byte[]!
+static SSDP.UPnP.PCL.Parsing.SsdpMessageParser.ParseDeviceInfo<T>(string? value) -> T!
+static SSDP.UPnP.PCL.Parsing.SsdpMessageParser.ParseMSearchRequest(SimpleHttpListener.Rx.Model.HttpRequestResponse! request) -> SSDP.UPnP.PCL.Model.ParseResult<SSDP.UPnP.PCL.Model.ReceivedMSearch!>!
+static SSDP.UPnP.PCL.Parsing.SsdpMessageParser.ParseMSearchResponse(SimpleHttpListener.Rx.Model.HttpRequestResponse! response) -> SSDP.UPnP.PCL.Model.ParseResult<SSDP.UPnP.PCL.Model.ReceivedMSearchResponse!>!
+static SSDP.UPnP.PCL.Parsing.SsdpMessageParser.ParseMaxAge(string? cacheControl) -> int
+static SSDP.UPnP.PCL.Parsing.SsdpMessageParser.ParseNls(System.Collections.Generic.IReadOnlyDictionary<string!, string!>! headers) -> string?
+static SSDP.UPnP.PCL.Parsing.SsdpMessageParser.ParseNotify(SimpleHttpListener.Rx.Model.HttpRequestResponse! request) -> SSDP.UPnP.PCL.Model.ParseResult<SSDP.UPnP.PCL.Model.ReceivedNotify!>!
+static SSDP.UPnP.PCL.Parsing.SsdpMessageParser.ParseRfc1123Date(string? value) -> System.DateTimeOffset?
+static SSDP.UPnP.PCL.Parsing.SsdpMessageParser.TryParseMaxAge(string? cacheControl) -> int?
+virtual SSDP.UPnP.PCL.Model.DeviceConfiguration.Equals(SSDP.UPnP.PCL.Model.DeviceConfiguration? other) -> bool
+virtual SSDP.UPnP.PCL.Model.DeviceInfo.<Clone>$() -> SSDP.UPnP.PCL.Model.DeviceInfo!
+virtual SSDP.UPnP.PCL.Model.DeviceInfo.EqualityContract.get -> System.Type!
+virtual SSDP.UPnP.PCL.Model.DeviceInfo.Equals(SSDP.UPnP.PCL.Model.DeviceInfo? other) -> bool
+virtual SSDP.UPnP.PCL.Model.DeviceInfo.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual SSDP.UPnP.PCL.Model.Entity.<Clone>$() -> SSDP.UPnP.PCL.Model.Entity!
+virtual SSDP.UPnP.PCL.Model.Entity.EqualityContract.get -> System.Type!
+virtual SSDP.UPnP.PCL.Model.Entity.Equals(SSDP.UPnP.PCL.Model.Entity? other) -> bool
+virtual SSDP.UPnP.PCL.Model.Entity.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual SSDP.UPnP.PCL.Model.MSearchRequest.EqualityContract.get -> System.Type!
+virtual SSDP.UPnP.PCL.Model.MSearchRequest.Equals(SSDP.UPnP.PCL.Model.MSearchRequest? other) -> bool
+virtual SSDP.UPnP.PCL.Model.MSearchRequest.PrintMembers(System.Text.StringBuilder! builder) -> bool

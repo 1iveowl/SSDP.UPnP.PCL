@@ -158,7 +158,7 @@ public class SsdpMessageParserTests
         if (expectSuccess)
         {
             Assert.True(result.IsSuccess);
-            Assert.Equal(int.Parse(tcpPort), result.Value.TCPPORT);
+            Assert.Equal(int.Parse(tcpPort), result.Value.TCPPORT?.Port);
         }
         else
         {
@@ -188,7 +188,7 @@ public class SsdpMessageParserTests
         Assert.True(result.IsSuccess);
 
         var response = result.Value;
-        Assert.Equal(TimeSpan.FromSeconds(1800), response.CacheControl);
+        Assert.Equal(TimeSpan.FromSeconds(1800), response.MaxAge);
         Assert.Equal(new DateTimeOffset(2026, 7, 22, 10, 0, 0, TimeSpan.Zero), response.Date);
         Assert.True(response.Ext);
         Assert.Equal(new Uri("http://192.168.0.20/description.xml"), response.Location);
@@ -289,10 +289,6 @@ public class SsdpMessageParserTests
 
         Assert.Equal(TimeSpan.Zero, saidZero.Value.MaxAge);
         Assert.Null(saidNothing.Value.MaxAge);
-
-        // The obsolete property cannot tell them apart, which is why it is obsolete.
-        Assert.Equal(TimeSpan.Zero, saidZero.Value.CacheControl);
-        Assert.Equal(TimeSpan.Zero, saidNothing.Value.CacheControl);
     }
 
     [Fact]
@@ -349,7 +345,7 @@ public class SsdpMessageParserTests
         var result = SsdpMessageParser.ParseMSearchResponse(message);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(TimeSpan.FromSeconds(1800), result.Value.CacheControl);
+        Assert.Equal(TimeSpan.FromSeconds(1800), result.Value.MaxAge);
     }
 
     [Theory]
@@ -516,7 +512,7 @@ public class SsdpMessageParserTests
         var response = result.Value;
         Assert.Null(response.BOOTID);
         Assert.Equal("1785066224", response.NLS);
-        Assert.Equal(TimeSpan.FromSeconds(66), response.CacheControl);
+        Assert.Equal(TimeSpan.FromSeconds(66), response.MaxAge);
         Assert.Equal(new Uri("http://192.168.0.217:16422"), response.Location);
         Assert.Equal("bf3f7ffd-777e-4f76-bfb8-b7ff6be2befe", response.USN?.DeviceUUID);
         Assert.False(response.HasParsingError);
@@ -681,5 +677,47 @@ public class SsdpMessageParserTests
         Assert.True(result.IsSuccess);
         Assert.Null(result.Value.USN);
         Assert.False(result.Value.IsUuidUpnp2Compliant);
+    }
+
+    // End to end for the real-network case: the response a Vera controller sends
+    // for a bridged Pioneer receiver. Both ST and the USN entity part are
+    // unreadable, so this used to be dropped whole - losing a device that is
+    // plainly there, with a LOCATION pointing at its description.
+    [Fact]
+    public void ParseMSearchResponse_WithAnUnreadableEntity_SurvivesWithWhatIsKnown()
+    {
+        var result = SsdpMessageParser.ParseMSearchResponse(Message(MessageType.Response, new Dictionary<string, string>
+        {
+            ["CACHE-CONTROL"] = "max-age=1800",
+            ["EXT"] = "",
+            ["LOCATION"] = "http://192.168.0.203:49453/luaupnp.xml",
+            ["SERVER"] = "Linux/3.10 UPnP/1.0 MiOS/1.0",
+            ["ST"] = "urn:pioneer-com:serviceId:Receiver:1",
+            ["USN"] = "uuid:4d494342-5342-5645-01d2-000002fc7f93::urn:pioneer-com:serviceId:Receiver:1"
+        }));
+
+        Assert.True(result.IsSuccess);
+
+        // The unreadable search target stays unset - lenient, not invented.
+        Assert.Null(result.Value.ST);
+
+        // The device, however, is entirely knowable.
+        Assert.Equal(EntityType.Unknown, result.Value.USN?.EntityType);
+        Assert.Equal("4d494342-5342-5645-01d2-000002fc7f93", result.Value.USN?.DeviceUUID);
+        Assert.Equal("http://192.168.0.203:49453/luaupnp.xml", result.Value.Location?.AbsoluteUri);
+        Assert.Equal(TimeSpan.FromSeconds(1800), result.Value.MaxAge);
+    }
+
+    // The rule that still holds: a response identifying nothing at all is dropped.
+    [Fact]
+    public void ParseMSearchResponse_WithNeitherStNorAUsableUsn_IsStillRejected()
+    {
+        var result = SsdpMessageParser.ParseMSearchResponse(Message(MessageType.Response, new Dictionary<string, string>
+        {
+            ["ST"] = "urn:pioneer-com:serviceId:Receiver:1",
+            ["USN"] = "not-even-a-uuid"
+        }));
+
+        Assert.False(result.IsSuccess);
     }
 }

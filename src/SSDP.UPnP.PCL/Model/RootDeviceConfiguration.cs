@@ -19,7 +19,12 @@ public sealed record RootDeviceConfiguration : DeviceConfiguration
     public Server Server { get; init; } = new();
 
     /// <summary>The URL of the device description document (<c>LOCATION</c> header).</summary>
-    public Uri? Location { get; init; }
+    /// <remarks>
+    /// Required on every advertisement and every search response (UDA 2.0 sections
+    /// 1.2.2 and 1.3.3), so a device without one cannot compose a conforming
+    /// message. It is the source of every LOCATION this device sends.
+    /// </remarks>
+    public required Uri Location { get; init; }
 
     /// <summary>The HTTPS URL of the device description document (<c>SECURELOCATION.UPNP.ORG</c>), if any.</summary>
     public Uri? SecureLocation { get; init; }

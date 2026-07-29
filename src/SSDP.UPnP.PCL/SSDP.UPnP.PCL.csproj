@@ -4,7 +4,7 @@
     <PackageId>SSDP.UPnP.PCL</PackageId>
     <AssemblyName>SSDP.UPnP.PCL</AssemblyName>
     <RootNamespace>SSDP.UPnP.PCL</RootNamespace>
-    <Version>9.1.0</Version>
+    <Version>10.0.0</Version>
     <Description>An Rx-based SSDP library for discovering and advertising UPnP Device Architecture 2.0 devices and services.</Description>
     <PackageTags>ssdp;upnp;discovery;rx;reactive;observable;multicast;iot</PackageTags>
     <PackageIcon>1iveowl-logo.png</PackageIcon>
@@ -13,6 +13,8 @@
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IsTrimmable>true</IsTrimmable>
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,9 +26,46 @@
     <InternalsVisibleTo Include="SSDP.UPnP.PCL.Tests" />
   </ItemGroup>
 
+  <!-- The analyzers ship inside this package rather than beside it. A separate
+       package would need a dependency edge, which puts the analyzer project into
+       every consumer's reference graph and shows up in Visual Studio as a broken
+       reference. ReferenceOutputAssembly="false" keeps the analyzer out of the
+       compile, PrivateAssets="all" keeps it out of the nuspec, and
+       OutputItemType="Analyzer" is what makes the library analyse its own code.
+
+       Skipped when publishing native AOT, because the implicit restore that
+       "dotnet publish" runs propagates PublishAot into these netstandard2.0
+       projects as a global property that UndefineProperties cannot strip from a
+       restore graph. Packing never happens under PublishAot, so the analyzers still
+       reach the package. -->
+  <ItemGroup Condition="'$(PublishAot)' != 'true'">
+    <ProjectReference Include="../SSDP.UPnP.PCL.Analyzers/SSDP.UPnP.PCL.Analyzers.csproj"
+                      PrivateAssets="all" ReferenceOutputAssembly="false" OutputItemType="Analyzer"
+                      UndefineProperties="PublishAot;PublishTrimmed;PublishReadyToRun;SelfContained;RuntimeIdentifier" />
+    <ProjectReference Include="../SSDP.UPnP.PCL.Analyzers.CodeFixes/SSDP.UPnP.PCL.Analyzers.CodeFixes.csproj"
+                      PrivateAssets="all" ReferenceOutputAssembly="false"
+                      UndefineProperties="PublishAot;PublishTrimmed;PublishReadyToRun;SelfContained;RuntimeIdentifier" />
+  </ItemGroup>
+
   <ItemGroup>
+    <None Include="../SSDP.UPnP.PCL.Analyzers/bin/$(Configuration)/netstandard2.0/SSDP.UPnP.PCL.Analyzers.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="../SSDP.UPnP.PCL.Analyzers.CodeFixes/bin/$(Configuration)/netstandard2.0/SSDP.UPnP.PCL.Analyzers.CodeFixes.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
-    <PackageReference Include="SimpleHttpListener.Rx" Version="7.4.0" />
+    <PackageReference Include="SimpleHttpListener.Rx" Version="7.6.0" />
     <PackageReference Include="System.Reactive" Version="7.0.0" />
   </ItemGroup>
 

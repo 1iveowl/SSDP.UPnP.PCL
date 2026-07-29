@@ -54,13 +54,13 @@ public class ControlPointLifecycleTests
         await sender.SendAsync(datagram, target, ct);
     }
 
-    private static async Task<Notify> AwaitFirstNotifyAsync(
+    private static async Task<ReceivedNotify> AwaitFirstNotifyAsync(
         ControlPoint controlPoint,
         Func<IPEndPoint> endPoint,
         CancellationToken ct,
         Action<IDisposable>? captureSubscription = null)
     {
-        var received = new TaskCompletionSource<Notify>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var received = new TaskCompletionSource<ReceivedNotify>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         using var registration = ct.Register(() => received.TrySetCanceled(ct));
 
@@ -198,11 +198,11 @@ public class ControlPointLifecycleTests
         var (controlPoint, setupCount, _) = CreateLoopbackControlPoint();
         using var _guard = controlPoint;
 
-        var request = new MSearchRequest
+        var request = new MulticastMSearch
         {
-            TransportType = TransportType.Multicast,
-            MX = TimeSpan.FromSeconds(1),
+            MX = new MxSeconds(1),
             ST = new ST { StSearchType = STType.All },
+            CPFN = "Test CP",
             SendCount = 1
         };
 
@@ -219,7 +219,7 @@ public class ControlPointLifecycleTests
 
         controlPoint.Dispose();
 
-        var request = new MSearchRequest { ST = new ST { StSearchType = STType.All } };
+        var request = new MulticastMSearch { ST = new ST { StSearchType = STType.All }, CPFN = "Test CP" };
 
         await Assert.ThrowsAsync<ObjectDisposedException>(
             () => controlPoint.SendMSearchAsync(request, IPAddress.Loopback, TestContext.Current.CancellationToken));

@@ -148,4 +148,49 @@ public class STTests
 
         Assert.Throws<SSDPException>(() => st.ToSearchTargetString());
     }
+
+    // Span-boundary cases. Split handled these incidentally; a hand-written span
+    // walk is exactly where that stops being true, so they are pinned explicitly.
+    [Theory]
+    [InlineData("ssdp:")]
+    [InlineData("ssdp")]
+    [InlineData("ssdp:all:extra")]
+    [InlineData("upnp:")]
+    [InlineData("upnp")]
+    [InlineData("upnp:rootdevice:extra")]
+    [InlineData("uuid:")]
+    [InlineData("uuid")]
+    [InlineData("urn:")]
+    [InlineData("urn:schemas-upnp-org:device:MediaServer")]
+    [InlineData("urn:schemas-upnp-org:device:MediaServer:1:extra")]
+    [InlineData(":")]
+    [InlineData("::")]
+    public void Parse_MalformedEdges_Fail(string value)
+    {
+        Assert.False(ST.Parse(value).IsSuccess);
+    }
+
+    [Theory]
+    [InlineData("SSDP:ALL", STType.All)]
+    [InlineData("UPnP:RootDevice", STType.RootDeviceSearch)]
+    [InlineData("UUID:abc", STType.UuidSearch)]
+    [InlineData("URN:schemas-upnp-org:DEVICE:MediaServer:1", STType.DeviceTypeSearch)]
+    [InlineData("urn:SCHEMAS-UPNP-ORG:service:MediaServer:1", STType.ServiceTypeSearch)]
+    public void Parse_IsCaseInsensitiveOnTheSchemeAndKind(string value, STType expected)
+    {
+        var result = ST.Parse(value);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(expected, result.Value.StSearchType);
+    }
+
+    // A UUID may itself contain colons, and everything after "uuid:" belongs to it.
+    [Fact]
+    public void Parse_UuidWithColons_KeepsTheWholeRemainder()
+    {
+        var result = ST.Parse("uuid:a:b:c");
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("a:b:c", result.Value.DeviceUUID);
+    }
 }

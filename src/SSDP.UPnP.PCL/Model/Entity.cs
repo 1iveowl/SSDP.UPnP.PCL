@@ -39,15 +39,63 @@ public record Entity
 /// </summary>
 internal static class SsdpUri
 {
-    internal static string For(EntityType entityType, string? deviceUuid, string? domain, string? typeName, int version) =>
-        entityType switch
+    // Interpolating an unset field produced a syntactically valid but meaningless
+    // URI - "uuid:", or "urn:schemas-upnp-org:service::0" - which then went out on
+    // the wire as a Required NT or USN header. ST.ToSearchTargetString has always
+    // rejected the same shapes; this brings the other half of the model in line.
+    internal static string For(EntityType entityType, string? deviceUuid, string? domain, string? typeName, int version)
+    {
+        switch (entityType)
         {
-            EntityType.RootDevice => "upnp:rootdevice",
-            EntityType.Device => $"uuid:{deviceUuid}",
-            EntityType.DeviceType => $"urn:schemas-upnp-org:device:{typeName}:{version}",
-            EntityType.ServiceType => $"urn:schemas-upnp-org:service:{typeName}:{version}",
-            EntityType.DomainDevice => $"urn:{domain}:device:{typeName}:{version}",
-            EntityType.DomainService => $"urn:{domain}:service:{typeName}:{version}",
-            _ => throw new SSDPException($"Unknown entity type: {entityType}.")
-        };
+            case EntityType.RootDevice:
+                return "upnp:rootdevice";
+
+            case EntityType.Device:
+                RequireUuid(deviceUuid, entityType);
+
+                return $"uuid:{deviceUuid}";
+
+            case EntityType.DeviceType:
+            case EntityType.ServiceType:
+            case EntityType.DomainDevice:
+            case EntityType.DomainService:
+                if (string.IsNullOrEmpty(typeName))
+                {
+                    throw new SSDPException($"{entityType} requires a Type name to be specified.");
+                }
+
+                if (version < 1)
+                {
+                    throw new SSDPException($"{entityType} requires a version (1 or greater) to be specified.");
+                }
+
+                var isDomainForm = entityType is EntityType.DomainDevice or EntityType.DomainService;
+
+                if (isDomainForm && string.IsNullOrEmpty(domain))
+                {
+                    throw new SSDPException($"{entityType} requires a Domain to be specified.");
+                }
+
+                var resolvedDomain = isDomainForm ? domain : "schemas-upnp-org";
+                var kind = entityType is EntityType.DeviceType or EntityType.DomainDevice ? "device" : "service";
+
+                return $"urn:{resolvedDomain}:{kind}:{typeName}:{version}";
+
+            case EntityType.Unknown:
+                throw new SSDPException(
+                    "This entity came from a USN whose entity part could not be parsed, so there is "
+                    + "no URI to compose. Build the entity you mean to advertise instead of reusing a received one.");
+
+            default:
+                throw new SSDPException($"Unknown entity type: {entityType}.");
+        }
+    }
+
+    internal static void RequireUuid(string? deviceUuid, EntityType entityType)
+    {
+        if (string.IsNullOrEmpty(deviceUuid))
+        {
+            throw new SSDPException($"{entityType} requires a Device UUID to be specified.");
+        }
+    }
 }

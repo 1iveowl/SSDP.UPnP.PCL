@@ -20,10 +20,9 @@ public class DatagramComposerTests
     [Fact]
     public void ComposeMSearchRequest_Multicast()
     {
-        var request = new MSearchRequest
+        var request = new MulticastMSearch
         {
-            TransportType = TransportType.Multicast,
-            MX = TimeSpan.FromSeconds(3),
+            MX = new MxSeconds(3),
             ST = new ST { StSearchType = STType.All },
             CPFN = "Test CP",
             UserAgent = new UserAgent
@@ -48,14 +47,30 @@ public class DatagramComposerTests
         Assert.Contains("CPFN.UPNP.ORG: Test CP", lines);
     }
 
-    [Fact]
-    public void ComposeMSearchRequest_MulticastWithMxBelowOne_Throws()
+    // UDA 2.0 section 1.3.2 makes MX >= 1 a "shall", and MxSeconds enforces it at
+    // the point of assignment rather than leaving it for the composer to discover.
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void MxSeconds_BelowOne_Throws(int seconds)
     {
-        var request = new MSearchRequest
+        Assert.Throws<ArgumentOutOfRangeException>(() => new MxSeconds(seconds));
+    }
+
+    [Fact]
+    public void MxSeconds_Default_IsTheLegalMinimum()
+    {
+        Assert.Equal(1, default(MxSeconds).Seconds);
+    }
+
+    [Fact]
+    public void ComposeMSearchRequest_MulticastWithEmptyCpfn_Throws()
+    {
+        // required obliges the caller to set CPFN; this is the blank it cannot catch.
+        var request = new MulticastMSearch
         {
-            TransportType = TransportType.Multicast,
-            MX = TimeSpan.Zero,
-            ST = new ST { StSearchType = STType.All }
+            ST = new ST { StSearchType = STType.All },
+            CPFN = "  "
         };
 
         Assert.Throws<SSDPException>(() => DatagramComposer.ComposeMSearchRequest(request));
@@ -64,15 +79,15 @@ public class DatagramComposerTests
     [Fact]
     public void ComposeMSearchRequest_Unicast_OmitsMulticastHeaders()
     {
-        var request = new MSearchRequest
+        var request = new UnicastMSearch
         {
-            TransportType = TransportType.Unicast,
-            HOST = "192.168.0.20:1900",
+            Target = new IPEndPoint(IPAddress.Parse("192.168.0.20"), 1900),
             ST = new ST { StSearchType = STType.RootDeviceSearch },
         };
 
         var lines = HeaderLines(DatagramComposer.ComposeMSearchRequest(request));
 
+        // HOST is derived from Target, so the two can no longer disagree.
         Assert.Contains("HOST: 192.168.0.20:1900", lines);
         Assert.DoesNotContain(lines, line => line.StartsWith("MX:"));
         Assert.DoesNotContain(lines, line => line.StartsWith("CPFN.UPNP.ORG:"));
@@ -85,7 +100,7 @@ public class DatagramComposerTests
         {
             StatusCode = 200,
             ResponseReason = "OK",
-            CacheControl = TimeSpan.FromSeconds(1800),
+            MaxAge = TimeSpan.FromSeconds(1800),
             Date = new DateTimeOffset(2026, 7, 22, 10, 0, 0, TimeSpan.Zero),
             Location = new Uri("http://192.168.0.10/description.xml"),
             Server = new Server
@@ -101,7 +116,7 @@ public class DatagramComposerTests
             USN = new USN { EntityType = EntityType.RootDevice, DeviceUUID = "device-1" },
             BOOTID = 1721600000,
             CONFIGID = 77,
-            SEARCHPORT = 1901,
+            SEARCHPORT = new DynamicPort(49152),
             SECURELOCATION = "https://192.168.0.10/description.xml"
         };
 
@@ -116,14 +131,8 @@ public class DatagramComposerTests
         Assert.Contains("USN: uuid:device-1::upnp:rootdevice", lines);
         Assert.Contains("BOOTID.UPNP.ORG: 1721600000", lines);
         Assert.Contains("CONFIGID.UPNP.ORG: 77", lines);
-        Assert.Contains("SEARCHPORT.UPNP.ORG: 1901", lines);
+        Assert.Contains("SEARCHPORT.UPNP.ORG: 49152", lines);
         Assert.Contains("SECURELOCATION.UPNP.ORG: https://192.168.0.10/description.xml", lines);
-    }
-
-    [Fact]
-    public void ComposeMSearchResponse_WithoutStOrUsn_Throws()
-    {
-        Assert.Throws<SSDPException>(() => DatagramComposer.ComposeMSearchResponse(new MSearchResponse()));
     }
 
     [Fact]
@@ -132,7 +141,7 @@ public class DatagramComposerTests
         var notify = new Notify
         {
             NTS = NTS.Alive,
-            CacheControl = TimeSpan.FromSeconds(1800),
+            MaxAge = TimeSpan.FromSeconds(1800),
             Location = new Uri("http://192.168.0.10/description.xml"),
             NT = "upnp:rootdevice",
             Server = new Server { OperatingSystem = "Linux", OperatingSystemVersion = "6.1", ProductName = "Test", ProductVersion = "1.0" },
@@ -162,7 +171,7 @@ public class DatagramComposerTests
         var notify = new Notify
         {
             NTS = NTS.ByeBye,
-            CacheControl = TimeSpan.FromSeconds(1800),
+            MaxAge = TimeSpan.FromSeconds(1800),
             Location = new Uri("http://192.168.0.10/description.xml"),
             NT = "uuid:device-1",
             Server = new Server(),
@@ -199,49 +208,54 @@ public class DatagramComposerTests
         Assert.DoesNotContain(lines, line => line.StartsWith("CACHE-CONTROL:"));
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void ComposeNotify_TakesMaxAgeFromEitherProperty(bool useMaxAge)
+    [Fact]
+    public void ComposeNotify_TakesTheAdvertisedLifetimeFromMaxAge()
     {
-        // MaxAge is the property to set; CacheControl keeps working until the next
-        // major removes it. Both must produce the same header.
-        var notify = new Notify
-        {
-            NTS = NTS.Alive,
-            MaxAge = useMaxAge ? TimeSpan.FromSeconds(1800) : null,
-            CacheControl = useMaxAge ? TimeSpan.Zero : TimeSpan.FromSeconds(1800),
-            Location = new Uri("http://192.168.0.10/description.xml"),
-            NT = "upnp:rootdevice",
-            Server = new Server(),
-            USN = new USN { EntityType = EntityType.RootDevice, DeviceUUID = "device-1" }
-        };
+        var notify = AliveNotifyWith(TimeSpan.FromSeconds(1800));
 
         Assert.Contains("CACHE-CONTROL: max-age=1800", HeaderLines(DatagramComposer.ComposeNotify(notify)));
     }
 
     [Fact]
-    public void ComposeNotify_WithoutUsn_Throws()
+    public void ComposeNotify_WithoutMaxAge_StillCarriesTheRequiredHeader()
     {
-        Assert.Throws<SSDPException>(() => DatagramComposer.ComposeNotify(new Notify { NTS = NTS.Alive }));
+        // CACHE-CONTROL is Required on ssdp:alive (UDA 2.0 section 1.2.2), so a
+        // notification that announces no lifetime emits zero rather than omitting
+        // the header and composing a non-conforming message.
+        var notify = AliveNotifyWith(maxAge: null);
+
+        Assert.Contains("CACHE-CONTROL: max-age=0", HeaderLines(DatagramComposer.ComposeNotify(notify)));
     }
 
-    [Fact]
-    public void ComposeNotify_SearchPortOnDefaultPort_IsOmitted()
+    private static Notify AliveNotifyWith(TimeSpan? maxAge) => new()
     {
-        var notify = new Notify
-        {
-            NTS = NTS.Alive,
-            Location = new Uri("http://192.168.0.10/description.xml"),
-            NT = "upnp:rootdevice",
-            Server = new Server(),
-            USN = new USN { EntityType = EntityType.RootDevice, DeviceUUID = "device-1" },
-            SEARCHPORT = 1900
-        };
+        NTS = NTS.Alive,
+        MaxAge = maxAge,
+        Location = new Uri("http://192.168.0.10/description.xml"),
+        NT = "upnp:rootdevice",
+        Server = new Server(),
+        USN = new USN { EntityType = EntityType.RootDevice, DeviceUUID = "device-1" }
+    };
+
+    // Listening on 1900 is said with a null SEARCHPORT rather than by writing 1900
+    // into a field that no longer accepts it - DynamicPort's range starts at 49152,
+    // so the composer no longer needs a "not 1900" special case at all.
+    [Fact]
+    public void ComposeNotify_WithoutSearchPort_OmitsTheHeader()
+    {
+        var notify = AliveNotifyWith(TimeSpan.FromSeconds(1800)) with { SEARCHPORT = null };
 
         var lines = HeaderLines(DatagramComposer.ComposeNotify(notify));
 
         Assert.DoesNotContain(lines, line => line.StartsWith("SEARCHPORT.UPNP.ORG:"));
+    }
+
+    [Fact]
+    public void ComposeNotify_WithSearchPort_IncludesIt()
+    {
+        var notify = AliveNotifyWith(TimeSpan.FromSeconds(1800)) with { SEARCHPORT = new DynamicPort(49152) };
+
+        Assert.Contains("SEARCHPORT.UPNP.ORG: 49152", HeaderLines(DatagramComposer.ComposeNotify(notify)));
     }
 
     [Fact]
@@ -253,10 +267,9 @@ public class DatagramComposerTests
     [Fact]
     public void ComposedRequest_ParsesBackWithSameValues()
     {
-        var request = new MSearchRequest
+        var request = new MulticastMSearch
         {
-            TransportType = TransportType.Multicast,
-            MX = TimeSpan.FromSeconds(2),
+            MX = new MxSeconds(2),
             ST = new ST { StSearchType = STType.DeviceTypeSearch, TypeName = "MediaServer", Version = 3, EntityType = EntityType.DeviceType },
             CPFN = "Test CP"
         };
@@ -275,5 +288,50 @@ public class DatagramComposerTests
         Assert.True(roundTripped.IsSuccess);
         Assert.Equal(request.ST.TypeName, roundTripped.Value.TypeName);
         Assert.Equal(request.ST.Version, roundTripped.Value.Version);
+    }
+
+    // A required header with an empty value is worse than one that is missing: it
+    // is syntactically present, so a strict device reads it as "the sender declares
+    // it has no host". These are the two places the composer used to do that.
+    [Fact]
+    public void ComposeNotify_UnicastWithoutHost_Throws()
+    {
+        var notify = AliveNotifyWith(TimeSpan.FromSeconds(1800)) with
+        {
+            NotifyTransportType = TransportType.Unicast,
+            HOST = null
+        };
+
+        Assert.Throws<SSDPException>(() => DatagramComposer.ComposeNotify(notify));
+    }
+
+    [Fact]
+    public void ComposeNotify_UnicastWithHost_UsesIt()
+    {
+        var notify = AliveNotifyWith(TimeSpan.FromSeconds(1800)) with
+        {
+            NotifyTransportType = TransportType.Unicast,
+            HOST = "192.168.0.20:1900"
+        };
+
+        Assert.Contains("HOST: 192.168.0.20:1900", HeaderLines(DatagramComposer.ComposeNotify(notify)));
+    }
+
+    // LOCATION is Required on a search response (UDA 2.0 section 1.3.3), and is now
+    // required by the type - so the empty-value case is a compile error rather than
+    // a test. What is left to pin is that a real one still reaches the wire.
+    [Fact]
+    public void ComposeMSearchResponse_CarriesTheLocation()
+    {
+        var response = new MSearchResponse
+        {
+            Location = new Uri("http://192.168.0.10/description.xml"),
+            ST = new ST { StSearchType = STType.RootDeviceSearch, EntityType = EntityType.RootDevice },
+            USN = new USN { EntityType = EntityType.RootDevice, DeviceUUID = "device-1" }
+        };
+
+        Assert.Contains(
+            "LOCATION: http://192.168.0.10/description.xml",
+            HeaderLines(DatagramComposer.ComposeMSearchResponse(response)));
     }
 }

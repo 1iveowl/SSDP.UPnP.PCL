@@ -80,93 +80,115 @@ public sealed record ST : Entity
             return ParseResult<ST>.Failure("Search Target (ST) is empty.");
         }
 
-        var parts = searchTarget.Split(':');
+        var value = searchTarget.AsSpan();
+        var segments = value.Count(':') + 1;
+        var firstColon = value.IndexOf(':');
+        var scheme = firstColon < 0 ? value : value[..firstColon];
 
-        switch (parts[0].ToLowerInvariant())
+        if (scheme.Equals("ssdp", StringComparison.OrdinalIgnoreCase))
         {
-            case "ssdp" when parts.Length == 2 && parts[1].Equals("all", StringComparison.OrdinalIgnoreCase):
-                return ParseResult<ST>.Success(new ST
+            return segments == 2 && value[(firstColon + 1)..].Equals("all", StringComparison.OrdinalIgnoreCase)
+                ? ParseResult<ST>.Success(new ST
                 {
                     StSearchType = STType.All,
                     STString = searchTarget
-                });
-
-            case "ssdp":
-                return ParseResult<ST>.Failure(
+                })
+                : ParseResult<ST>.Failure(
                     $"Search Target (ST) value must be 'ssdp:all'. The value '{searchTarget}' is invalid.");
+        }
 
-            case "upnp" when parts.Length == 2 && parts[1].Equals("rootdevice", StringComparison.OrdinalIgnoreCase):
-                return ParseResult<ST>.Success(new ST
+        if (scheme.Equals("upnp", StringComparison.OrdinalIgnoreCase))
+        {
+            return segments == 2 && value[(firstColon + 1)..].Equals("rootdevice", StringComparison.OrdinalIgnoreCase)
+                ? ParseResult<ST>.Success(new ST
                 {
                     StSearchType = STType.RootDeviceSearch,
                     EntityType = EntityType.RootDevice,
                     STString = searchTarget
-                });
-
-            case "upnp":
-                return ParseResult<ST>.Failure(
+                })
+                : ParseResult<ST>.Failure(
                     $"Search Target (ST) value must be 'upnp:rootdevice'. The value '{searchTarget}' is invalid.");
+        }
 
-            case "uuid" when parts.Length >= 2 && !string.IsNullOrEmpty(parts[1]):
-                return ParseResult<ST>.Success(new ST
+        if (scheme.Equals("uuid", StringComparison.OrdinalIgnoreCase))
+        {
+            // The UUID runs to the next colon, which is where a "::" entity part
+            // would begin; everything after it belongs to a USN, not an ST.
+            var rest = value[(firstColon + 1)..];
+            var next = rest.IndexOf(':');
+            var uuid = next < 0 ? rest : rest[..next];
+
+            return segments >= 2 && !uuid.IsEmpty
+                ? ParseResult<ST>.Success(new ST
                 {
                     StSearchType = STType.UuidSearch,
                     EntityType = EntityType.Device,
                     DeviceUUID = searchTarget[5..],
                     STString = searchTarget
-                });
-
-            case "uuid":
-                return ParseResult<ST>.Failure(
+                })
+                : ParseResult<ST>.Failure(
                     $"Search Target (ST) value must be 'uuid:[device-UUID]'. The value '{searchTarget}' is invalid.");
-
-            case "urn":
-                return ParseUrn(searchTarget, parts);
-
-            default:
-                return ParseResult<ST>.Failure(
-                    $"Search Target (ST) '{searchTarget}' is invalid. See UPnP Device Architecture 2.0 section 1.3.2.");
         }
+
+        if (scheme.Equals("urn", StringComparison.OrdinalIgnoreCase))
+        {
+            return ParseUrn(searchTarget, value, segments);
+        }
+
+        return ParseResult<ST>.Failure(
+            $"Search Target (ST) '{searchTarget}' is invalid. See UPnP Device Architecture 2.0 section 1.3.2.");
     }
 
-    private static ParseResult<ST> ParseUrn(string searchTarget, string[] parts)
+    private static ParseResult<ST> ParseUrn(string searchTarget, ReadOnlySpan<char> value, int segments)
     {
-        if (parts.Length != 5)
+        if (segments != 5)
         {
             return ParseResult<ST>.Failure(
                 $"Search Target (ST) value must be in the form 'urn:[domain]:[device or service]:[type]:[version]'. The value '{searchTarget}' is invalid.");
         }
 
-        var isStandardDomain = parts[1].Equals("schemas-upnp-org", StringComparison.OrdinalIgnoreCase);
+        Span<Range> parts = stackalloc Range[5];
+        value.Split(parts, ':');
 
-        if (!int.TryParse(parts[4], out var version) || version < 1)
+        var domain = value[parts[1]];
+        var kind = value[parts[2]];
+        var typeName = value[parts[3]];
+
+        var isStandardDomain = domain.Equals("schemas-upnp-org", StringComparison.OrdinalIgnoreCase);
+
+        if (!int.TryParse(value[parts[4]], out var version) || version < 1)
         {
             return ParseResult<ST>.Failure(
                 $"Search Target (ST) version must be a positive integer. The value '{searchTarget}' is invalid.");
         }
 
-        return parts[2].ToLowerInvariant() switch
+        if (kind.Equals("device", StringComparison.OrdinalIgnoreCase))
         {
-            "device" => ParseResult<ST>.Success(new ST
+            return ParseResult<ST>.Success(new ST
             {
                 StSearchType = isStandardDomain ? STType.DeviceTypeSearch : STType.DomainDeviceSearch,
                 EntityType = isStandardDomain ? EntityType.DeviceType : EntityType.DomainDevice,
-                Domain = isStandardDomain ? null : parts[1],
-                TypeName = parts[3],
+                Domain = isStandardDomain ? null : domain.ToString(),
+                TypeName = typeName.ToString(),
                 Version = version,
                 STString = searchTarget
-            }),
-            "service" => ParseResult<ST>.Success(new ST
+            });
+        }
+
+        if (kind.Equals("service", StringComparison.OrdinalIgnoreCase))
+        {
+            return ParseResult<ST>.Success(new ST
             {
                 StSearchType = isStandardDomain ? STType.ServiceTypeSearch : STType.DomainServiceSearch,
                 EntityType = isStandardDomain ? EntityType.ServiceType : EntityType.DomainService,
-                Domain = isStandardDomain ? null : parts[1],
-                TypeName = parts[3],
+                Domain = isStandardDomain ? null : domain.ToString(),
+                TypeName = typeName.ToString(),
                 Version = version,
                 STString = searchTarget
-            }),
-            _ => ParseResult<ST>.Failure(
-                $"Search Target (ST) value must be in the form 'urn:[domain]:[device or service]:[type]:[version]'. The value '{searchTarget}' is invalid because of '{parts[2]}'.")
-        };
+            });
+        }
+
+        return ParseResult<ST>.Failure(
+            $"Search Target (ST) value must be in the form 'urn:[domain]:[device or service]:[type]:[version]'. The value '{searchTarget}' is invalid because of '{kind}'.");
     }
 }

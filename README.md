@@ -7,6 +7,8 @@
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![System.Reactive](https://img.shields.io/badge/Rx-7.0-ff69b4.svg)](https://reactivex.io/)
 [![UPnP](https://img.shields.io/badge/UPnP%20Device%20Architecture-2.0-2563EB.svg)](http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v2.0.pdf)
+[![Native AOT](https://img.shields.io/badge/Native%20AOT-compatible-success.svg)](#native-aot-and-trimming)
+[![Analyzers](https://img.shields.io/badge/analyzers-included-8A2BE2.svg)](#analyzers)
 
 An Rx-based SSDP library for discovering and advertising UPnP Device Architecture 2.0 devices and services.
 
@@ -26,6 +28,215 @@ The library is written in a functional style: all message and configuration type
 dotnet add package SSDP.UPnP.PCL
 ```
 
+## Version 10.0 - breaking changes
+
+The release theme is moving failure from run time to build time, and the largest part of that was
+not an analyzer: **the message models now separate what you send from what you received.**
+
+One record used to serve both directions. That is why `CPFN` was optional even though UDA 2.0
+requires it on multicast search (a device that omits it still has to be parsed), and why a unicast
+search could exist without a target endpoint (multicast has none). Every invariant that could not
+be stated in the type was left to be discovered at run time, one `SSDPException` at a time.
+
+### The message types
+
+| Sending | Receiving |
+|---|---|
+| `MulticastMSearch`, `UnicastMSearch` (both `MSearchRequest`) | `ReceivedMSearch` |
+| `Notify` | `ReceivedNotify` |
+| `MSearchResponse` | `ReceivedMSearchResponse` |
+
+`NotifyObservable()` and `MSearchResponseObservable()` now yield the `Received*` types.
+`SendNotifyAsync` and `DatagramComposer` take the send types.
+
+Six runtime exceptions are gone, replaced by things the compiler enforces:
+
+| 9.1 threw | 10.0 |
+|---|---|
+| `A multicast M-SEARCH requires an MX of at least 1 second` | `MxSeconds` cannot hold less |
+| `A unicast M-SEARCH requires a RemoteIpEndPoint` | `UnicastMSearch.Target` is `required` |
+| `M-SEARCH must be either multicast or unicast` | there is no third case |
+| `An M-SEARCH response requires both ST and USN` | both `required` |
+| `A NOTIFY message requires a USN` | `required` |
+| *(silently sent an empty `CPFN.UPNP.ORG:` header)* | `CPFN` is `required` and must be non-empty |
+
+### New value types
+
+- **`MxSeconds`** - the `MX` of a multicast search. Enforces the UDA 2.0 floor of 1 second, and
+  deliberately *not* the ceiling of 5: the same clause allows raising it "if a large number of
+  devices are expected to respond", so a type that refused 6 would refuse something the
+  specification permits. The ceiling is [SSDP001](#ssdp001) instead. `default(MxSeconds)` is 1
+  second, so the default is legal rather than a zero the spec forbids.
+- **`DynamicPort`** - the 49152-65535 range UDA 2.0 fixes for `TCPPORT.UPNP.ORG` and
+  `SEARCHPORT.UPNP.ORG`. One type for what used to be three separate checks, strict on receive and
+  absent on send.
+
+### Removed
+
+`Notify.CacheControl`, `MSearchResponse.CacheControl` and `DeviceInfo.IsUpnp2`, all obsoleted in
+9.1 with this release named as their expiry. Use `MaxAge` and `SupportsAtLeast`.
+
+### Migrating
+
+```csharp
+// 9.1
+await controlPoint.SendMSearchAsync(new MSearchRequest
+{
+    TransportType = TransportType.Multicast,
+    MX = TimeSpan.FromSeconds(5),
+    ST = new ST { StSearchType = STType.All },
+    TCPPORT = 51900,
+    CPFN = "My Control Point"
+}, ipAddress);
+
+// 10.0 - no transport flag, and CPFN is no longer possible to forget
+await controlPoint.SendMSearchAsync(new MulticastMSearch
+{
+    MX = new MxSeconds(5),
+    ST = new ST { StSearchType = STType.All },
+    TCPPORT = new DynamicPort(51900),
+    CPFN = "My Control Point"
+}, ipAddress);
+```
+
+```csharp
+// 9.1 - a unicast search needed HOST and RemoteIpEndPoint to agree
+new MSearchRequest { TransportType = TransportType.Unicast, HOST = "192.168.0.20:1900",
+                     RemoteIpEndPoint = new IPEndPoint(address, 1900), ST = st };
+
+// 10.0 - one endpoint, and HOST is derived from it
+new UnicastMSearch { Target = new IPEndPoint(address, 1900), ST = st };
+```
+
+For observers, the change is a rename: `Notify` becomes `ReceivedNotify` and `MSearchResponse`
+becomes `ReceivedMSearchResponse`. Every property you were reading is still there.
+
+### Lenient about what devices actually send
+
+A USN whose device UUID reads but whose entity part does not is now parsed, with
+`EntityType.Unknown` and the raw value on `USNString`, instead of failing the whole message.
+
+Real networks made the case. A Vera controller bridging a Pioneer receiver advertises
+`urn:pioneer-com:serviceId:Receiver:1` as a search target - a *serviceId* URN, which UDA 2.0
+section 2.3 defines for description documents and without a version suffix. It is not a legal
+search target under any reading, and the `ST` is still refused. But the device UUID in front of it
+is perfectly good, and so is the `LOCATION`, so dropping the message lost a device that was
+plainly there.
+
+`Unknown` is a distinct value rather than a bare UUID on purpose: `uuid:[id]` on its own means a
+device advertising *itself*, which is a real statement, and reporting the two as the same thing
+would claim something the sender never said. Nothing composable comes of it either - asking an
+`Unknown` entity for its URI throws, because this library will not put back on the wire something
+it could not read.
+
+### Also in 10.0
+
+- **A socket leak on the control point's TCP response port is fixed.** The listener hands a
+  connection back when it stops reading it, which happens for any message that says not to keep it
+  alive and for any upgrade request. Nothing claimed those connections, so any peer could leak one
+  socket per message by sending `HTTP/1.0` or `Connection: close`.
+- **Trim and AOT compatible.** `IsTrimmable` and `IsAotCompatible` are set, and the claim is
+  backed by publishing a sample to a native binary and running it, not just by the analyzers
+  staying quiet.
+- **Three analyzers ship in the package** - see below.
+
+## Native AOT and trimming
+
+The library is annotated `IsTrimmable` and `IsAotCompatible`, so a consuming app can publish with
+`PublishAot` or `PublishTrimmed` and get no `IL` warnings from this package.
+
+```xml
+<PublishAot>true</PublishAot>
+```
+
+The annotation is backed by publishing and running, not by the analyzers staying quiet. The device
+sample was published to a native binary and executed: it binds the multicast socket, stamps
+BOOTID, composes the advertisement set and sends it. Whole-graph `PublishTrimmed` reports nothing
+either, and the trimming demonstrably happens - `System.Reactive.dll` goes from 1,387,984 bytes to
+70,144 in a trimmed publish.
+
+There is no reflection to trim away in the first place: parsing and composition are hand-written
+over text headers, so there is no `Type.GetType`, no serializer and no `Expression.Compile`
+anywhere in the library.
+
+Two caveats worth stating plainly. This says nothing about *your* code or your other
+dependencies - trimming is a whole-app property. And the compatible ones here are this library,
+[System.Reactive](https://www.nuget.org/packages/System.Reactive) and
+[SimpleHttpListener.Rx](https://www.nuget.org/packages/SimpleHttpListener.Rx), all of which carry
+the trim annotation. The [analyzers](#analyzers) are irrelevant to it either way: they run in the
+compiler and never reach your output.
+
+## Analyzers
+
+Three rules ship inside this package. Nothing to install: reference `SSDP.UPnP.PCL` and they run.
+
+They report only when the value is a **compile-time constant**. A value that arrives through a
+parameter, a field or a `with` expression is passed over on purpose - the budget is zero false
+positives, and a rule people learn to suppress would poison the two shipping beside it.
+
+SSDP002, SSDP004 and SSDP006 are reserved and unused. Two of them were planned and then deleted by
+the type split above rather than written; the identifiers stay reserved so a suppression cannot
+quietly come to mean something else.
+
+<a id="ssdp001"></a>
+
+### SSDP001 - M-SEARCH MX is above the 5 seconds UDA 2.0 recommends
+
+**What it catches.** `new MxSeconds(30)` and similar, where the value is known at compile time.
+
+**Why it matters.** This one fails silently, which is the point of the rule. UDA 2.0 section 1.3.3
+has a device "assume that it contained the value 5 or less" for any larger `MX`, so a control point
+asking for a thirty second response spread gets five, and nothing tells it. The lower bound is not
+this rule's job: `MxSeconds` already refuses anything below 1.
+
+**How to fix it.** Use 5 or less. A code fix offers exactly that.
+
+**How to suppress it.** Section 1.3.2 explicitly allows raising `MX` "if a large number of devices
+are expected to respond", so suppressing this is a supported use rather than a workaround:
+
+```csharp
+#pragma warning disable SSDP001 // large network, deliberate spread
+var mx = new MxSeconds(15);
+#pragma warning restore SSDP001
+```
+
+<a id="ssdp003"></a>
+
+### SSDP003 - SSDP port is outside the 49152-65535 range UDA 2.0 mandates
+
+**What it catches.** `new DynamicPort(80)` and similar, where the port is known at compile time.
+That covers `TCPPORT.UPNP.ORG` on a search and `SEARCHPORT.UPNP.ORG` on an advertisement.
+
+**Why it matters.** UDA 2.0 section 1.3.2 restricts both to the RFC 4340 dynamic range.
+Constructing a `DynamicPort` outside it throws, and a device that receives such a value rejects the
+whole message.
+
+**How to fix it.** Use a port in 49152-65535 - `Constants.TcpResponseListenerPort` is 51900. There
+is no code fix, because the correct port is whichever one your process actually listens on.
+
+<a id="ssdp005"></a>
+
+### SSDP005 - device configuration value is outside the range UDA 2.0 mandates
+
+**What it catches.** In a `RootDeviceConfiguration` initializer: a `CONFIGID` outside 0-16777215,
+and an `IpEndPoint` whose port is neither 1900 nor in 49152-65535.
+
+**Why it matters.** Both throw `SSDPException` when the `Device` is constructed. Section 1.2.2
+reserves `CONFIGID` above 2^24-1, and a device answers unicast searches on 1900 or on a port it can
+advertise as `SEARCHPORT.UPNP.ORG`.
+
+**How to fix it.** Use a value in range. No code fix: a configuration number is yours to assign and
+a port is yours to bind.
+
+### Turning them off
+
+| Mechanism | Works |
+|---|---|
+| `.editorconfig`: `dotnet_diagnostic.SSDP001.severity = none` | yes |
+| `<NoWarn>$(NoWarn);SSDP001</NoWarn>` | yes |
+| `#pragma warning disable SSDP001` | yes |
+| `ExcludeAssets="analyzers"` on the `PackageReference` | **no** - measured, the rules still run |
+
 ## Version 9.1 - absent lifetimes
 
 Additive, no breaking changes. 9.0 fixed *parsing* `CACHE-CONTROL`, but the result still could not say that a device announced no lifetime at all: `ParseMaxAge` returns `int`, and `CacheControl` is a non-nullable `TimeSpan`, so five different situations all arrived as zero.
@@ -44,7 +255,7 @@ A control point uses this to decide when a device has gone quiet, and the first 
 - **`CacheControl` on those two records is `[Obsolete]`** and will be removed in the next major. It still works, and still populates, so nothing breaks today.
 - `ParseMaxAge` keeps its exact signature and behaviour - it is now literally `TryParseMaxAge(...) ?? 0`, so it cannot drift.
 
-Nothing changes for senders. `RootDeviceConfiguration.CacheControl` stays required and non-nullable, because UDA 2.0 section 1.2.2 requires `CACHE-CONTROL` on every `ssdp:alive`; nullable-on-receive does not become optional-on-send. When composing a message by hand, set `MaxAge` - the composer prefers it and falls back to `CacheControl`, so both spellings emit the identical header. Verified by composing every message kind under 9.0 and 9.1 and diffing: byte-identical.
+Nothing changes for senders. `RootDeviceConfiguration.CacheControl` stays required and non-nullable, because UDA 2.0 section 1.2.2 requires `CACHE-CONTROL` on every `ssdp:alive`; nullable-on-receive does not become optional-on-send. When composing a message by hand, set `MaxAge` - in 9.1 the composer preferred it and fell back to `CacheControl`, so both spellings emitted the identical header. Verified by composing every message kind under 9.0 and 9.1 and diffing: byte-identical. (`CacheControl` on received messages was removed in [10.0](#version-100---breaking-changes); `MaxAge` is now the only spelling.)
 
 ## Version 9.0 - breaking changes
 
@@ -142,9 +353,9 @@ Further behavior notes for 7.0:
 - **Full UDA 2.0 advertisement matrix.** Devices advertise (and answer searches with) the complete message set from UDA 2.0 §1.2.2: three messages for the root device (`upnp:rootdevice`, `uuid:...`, device type), two per embedded device, and one per distinct service type per device. The standard vs vendor-domain URI form is derived from each configuration's `Domain` - you no longer set `EntityType` on configurations.
 - **Periodic re-advertisement.** As UDA 2.0 requires, a started device automatically re-sends its alive advertisements at a random interval between ¼ and ½ of `CacheControl` before they expire. Opt out with `device.AutoReAdvertise = false`.
 - **Strict search validation.** As UDA 2.0 requires, the device silently discards multicast M-SEARCH requests without a valid `MAN: "ssdp:discover"` or an integer `MX ≥ 1`; unicast searches (HOST names the device) need no MX and are answered immediately. Responses to type searches echo the *requested* version in `ST` while `USN` keeps the advertised identity.
-- **TCP search responses (`TCPPORT.UPNP.ORG`).** When a multicast search carries a `TCPPORT` (49152-65535), the device replies over one reliable TCP connection instead of UDP, skipping the MX spread. Set `MSearchRequest.TCPPORT` to your control point's TCP port to use it.
+- **TCP search responses (`TCPPORT.UPNP.ORG`).** When a multicast search carries a `TCPPORT` (49152-65535), the device replies over one reliable TCP connection instead of UDP, skipping the MX spread. Set `MulticastMSearch.TCPPORT` to your control point's TCP port to use it.
 - **Value rules enforced.** Device construction validates UDA 2.0 constraints: every device needs a `DeviceUUID` (non-RFC-4122 values are logged as warnings), `CONFIGID` is required (default 0, range 0-16 777 215), BOOTID fits 31 bits, and the unicast endpoint port must be 1900 (default) or in 49152-65535 (the legal `SEARCHPORT` range). Multicast TTL defaults to 2 per the spec and is configurable via constructor parameters.
-- **M-SEARCH repeats.** `SendMSearchAsync` transmits multicast searches twice by default (UDP is unreliable; UDA 2.0 recommends repeats) - tune with `MSearchRequest.SendCount`.
+- **M-SEARCH repeats.** `SendMSearchAsync` transmits multicast searches twice by default (UDP is unreliable; UDA 2.0 recommends repeats) - tune with `MulticastMSearch.SendCount`.
 - **Advertisement sends are best-effort and concurrent.** Each NOTIFY keeps its own spec-mandated jitter and triple-send cadence, but messages are no longer serialized against each other, so a full alive/byebye burst completes in about a second. Individual send failures are logged (set `Device.Logger`) and never stop the device or abort a batch; `UpdateAsync` always advances BOOTID and, per UDA 2.0, follows the update set with alive advertisements carrying the new BOOTID.
 - **Say goodbye by disposing asynchronously.** `await using` (or an explicit `DisposeAsync`) sends `ssdp:byebye` before releasing resources; plain `Dispose` is the abrupt path and leaves the advertisements to expire on their own. `ByeByeAsync` remains public for revoking advertisements while the device keeps running.
 - **BOOTID stamping.** Leave `BOOTID` at 0 and the device stamps it with the Unix timestamp at start (from its `TimeProvider`, replaceable in tests); set it explicitly to control it yourself.
@@ -175,10 +386,9 @@ using var responses = controlPoint.MSearchResponseObservable()
     .Subscribe(response => Console.WriteLine($"RESPONSE: {response.USN?.USNString} at {response.Location}"));
 
 await controlPoint.SendMSearchAsync(
-    new MSearchRequest
+    new MulticastMSearch
     {
-        TransportType = TransportType.Multicast,
-        MX = TimeSpan.FromSeconds(5),
+        MX = new MxSeconds(5),
         ST = new ST { StSearchType = STType.All },
         CPFN = "My Control Point",
         UserAgent = new UserAgent
@@ -320,15 +530,29 @@ dotnet run --project samples/Sample.Device
 dotnet run --project samples/Sample.ControlPoint
 ```
 
+The control point prints each advertisement as it arrives - `alive`, `byebye`, `update`, search
+replies, and the messages that were dropped with the reason why - then a summary tree of every
+device it saw, with the announced lifetime and boot id. The device prints the advertisement set it
+is about to send as a tree, then its activity, and takes commands on stdin: `u` to multicast
+`ssdp:update` and advance BOOTID, `a` to re-advertise, Enter to say `ssdp:byebye` and exit.
+
+Both files also carry commented-out lines that trigger [SSDP001](#ssdp001), [SSDP003](#ssdp003)
+and [SSDP005](#ssdp005). Uncomment one to watch an analyzer report it - they build as errors in
+this repo, which sets `TreatWarningsAsErrors`.
+
 Both samples accept an explicit IP address as the first argument. Notes for same-host testing:
 
 - **Start the device first.** Both processes share the SSDP UDP port on one host, and unicast search responses are delivered to the most recently bound socket - starting the control point last makes UDP responses land in the right process.
 - **Or use TCP responses**: `dotnet run --project samples/Sample.ControlPoint -- tcp` asks devices to answer over a reliable TCP connection (`TCPPORT.UPNP.ORG`), which side-steps the shared-port ambiguity entirely.
+- **To see the bytes**: add `raw` to capture each datagram as sent and print the ones that fail to parse.
+- **Multicast does not work in Docker, WSL or a devcontainer.** Run the samples on the host; the control point says so itself if nothing answers.
+- **Advertisements arriving but no search replies** is a specific failure with a short list of causes. `NOTIFY` is multicast, flooded to every station and delivered to every socket joined to the group; a search response is unicast back to the port the search left from, so it has to be addressed to this host, allowed in, and handed to this process. Usual suspects, in order: Windows `SSDPSRV` holding UDP 1900, a firewall dropping unsolicited inbound UDP, a VM bridged over Wi-Fi (access points often refuse a second MAC behind one radio), or a VM on NAT. Running with `tcp` splits the first from the rest. The sample prints all of this when it happens.
 - Across two machines on the same LAN, no precautions are needed - start them in any order.
-- On Windows, stop the built-in *SSDP Discovery* service first; it intercepts the multicasts.
+- On Windows, stop the built-in *SSDP Discovery* service first (`net stop SSDPSRV`, elevated); it holds UDP 1900 and takes the unicast search replies. It is trigger-started, so it restarts on its own - opening Network in Explorer or any UPnP-aware app is enough, and replies stop again mid-session. `sc config SSDPSRV start=disabled` makes it stick; `start=demand` puts it back.
 
 ## Version history
 
+- **10.0.0** - breaking: the message models split by direction and transport (`MulticastMSearch`/`UnicastMSearch` and `Received*` for what arrives), which deletes six runtime exceptions in favour of `required` members and the `MxSeconds`/`DynamicPort` value types; removes the obsolete `CacheControl` and `IsUpnp2`; fixes a socket leak on the control point's TCP response port; declares trim and AOT compatibility, verified by running a native binary; ships three analyzers ([SSDP001](#ssdp001), [SSDP003](#ssdp003), [SSDP005](#ssdp005)) inside the package. Nothing changes on the wire.
 - **9.1.0** - additive: `MaxAge` (`TimeSpan?`) on received messages and `TryParseMaxAge`, so an absent `CACHE-CONTROL` is no longer indistinguishable from `max-age=0`; `CacheControl` on those records is obsolete. Nothing changes on the wire.
 - **9.0.0** - breaking: received `BOOTID` and `Date` are nullable, and the UPnP version from `SERVER`/`USER-AGENT` is an `int?` located by token name, so absence is reported rather than fabricated; adds the UPnP 1.0 `NLS` header, opt-in raw wire capture and parse-failure diagnostics, `IAsyncDisposable` with an automatic `ssdp:byebye`, and `ConfigureAwait(false)` throughout; fixes `CACHE-CONTROL` with multiple directives parsing to `max-age` 0. Nothing changes on the wire.
 - **8.0.0** - breaking: the control point's `Start(ct)`/`IsStarted` are removed; its observables start listening on first subscription and stop on last disposal. Requires SimpleHttpListener.Rx 7.3.0, and fixes device interface matching for the per-datagram local endpoint that release reports.

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(SsdpAnalyzerTargetFramework)</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <Nullable>annotations</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(RoslynVersion)" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="$(RoslynAnalyzersVersion)" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- The two analyzer assemblies cannot reference each other: a reverse reference
+       cycles with packing, and RS1038 forbids the analyzer assembly seeing the
+       Workspaces layer. Shared identifiers travel as linked source instead. -->
+  <ItemGroup>
+    <Compile Include="../SSDP.UPnP.PCL.Analyzers/DiagnosticIds.cs" Link="DiagnosticIds.cs" />
+  </ItemGroup>
+
+</Project>

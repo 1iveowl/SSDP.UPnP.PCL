@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The testing packages floor Roslyn at 1.0.1, which restores as .NET Framework
+         and trips NU1701. Referencing the modern one directly raises the floor. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(RoslynVersion)" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="$(CodeAnalysisTestingVersion)" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing" Version="$(CodeAnalysisTestingVersion)" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit.v3" Version="2.0.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SSDP.UPnP.PCL.Analyzers\SSDP.UPnP.PCL.Analyzers.csproj" />
+    <ProjectReference Include="..\..\src\SSDP.UPnP.PCL.Analyzers.CodeFixes\SSDP.UPnP.PCL.Analyzers.CodeFixes.csproj" />
+    <!-- The real library, for the guard test that pins the analyzer's type-name
+         constants against the actual types. Test compilations cannot reference it
+         (reference assemblies stop at net9.0), so the rules are exercised against a
+         source stub and the stub is held honest by reflection. -->
+    <ProjectReference Include="..\..\src\SSDP.UPnP.PCL\SSDP.UPnP.PCL.csproj" />
+  </ItemGroup>
+
+</Project>

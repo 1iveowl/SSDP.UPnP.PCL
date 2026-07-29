@@ -41,8 +41,10 @@ jobs:
       - name: Build
         run: dotnet build SSDP.UPnP.PCL.slnx -c Release --no-restore -warnaserror
 
+      # The whole solution, not one project: the analyzer tests live in their own
+      # project and were not being run at all.
       - name: Test
-        run: dotnet test tests/SSDP.UPnP.PCL.Tests/SSDP.UPnP.PCL.Tests.csproj -c Release --no-build
+        run: dotnet test SSDP.UPnP.PCL.slnx -c Release --no-build
 
       - name: Pack
         run: dotnet pack src/SSDP.UPnP.PCL/SSDP.UPnP.PCL.csproj -c Release --no-build -o artifacts ${{ steps.version.outputs.pack_args }}

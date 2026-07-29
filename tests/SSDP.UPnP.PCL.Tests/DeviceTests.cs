@@ -35,45 +35,10 @@ public class DeviceTests
         ]
     };
 
-    // The device's unicast search port must be 1900 or in the 49152-65535 range
-    // UDA 2.0 allows for SEARCHPORT, so tests bind an explicit in-range port,
-    // retrying past ports that are already taken.
-    private static T BindWithRetry<T>(Func<int, T> bind)
-    {
-        for (var attempt = 0; ; attempt++)
-        {
-            var port = Random.Shared.Next(Constants.MinDynamicPort, Constants.MaxDynamicPort + 1);
-
-            try
-            {
-                return bind(port);
-            }
-            catch (SocketException) when (attempt < 20)
-            {
-            }
-        }
-    }
-
-    private static UdpClient BindDynamicRange() =>
-        BindWithRetry(port => new UdpClient(new IPEndPoint(IPAddress.Loopback, port)));
-
-    // Wildcard-bound, in the SEARCHPORT range: how multicast sockets are bound on
-    // Linux/macOS.
-    private static UdpClient BindWildcardDynamicRange() =>
-        BindWithRetry(port => new UdpClient(new IPEndPoint(IPAddress.Any, port)));
-
-    private static TcpListener BindDynamicRangeTcp() =>
-        BindWithRetry(port =>
-        {
-            var listener = new TcpListener(new IPEndPoint(IPAddress.Loopback, port));
-            listener.Start();
-            return listener;
-        });
-
     private static RootDeviceInterface LoopbackInterface(RootDeviceConfiguration configuration)
     {
         var multicastClient = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
-        var unicastClient = BindDynamicRange();
+        var unicastClient = LoopbackSockets.Udp();
 
         return new RootDeviceInterface
         {
@@ -304,7 +269,7 @@ public class DeviceTests
     public async Task Device_RepliesOverTcp_WhenTcpPortRequested()
     {
         var rootInterface = LoopbackInterface(Configuration());
-        using var tcpListener = BindDynamicRangeTcp();
+        using var tcpListener = LoopbackSockets.Tcp();
 
         var tcpPort = ((IPEndPoint)tcpListener.LocalEndpoint).Port;
 
@@ -550,7 +515,7 @@ public class DeviceTests
         // listener reports the interface the datagram actually arrived on (not the
         // socket's 0.0.0.0 bind address). Interface matching must accept that, or
         // the device silently ignores every multicast M-SEARCH.
-        var multicastClient = BindWildcardDynamicRange();
+        var multicastClient = LoopbackSockets.WildcardUdp();
         var boundPort = ((IPEndPoint)multicastClient.Client.LocalEndPoint!).Port;
 
         var configuration = Configuration() with
@@ -604,7 +569,7 @@ public class DeviceTests
         var rootInterface = LoopbackInterface(Configuration());
         var boundPort = ((IPEndPoint)rootInterface.UdpUnicastClient.Client.LocalEndPoint!).Port;
 
-        Assert.Equal(boundPort, rootInterface.SearchPort);
+        Assert.Equal(boundPort, rootInterface.SearchPort?.Port);
 
         DisposeInterface(rootInterface);
     }
@@ -612,7 +577,7 @@ public class DeviceTests
     [Fact]
     public void IsMatchingInterface_WildcardBound_RequiresMatchingConfiguredAddress()
     {
-        var multicastClient = BindWildcardDynamicRange();
+        var multicastClient = LoopbackSockets.WildcardUdp();
         var boundPort = ((IPEndPoint)multicastClient.Client.LocalEndPoint!).Port;
 
         var rootInterface = new RootDeviceInterface
@@ -729,7 +694,50 @@ public class DeviceTests
     public void Device_WithoutInterfaces_Throws()
     {
         Assert.Throws<SSDPException>(() => new Device(Array.Empty<RootDeviceInterface>()));
-        Assert.Throws<SSDPException>(() => new Device(new RootDeviceConfiguration()));
+        Assert.Throws<SSDPException>(() => new Device(
+            new RootDeviceConfiguration { Location = new Uri("http://127.0.0.1/description.xml") }));
+    }
+
+    // A service that cannot form a URI would otherwise fail once per message at
+    // send time, where the failure is logged and the device quietly advertises
+    // less than it should.
+    // The endpoint has to be set, or construction throws "must be fully specified"
+    // before it ever looks at the services - and the assertion below would pass
+    // with the service validation deleted. The message is asserted for the same
+    // reason: SSDPException on its own says nothing about which check ran.
+    private static RootDeviceConfiguration ConfigurationWithServices(params ServiceConfiguration[] services) =>
+        Configuration() with
+        {
+            IpEndPoint = new IPEndPoint(IPAddress.Loopback, Constants.UdpSSDPMulticastPort),
+            Services = services
+        };
+
+    [Fact]
+    public void Device_RejectsAServiceWithoutATypeName()
+    {
+        var error = Assert.Throws<SSDPException>(
+            () => new Device(ConfigurationWithServices(new ServiceConfiguration { Version = 1 })));
+
+        Assert.Contains("TypeName", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Device_RejectsADeviceTypeWithoutAVersion()
+    {
+        var configuration = ConfigurationWithServices() with { Version = 0 };
+
+        var error = Assert.Throws<SSDPException>(() => new Device(configuration));
+
+        Assert.Contains("version", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Device_RejectsAServiceWithoutAVersion()
+    {
+        var error = Assert.Throws<SSDPException>(
+            () => new Device(ConfigurationWithServices(new ServiceConfiguration { TypeName = "TestService" })));
+
+        Assert.Contains("version", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

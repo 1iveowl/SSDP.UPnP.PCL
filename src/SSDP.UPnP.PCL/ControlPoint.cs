@@ -43,9 +43,9 @@ public class ControlPoint : IControlPoint
     // signal. Individual subscriptions stop by being disposed.
     private readonly CancellationTokenSource _lifetimeCts = new();
 
-    private readonly IObservable<MSearchResponse> _mSearchResponseObservable;
+    private readonly IObservable<ReceivedMSearchResponse> _mSearchResponseObservable;
 
-    private readonly IObservable<Notify> _notifyObservable;
+    private readonly IObservable<ReceivedNotify> _notifyObservable;
 
     private readonly IObservable<SsdpParseFailure> _parseFailureObservable;
 
@@ -61,7 +61,7 @@ public class ControlPoint : IControlPoint
 
     /// <summary>
     /// Whether each received datagram's bytes are captured as sent, into
-    /// <see cref="Model.Notify.RawMessage"/>, <see cref="MSearchResponse.RawMessage"/>
+    /// <see cref="ReceivedNotify.RawMessage"/>, <see cref="ReceivedMSearchResponse.RawMessage"/>
     /// and <see cref="SsdpParseFailure.RawMessage"/>. Off by default; set it before
     /// the first subscription, since that is when listening starts.
     /// </summary>
@@ -287,11 +287,34 @@ public class ControlPoint : IControlPoint
             if (node.TcpListener is not null)
             {
                 listenerObservables.Add(
-                    node.TcpListener.ToHttpListenerObservable(options, ct, ErrorCorrection.HeaderCompletionError));
+                    node.TcpListener
+                        .ToHttpListenerObservable(options, ct, ErrorCorrection.HeaderCompletionError)
+                        .Do(ReleaseOwnedConnection));
             }
         }
 
         return listenerObservables.Merge();
+    }
+
+    // The listener hands a TCP connection to its consumer whenever it stops reading
+    // it: when the message says not to keep the connection alive, and when the
+    // message asks for a protocol upgrade. A control point answers nothing it
+    // receives, so there is no response whose sending would close the connection as
+    // a side effect — it has to be released here.
+    //
+    // Without this the socket leaks, and any peer can trigger it at will by sending
+    // HTTP/1.0 or "Connection: close" to the response port. Both conditions are
+    // needed: an upgrade request has ShouldKeepAlive == true and would otherwise
+    // slip through.
+    //
+    // Only the listeners this control point owns go through here. A stream supplied
+    // to HotStart belongs to the caller, connections and all.
+    private static void ReleaseOwnedConnection(HttpRequestResponse message)
+    {
+        if (!message.ShouldKeepAlive || message.IsUpgradeRequest)
+        {
+            message.Connection?.Dispose();
+        }
     }
 
     /// <inheritdoc />
@@ -314,14 +337,14 @@ public class ControlPoint : IControlPoint
     /// failures, use <see cref="HotStart"/> with your own listener and
     /// <see cref="SsdpMessageParser"/>.
     /// </remarks>
-    public IObservable<MSearchResponse> MSearchResponseObservable() => _mSearchResponseObservable;
+    public IObservable<ReceivedMSearchResponse> MSearchResponseObservable() => _mSearchResponseObservable;
 
     /// <inheritdoc />
     /// <remarks>
     /// Only <c>ssdp:alive</c>, <c>ssdp:byebye</c> and <c>ssdp:update</c>
     /// notifications are emitted; other or unparsable messages are dropped.
     /// </remarks>
-    public IObservable<Notify> NotifyObservable() => _notifyObservable;
+    public IObservable<ReceivedNotify> NotifyObservable() => _notifyObservable;
 
     /// <inheritdoc />
     public IObservable<SsdpParseFailure> ParseFailures() => _parseFailureObservable;
@@ -350,12 +373,14 @@ public class ControlPoint : IControlPoint
 
         var dataGram = DatagramComposer.ComposeMSearchRequest(mSearch);
 
-        switch (mSearch.TransportType)
+        // No "neither transport" case to guard and no missing-endpoint case to
+        // throw for: the request type carries both, and the hierarchy is closed.
+        switch (mSearch)
         {
-            case TransportType.Multicast:
+            case MulticastMSearch multicast:
                 // UDA 2.0 section 1.3.2: control points should send each M-SEARCH
                 // more than once, since UDP is unreliable.
-                var sendCount = Math.Max(1, mSearch.SendCount);
+                var sendCount = Math.Max(1, multicast.SendCount);
 
                 for (var i = 0; i < sendCount; i++)
                 {
@@ -371,13 +396,11 @@ public class ControlPoint : IControlPoint
                 }
 
                 break;
-            case TransportType.Unicast when mSearch.RemoteIpEndPoint is not null:
-                await SendOnTcpAsync(mSearch.RemoteIpEndPoint, dataGram, ct).ConfigureAwait(false);
+            case UnicastMSearch unicast:
+                await SendOnTcpAsync(unicast.Target, dataGram, ct).ConfigureAwait(false);
                 break;
-            case TransportType.Unicast:
-                throw new SSDPException("A unicast M-SEARCH requires a RemoteIpEndPoint.");
             default:
-                throw new SSDPException("M-SEARCH must be either multicast or unicast.");
+                throw new SSDPException($"Unknown M-SEARCH request type: {mSearch.GetType().Name}.");
         }
     }
 

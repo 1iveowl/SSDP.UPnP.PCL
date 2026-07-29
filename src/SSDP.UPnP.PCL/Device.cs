@@ -81,7 +81,7 @@ public class Device : IDevice
 
     /// <summary>
     /// Whether each received datagram's bytes are captured as sent, into
-    /// <see cref="MSearchRequest.RawMessage"/> and
+    /// <see cref="ReceivedMSearch.RawMessage"/> and
     /// <see cref="SsdpParseFailure.RawMessage"/>. Off by default; set it before
     /// starting, since that is when listening begins.
     /// </summary>
@@ -237,6 +237,27 @@ public class Device : IDevice
             {
                 throw new SSDPException("BOOTID must fit a non-negative 31-bit integer (UDA 2.0 section 1.2.2).");
             }
+
+            // A device or service type that cannot form a URI would otherwise fail
+            // per-message at send time, where the failure is caught and logged and
+            // the device just quietly advertises less than it should.
+            foreach (var service in device.Services)
+            {
+                if (string.IsNullOrEmpty(service.TypeName))
+                {
+                    throw new SSDPException("Every service must specify a TypeName.");
+                }
+
+                if (service.Version < 1)
+                {
+                    throw new SSDPException("Every service must specify a version of 1 or greater (UPnP versions start at 1).");
+                }
+            }
+
+            if (!string.IsNullOrEmpty(device.TypeName) && device.Version < 1)
+            {
+                throw new SSDPException("A device that specifies a TypeName must also specify a version of 1 or greater.");
+            }
         }
 
         if (root.CONFIGID is < 0 or > 16777215)
@@ -249,12 +270,11 @@ public class Device : IDevice
     // that port is unavailable; an advertised SEARCHPORT must be in 49152-65535.
     private static void ValidateUnicastPort(int port)
     {
-        if (port != Constants.UdpSSDPMulticastPort
-            && port is < Constants.MinDynamicPort or > Constants.MaxDynamicPort)
+        if (port != Constants.UdpSSDPMulticastPort && !DynamicPort.IsValid(port))
         {
             throw new SSDPException(
                 $"The unicast search port must be {Constants.UdpSSDPMulticastPort} or in the range " +
-                $"{Constants.MinDynamicPort}-{Constants.MaxDynamicPort} (UDA 2.0 section 1.2.2, SEARCHPORT.UPNP.ORG).");
+                $"{DynamicPort.MinimumPort}-{DynamicPort.MaximumPort} (UDA 2.0 section 1.2.2, SEARCHPORT.UPNP.ORG).");
         }
     }
 
@@ -350,7 +370,7 @@ public class Device : IDevice
 
     // A malformed search must be discarded in silence (UDA 2.0 section 1.3.3), so
     // reporting it here is the only way a consumer can find out it happened.
-    private void ReportParseFailure((HttpRequestResponse Message, ParseResult<MSearchRequest> Result) parsed)
+    private void ReportParseFailure((HttpRequestResponse Message, ParseResult<ReceivedMSearch> Result) parsed)
     {
         if (!parsed.Result.IsSuccess)
         {
@@ -426,7 +446,7 @@ public class Device : IDevice
     // Answers one M-SEARCH request. Never throws: request handling failures are
     // logged and must not terminate the listener pipeline (a dead pipeline would
     // silently stop the device answering all future searches).
-    private async Task<MSearchRequest> RespondAsync(MSearchRequest request)
+    private async Task<ReceivedMSearch> RespondAsync(ReceivedMSearch request)
     {
         try
         {
@@ -454,7 +474,7 @@ public class Device : IDevice
             if (request.TCPPORT is { } tcpPort)
             {
                 await SendResponsesOverTcpAsync(
-                    new IPEndPoint(request.RemoteIpEndPoint.Address, tcpPort),
+                    new IPEndPoint(request.RemoteIpEndPoint.Address, tcpPort.Port),
                     responses).ConfigureAwait(false);
 
                 return request;
@@ -622,9 +642,6 @@ public class Device : IDevice
                 NotifyTransportType = TransportType.Multicast,
                 HOST = Constants.SsdpMulticastHost,
                 MaxAge = root.CacheControl,
-#pragma warning disable CS0618 // Obsolete but still carried until the next major.
-                CacheControl = root.CacheControl,
-#pragma warning restore CS0618
                 Location = root.Location,
                 NT = message.Entity.ToUriString(),
                 NTS = nts,

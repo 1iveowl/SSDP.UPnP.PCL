@@ -28,22 +28,6 @@ public class RawCaptureTests
         RemoteEndPoint = new IPEndPoint(IPAddress.Parse("192.168.0.20"), 40000)
     };
 
-    private static System.Net.Sockets.UdpClient BindInSearchPortRange()
-    {
-        for (var attempt = 0; ; attempt++)
-        {
-            var port = Random.Shared.Next(Constants.MinDynamicPort, Constants.MaxDynamicPort + 1);
-
-            try
-            {
-                return new System.Net.Sockets.UdpClient(new IPEndPoint(IPAddress.Loopback, port));
-            }
-            catch (System.Net.Sockets.SocketException) when (attempt < 20)
-            {
-            }
-        }
-    }
-
     private static ControlPoint HotStartedControlPoint(IObservable<HttpRequestResponse> source)
     {
         var controlPoint = new ControlPoint(new ControlPointInterface { IpAddress = IPAddress.Loopback });
@@ -65,7 +49,7 @@ public class RawCaptureTests
         using var controlPoint = HotStartedControlPoint(subject);
 
         var failures = new List<SsdpParseFailure>();
-        var responses = new List<MSearchResponse>();
+        var responses = new List<ReceivedMSearchResponse>();
 
         using var failureSubscription = controlPoint.ParseFailures().Subscribe(failures.Add);
         using var responseSubscription = controlPoint.MSearchResponseObservable().Subscribe(responses.Add);
@@ -121,7 +105,7 @@ public class RawCaptureTests
         var subject = new Subject<HttpRequestResponse>();
         using var controlPoint = HotStartedControlPoint(subject);
 
-        var received = new List<Notify>();
+        var received = new List<ReceivedNotify>();
         using var subscription = controlPoint.NotifyObservable().Subscribe(received.Add);
 
         // No RawMessage on the incoming message models capture being disabled.
@@ -152,7 +136,7 @@ public class RawCaptureTests
         var subject = new Subject<HttpRequestResponse>();
         using var controlPoint = HotStartedControlPoint(subject);
 
-        var received = new List<Notify>();
+        var received = new List<ReceivedNotify>();
         using var subscription = controlPoint.NotifyObservable().Subscribe(received.Add);
 
         subject.OnNext(Message(MessageType.Request, new Dictionary<string, string>
@@ -176,7 +160,7 @@ public class RawCaptureTests
         // UDA 2.0 section 1.3.3 requires the device to ignore a malformed search
         // without replying, which is invisible without this stream.
         // The unicast port must be 1900 or in the SEARCHPORT range, so bind in range.
-        var multicastClient = BindInSearchPortRange();
+        var multicastClient = LoopbackSockets.Udp();
 
         var rootInterface = new RootDeviceInterface
         {
@@ -185,6 +169,7 @@ public class RawCaptureTests
                 DeviceUUID = "root-uuid",
                 TypeName = "TestRootDevice",
                 Version = 1,
+                Location = new Uri("http://127.0.0.1/description.xml"),
                 BOOTID = 1,
                 IpEndPoint = (IPEndPoint)multicastClient.Client.LocalEndPoint!
             },
